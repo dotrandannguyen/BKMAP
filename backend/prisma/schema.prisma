@@ -1,0 +1,281 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  
+
+}
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
+// --- ENUMS ---
+
+enum IntegrationProvider {
+  GOOGLE
+  GITHUB
+
+  @@map("integration_provider")
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  ERROR
+
+  @@map("integration_status")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  ARCHIVED
+
+  @@map("task_status")
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@map("task_priority")
+}
+
+enum TaskSource {
+  MANUAL
+  GMAIL
+  GITHUB
+
+  @@map("task_source")
+}
+
+enum ActivityType {
+  CREATED
+  UPDATED_STATUS
+  COMMENTED
+  AUTO_SYNCED
+
+  @@map("activity_type")
+}
+
+enum SyncResource {
+  GMAIL_INBOX
+  GITHUB_ISSUES
+  GITHUB_PULL_REQUESTS
+
+  @@map("sync_resource")
+}
+
+enum NotifType {
+  EMAIL_REMINDER
+  SYSTEM_ALERT
+
+  @@map("notif_type")
+}
+
+enum NotifStatus {
+  PENDING
+  SENT
+  FAILED
+
+  @@map("notif_status")
+}
+
+// --- MODELS ---
+
+/// Người dùng hệ thống
+model User {
+  id           String    @id @default(uuid()) // Đổi Int -> String, dùng hàm uuid()
+  email        String    @unique
+  passwordHash String?   @map("password_hash")
+  fullName     String?   @map("full_name")
+  avatarUrl    String?   @map("avatar_url")
+  
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  // Relations (Không thay đổi tên, chỉ thay đổi kiểu dữ liệu bên dưới)
+  integrations   Integration[]
+  tasks          Task[]
+  tags           Tag[]
+  taskActivities TaskActivity[]
+  syncLogs       SyncLog[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model Integration {
+  id                    String              @id @default(uuid())
+  userId                String              @map("user_id") // Int -> String
+  provider              IntegrationProvider
+  providerUserId        String              @map("provider_user_id")
+  
+  accessTokenEncrypted  String              @map("access_token_encrypted") @db.Text
+  refreshTokenEncrypted String?             @map("refresh_token_encrypted") @db.Text
+  expiresAt             DateTime?           @map("expires_at")
+  
+  profileData           Json?               @map("profile_data")
+  status                IntegrationStatus   @default(ACTIVE)
+  
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @default(now()) @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id])
+  syncLogs SyncLog[]
+
+  @@unique([userId, provider])
+  @@unique([provider, providerUserId])
+  @@map("integrations")
+}
+
+model Task {
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id") // Int -> String
+  
+  title          String
+  description    String?      @db.Text
+  status         TaskStatus   @default(PENDING)
+  priority       TaskPriority @default(MEDIUM)
+  
+  dueDate        DateTime?    @map("due_date")
+  reminderAt     DateTime?    @map("reminder_at")
+  completedAt    DateTime?    @map("completed_at")
+  
+  sourceType     TaskSource   @default(MANUAL) @map("source_type")
+  sourceId       String?      @map("source_id")
+  sourceLink     String?      @map("source_link")
+  sourceMetadata Json?        @map("source_metadata")
+  
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+
+  user          User           @relation(fields: [userId], references: [id])
+  taskTags      TaskTag[]
+  activities    TaskActivity[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, dueDate])
+  @@map("tasks")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id") // Int -> String
+  name      String
+  colorHex  String?  @default("#808080") @map("color_hex")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id])
+  taskTags TaskTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model TaskTag {
+  taskId String @map("task_id") // Int -> String
+  tagId  String @map("tag_id")  // Int -> String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@map("task_tags")
+}
+
+model TaskActivity {
+  id        String       @id @default(uuid())
+  taskId    String       @map("task_id") // Int -> String
+  userId    String?      @map("user_id") // Int -> String
+  
+  type      ActivityType
+  oldValue  Json?        @map("old_value")
+  newValue  Json?        @map("new_value")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  task Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("task_activities")
+}
+
+model SyncLog {
+  id            String       @id @default(uuid())
+  userId        String       @map("user_id") // Int -> String
+  integrationId String       @map("integration_id") // Int -> String
+  
+  resourceType  SyncResource @map("resource_type")
+  lastSyncedAt  DateTime     @map("last_synced_at")
+  
+  nextPageToken String?      @map("next_page_token")
+  syncCursor    String?      @map("sync_cursor")
+  
+  status        String
+  itemsProcessed Int         @default(0) @map("items_processed")
+  errorMessage  String?      @map("error_message") @db.Text
+  
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  user        User        @relation(fields: [userId], references: [id])
+  integration Integration @relation(fields: [integrationId], references: [id])
+
+  @@map("sync_logs")
+}
+
+model Notification {
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id") // Int -> String
+  taskId      String?     @map("task_id") // Int -> String
+  
+  type        NotifType
+  title       String?
+  content     String?     @db.Text
+  
+  scheduledAt DateTime    @map("scheduled_at")
+  sentAt      DateTime?   @map("sent_at")
+  status      NotifStatus @default(PENDING)
+  retryCount  Int         @default(0) @map("retry_count")
+  
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user User  @relation(fields: [userId], references: [id])
+  task Task? @relation(fields: [taskId], references: [id])
+
+  @@index([status, scheduledAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id") // Int -> String
+  action      String
+  entityTable String?  @map("entity_table")
+  entityId    String?  @map("entity_id") // Quan trọng: entity_id cũng phải đổi sang String để lưu UUID
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
