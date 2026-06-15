@@ -22,4 +22,7 @@ router.post(
 // Dành cho việc bấm link trực tiếp từ Email (trình duyệt gửi GET request)
 router.get('/verify-email', authController.verifyEmailGet);
 
+router.post('/refresh-token', authController.refreshToken);
+router.post('/logout', authController.logout); // You can add authentication middleware here if desired
+
 export default router;

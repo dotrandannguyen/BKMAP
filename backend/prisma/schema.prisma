@@ -7,91 +7,108 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Bảng tài khoản người dùng (Thành viên CLB / Admin)
-model User {
-  id           String    @id @default(uuid()) @db.Uuid
-  email        String    @unique @db.VarChar(50)
-  passwordHash String    @db.VarChar(255)
-  userName     String?   @db.VarChar(100)
-  avatar       String?   @db.Text
-  isVerified   Boolean   @default(false)
-  verifyToken  String?   @db.VarChar(255)
-  tokenExpires DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  // Mối quan hệ: Một user có thể tạo nhiều phòng trọ
-  roomsCreated Room[] @relation("UserToRoom")
+// --- ENUMS ---
+enum RoomStatus {
+  AVAILABLE      // Còn phòng
+  ALMOST_FULL    // Sắp hết
+  FULL           // Hết phòng
 }
 
-// Bảng thông tin Chủ trọ
+// --- MODELS ---
+
+// 1. Bảng tài khoản người dùng (Thành viên CLB / Admin)
+model User {
+  id                 String    @id @default(uuid()) @db.Uuid
+  email              String    @unique @db.VarChar(50)
+  passwordHash       String    @db.VarChar(255)
+  userName           String?   @db.VarChar(100)
+  avatar             String?   @db.Text
+  isVerified         Boolean   @default(false)
+  verifyToken        String?   @db.VarChar(255)
+  tokenExpires       DateTime?
+  hashedRefreshToken String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Mối quan hệ
+  roomsCreated       Room[]    @relation("UserToRoom")
+}
+
+// 2. Bảng thông tin Chủ trọ
 model Owner {
   id          String @id @default(uuid()) @db.Uuid
   userName    String @db.VarChar(100)
   phoneNumber String @db.VarChar(20)
 
   // Mối quan hệ: Một chủ trọ có thể sở hữu nhiều phòng trọ
-  rooms Room[]
+  rooms       Room[]
 }
 
-// Bảng thông tin Phòng trọ chính
+// 3. Bảng thông tin Phòng trọ chính
 model Room {
-  id           String   @id @default(uuid()) @db.Uuid
-  title        String   @db.VarChar(255) // Tiêu đề bài đăng
-  address      String   @db.Text // Địa chỉ chi tiết
-  latitude     Decimal  @db.Decimal(10, 8) // Vĩ độ bản đồ
-  longitude    Decimal  @db.Decimal(11, 8) // Kinh độ bản đồ
-  distanceToBk Decimal? @db.Decimal(5, 2) // Khoảng cách tới trường Bách Khoa
+  id               String   @id @default(uuid()) @db.Uuid
+  title            String   @db.VarChar(255) // Tiêu đề bài đăng
+  
+  // Dữ liệu bóc tách từ Map
+  address          String   @db.Text // Địa chỉ chi tiết
+  street           String?  @db.VarChar(150) // Tên đường (Trích xuất từ Map)
+  ward             String?  @db.VarChar(100) // Phường (Trích xuất từ Map)
+  latitude         Decimal  @db.Decimal(10, 8) // Vĩ độ bản đồ
+  longitude        Decimal  @db.Decimal(11, 8) // Kinh độ bản đồ
+  distanceToBk     Decimal? @db.Decimal(5, 2) // Khoảng cách tới Bách Khoa
 
+  // Thông tin cơ bản
   price            Int // Giá thuê (đơn vị: VNĐ)
   area             Decimal @db.Decimal(5, 2) // Diện tích m2
   electricityPrice Int? // Giá điện
   waterPrice       Int? // Giá nước
 
-  sharedOwner Boolean @default(false) // Ở chung chủ hay không (true/false)
-  curfew      String? @db.VarChar(100) // Giờ giới nghiêm (nếu có)
-  description String? @db.Text // Mô tả chi tiết thêm
+  // Phân loại
+  status           RoomStatus @default(AVAILABLE)
+  sharedOwner      Boolean    @default(false) // Ở chung chủ hay không
+  curfew           String?    @db.VarChar(100) // Giờ giới nghiêm
+  description      String?    @db.Text // Mô tả chi tiết
 
-  createdBy String   @db.Uuid // ID người tạo bài (FK)
-  ownerId   String   @db.Uuid // ID chủ trọ (FK)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Khóa ngoại
+  createdBy        String   @db.Uuid // ID người tạo bài (FK)
+  ownerId          String   @db.Uuid // ID chủ trọ (FK)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Khai báo liên kết các mối quan hệ (Relations)
-  creator  User          @relation("UserToRoom", fields: [createdBy], references: [id])
-  owner    Owner         @relation(fields: [ownerId], references: [id])
-  images   RoomImage[]
-  features RoomFeature[] // Liên kết sang bảng trung gian tiện ích
+  creator          User          @relation("UserToRoom", fields: [createdBy], references: [id])
+  owner            Owner         @relation(fields: [ownerId], references: [id])
+  images           RoomImage[]
+  features         RoomFeature[] 
 }
 
-// Bảng danh mục Tiện ích / Nội thất (Wifi, Điều hòa, Gác lửng, Máy giặt...)
+// 4. Bảng danh mục Tiện ích / Nội thất (Wifi, Điều hòa, Gác lửng...)
 model Feature {
-  id   String  @id @default(uuid()) @db.Uuid
-  name String  @unique @db.VarChar(100) // Tên tiện ích
-  icon String? @db.VarChar(50) // Tên icon để frontend hiển thị
+  id    String  @id @default(uuid()) @db.Uuid
+  name  String  @unique @db.VarChar(100) // Tên tiện ích
+  icon  String? @db.VarChar(50) // Tên icon hiển thị
 
-  // Mối quan hệ N-N với Room thông qua bảng trung gian
   rooms RoomFeature[]
 }
 
-// Bảng trung gian N-N liên kết giữa Phòng trọ và Tiện ích
+// 5. Bảng trung gian N-N liên kết giữa Phòng trọ và Tiện ích
 model RoomFeature {
   roomId    String @db.Uuid
   featureId String @db.Uuid
 
-  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  room      Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
 
   @@id([roomId, featureId]) // Khóa chính tổ hợp
 }
 
-// Bảng lưu danh sách ảnh của phòng trọ
+// 6. Bảng lưu danh sách ảnh của phòng trọ
 model RoomImage {
   id           String   @id @default(uuid()) @db.Uuid
   roomId       String   @db.Uuid
   imageUrl     String   @db.Text
-  displayOrder Int      @default(0) // Thứ tự hiển thị (ảnh nào hiện trước)
+  displayOrder Int      @default(0) // Thứ tự hiển thị
   createdAt    DateTime @default(now())
 
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  room         Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 }

@@ -1,6 +1,12 @@
 import prisma from '../../config/database.js';
 
 export const authRepository = {
+	async findUserById(id) {
+		return await prisma.user.findUnique({
+			where: { id },
+		});
+	},
+
 	async findUserByEmail(email) {
 		return await prisma.user.findUnique({
 			// Prisma generate model là User (PascalCase)
@@ -35,6 +41,13 @@ export const authRepository = {
 				verifyToken: null,
 				tokenExpires: null,
 			},
+		});
+	},
+
+	async updateRefreshToken(userId, hashedRefreshToken) {
+		return await prisma.user.update({
+			where: { id: userId },
+			data: { hashedRefreshToken: hashedRefreshToken },
 		});
 	},
 };

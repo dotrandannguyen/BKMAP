@@ -14,7 +14,18 @@ export const authController = {
 	async login(req, res, next) {
 		try {
 			const data = await authService.login(req.body);
-			return new HttpResponse(res).success(data);
+
+			// Tách refreshToken ra khỏi response body và lưu vào cookie HttpOnly
+			const { refreshToken, accessToken, user } = data;
+
+			res.cookie('refreshToken', refreshToken, {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict',
+				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+			});
+
+			return new HttpResponse(res).success({ user, accessToken });
 		} catch (error) {
 			next(error);
 		}
@@ -50,6 +61,49 @@ export const authController = {
 					<p>${error.message}</p>
 				</div>
 			`);
+		}
+	},
+
+	async refreshToken(req, res, next) {
+		try {
+			// Lấy refreshToken từ cookie do client gửi lên
+			const oldRefreshToken = req.cookies.refreshToken;
+			
+			const { accessToken, refreshToken } = await authService.refreshToken(oldRefreshToken);
+
+			// Cập nhật lại cookie với refreshToken mới
+			res.cookie('refreshToken', refreshToken, {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict',
+				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+			});
+
+			return new HttpResponse(res).success({ accessToken });
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	async logout(req, res, next) {
+		try {
+			// Lấy userId từ user (middleware auth guard truyền vào req.user)
+			const userId = req.user?.id; 
+			
+			if (userId) {
+				await authService.logout(userId);
+			}
+
+			// Xóa cookie refreshToken
+			res.clearCookie('refreshToken', {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'strict',
+			});
+
+			return new HttpResponse(res).success({ message: 'Đăng xuất thành công.' });
+		} catch (error) {
+			next(error);
 		}
 	},
 };
