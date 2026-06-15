@@ -1,4 +1,4 @@
-import {StatusCodes} from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 
 export class HttpResponse {
     constructor(res) {
@@ -8,17 +8,17 @@ export class HttpResponse {
     success(data) {
         return this.res.status(StatusCodes.OK).json(
             {
-                success :true,
+                success: true,
                 data,
             }
         );
     }
 
     created(data) {
-        return this.res.status(StatusCodes.CREATED).json( {
-                success :true,
-                data,
-            });
+        return this.res.status(StatusCodes.CREATED).json({
+            success: true,
+            data,
+        });
     }
 
     exception(exception) {

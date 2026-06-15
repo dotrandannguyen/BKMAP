@@ -111,4 +111,5 @@ model RoomImage {
   createdAt    DateTime @default(now())
 
   room         Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  @@index([roomId])
 }
