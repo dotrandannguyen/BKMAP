@@ -226,7 +226,7 @@ export const roomRepository = {
 		});
 	},
 
-	// Quản lý ảnh
+
 	async addImageToRoom(roomId, imageUrl, displayOrder, storagePath) {
 		return await prisma.roomImage.create({
 			data: {
@@ -238,10 +238,15 @@ export const roomRepository = {
 		});
 	},
 
+	async countImagesByRoomId(roomId) {
+		return await prisma.roomImage.count({
+			where: { roomId },
+		});
+	},
+
 	async findImageById(imageId) {
 		return await prisma.roomImage.findUnique({
 			where: { id: imageId },
-			include: { room: true },
 		});
 	},
 
@@ -251,21 +256,15 @@ export const roomRepository = {
 		});
 	},
 
-	async updateImagesOrder(updates) {
-		// updates: [{ id: "...", displayOrder: 0 }, ...]
+	async updateImagesOrder(imagesData) {
 		return await prisma.$transaction(
-			updates.map((update) =>
+			imagesData.map((img) =>
 				prisma.roomImage.update({
-					where: { id: update.id },
-					data: { displayOrder: update.displayOrder },
+					where: { id: img.id },
+					data: { displayOrder: img.displayOrder },
 				})
 			)
 		);
 	},
 
-	async countImagesByRoomId(roomId) {
-		return await prisma.roomImage.count({
-			where: { roomId },
-		});
-	},
 };

@@ -64,10 +64,6 @@ export const roomController = {
 		try {
 			const { id } = req.params;
 			const userId = req.user.id;
-			
-			// Build baseUrl manually if needed, or pass it via req.body
-			req.body.baseUrl = `${req.protocol}://${req.get('host')}`;
-			
 			const data = await roomService.uploadRoomImage(id, userId, req.file, req.body);
 			return new HttpResponse(res).success({
 				message: 'Tải ảnh lên thành công',
