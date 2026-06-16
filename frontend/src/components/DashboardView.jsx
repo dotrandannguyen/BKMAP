@@ -1,0 +1,247 @@
+import React, { useState } from 'react';
+
+export default function DashboardView({
+  listings,
+  onDeleteListing,
+  onToggleStatus,
+  onViewChange,
+  onSelectListing,
+  onEditListing,
+  onResetData,
+  onClearAll,
+}) {
+  const [activeCategory, setActiveCategory] = useState('all');
+  
+  // Local visits appointments state
+  const [visits, setVisits] = useState([
+    {
+      id: 'visit-1',
+      studentName: 'Nguyễn Duy Khánh',
+      timeText: 'Hôm nay lúc 14:30',
+      listingTitle: 'Skyline Student Loft',
+      status: 'pending',
+    },
+    {
+      id: 'visit-2',
+      studentName: 'Trịnh Thủy Tiên',
+      timeText: 'Ngày mai lúc 09:00',
+      listingTitle: 'Lotus Garden House',
+      status: 'pending',
+    },
+    {
+      id: 'visit-3',
+      studentName: 'Phan Anh Đức',
+      timeText: 'Thứ Năm lúc 16:15',
+      listingTitle: 'Cyan Studios',
+      status: 'accepted',
+    }
+  ]);
+
+  // Handle visit status changes
+  const handleVisitAction = (id, action) => {
+    setVisits(visits.map(v => v.id === id ? { ...v, status: action } : v));
+  };
+
+  // Filter listings based on active dashboard category
+  const filtered = listings.filter((item) => {
+    if (activeCategory === 'verified') return item.verified === true;
+    if (activeCategory === 'pending') return item.verified === false;
+    if (activeCategory === 'maintenance') return item.status === 'Bảo trì';
+    return true; // 'all'
+  });
+
+  const totalCount = listings.length;
+
+
+  const formatVND = (num) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace('.0', '') + 'Tr';
+    }
+    return num.toLocaleString('vi-VN');
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 animate-fade-in pb-28 space-y-10">
+      
+      {/* 1. Header with Add button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <span className="text-[10px] uppercase font-bold text-primary tracking-widest bg-primary/10 px-3 py-1 rounded-full">Kênh người đăng tin</span>
+          <h1 className="text-2xl md:text-3xl font-black text-on-surface tracking-tight mt-1.5">
+            Bảng Quản lý & Hoạt động
+          </h1>
+          <p className="text-xs sm:text-sm text-on-surface-variant font-medium">Theo dõi hoạt động, tình trạng phòng thực tế và các lịch hẹn sinh viên.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+
+          <button
+            onClick={() => onViewChange('CREATE')}
+            className="bg-primary hover:bg-primary-container text-white text-xs sm:text-sm font-black px-6 py-3.5 rounded-2xl transition-all shadow-lg shadow-primary/15 active:scale-95 flex items-center gap-2 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-sm font-bold">add_box</span>
+            <span>ĐĂNG TIN NHÀ MỚI</span>
+          </button>
+        </div>
+      </div>
+
+
+      {/* 3. Main content grid */}
+      <div className="grid grid-cols-1 gap-8">
+        
+        {/* Right column (Table list for modifying items) */}
+        <div className="space-y-4">
+          
+          {/* Main categories navigation switcher */}
+          <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200/50 max-w-max">
+            <button
+              onClick={() => setActiveCategory('all')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeCategory === 'all' ? 'bg-white text-primary shadow-xs' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Tất cả ({totalCount})
+            </button>
+            <button
+              onClick={() => setActiveCategory('maintenance')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeCategory === 'maintenance' ? 'bg-white text-primary shadow-xs' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Đang bảo trì ({listings.filter(l => l.status === 'Bảo trì').length})
+            </button>
+          </div>
+
+          {/* Table container card */}
+          <div className="bg-white rounded-[2.25rem] border border-slate-200/60 overflow-hidden shadow-xs">
+            {totalCount === 0 ? (
+              /* Global Empty State for Dashboard */
+              <div className="py-20 px-6 text-center space-y-4">
+                <span className="material-symbols-outlined text-5xl text-slate-300">work_outline</span>
+                <h3 className="text-base font-bold text-on-surface-variant">Chưa có phòng trọ nào do bạn quản lý</h3>
+                <p className="text-xs text-outline max-w-sm mx-auto leading-relaxed">
+                  Bạn có thể bắt đầu bằng cách nhấp vào "Đăng tin nhà mới".
+                </p>
+                <div className="flex gap-2 justify-center pt-2">
+                  <button
+                    onClick={() => onViewChange('CREATE')}
+                    className="bg-white hover:bg-slate-100 text-slate-700 border text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
+                  >
+                    Đăng trọ mới
+                  </button>
+                </div>
+              </div>
+            ) : filtered.length === 0 ? (
+              /* Filtered empty state */
+              <div className="py-20 text-center space-y-2">
+                <span className="material-symbols-outlined text-4xl text-slate-300">search_off</span>
+                <p className="text-sm font-bold text-on-surface-variant">Không tìm thấy phòng ở mục này.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-[10px] md:text-xs font-bold text-outline uppercase tracking-wider">
+                      <th className="px-6 py-4">Chỗ ở trọ</th>
+                      <th className="px-6 py-4">Mức giá thuê</th>
+                      <th className="px-6 py-4">Trạng thái</th>
+                      <th className="px-6 py-4 text-center">Thao tác</th>
+                    </tr>
+                  </thead>
+                  
+                  <tbody className="divide-y divide-slate-100 text-xs md:text-sm">
+                    {filtered.map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                        {/* Title col */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-200">
+                              <img
+                                alt={item.title}
+                                className="w-full h-full object-cover"
+                                src={item.images[0]}
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                            <div>
+                              <span 
+                                onClick={() => onSelectListing(item.id)}
+                                className="font-bold text-on-surface hover:text-primary cursor-pointer line-clamp-1 block leading-tight text-xs sm:text-sm"
+                              >
+                                {item.title}
+                              </span>
+                              <span className="text-[10px] text-outline font-semibold uppercase mt-0.5 block">{item.type} • {item.distanceText || item.address}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Price col */}
+                        <td className="px-6 py-4 font-black text-primary text-xs sm:text-sm whitespace-nowrap">
+                          {formatVND(item.price)}
+                          <span className="text-[10px] font-medium text-outline">/th</span>
+                        </td>
+
+
+
+                        {/* Active/Maintenance Status col */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => onToggleStatus(item.id)}
+                            className={`px-3 py-1.5 rounded-full text-[11px] font-black cursor-pointer transition-colors ${
+                              item.status === 'Hoạt động'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/50 hover:bg-emerald-100'
+                                : 'bg-red-50 text-red-800 border border-red-200/50 hover:bg-red-100'
+                            }`}
+                            title="Bấm để đổi trạng thái"
+                          >
+                            {item.status || 'Hoạt động'}
+                          </button>
+                        </td>
+
+                        {/* Actions buttons */}
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            {/* View detail button icon */}
+                            <button
+                              onClick={() => onSelectListing(item.id)}
+                              className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-primary/10 text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center cursor-pointer"
+                              title="Xem chi tiết"
+                            >
+                              <span className="material-symbols-outlined text-sm">visibility</span>
+                            </button>
+                            {/* Edit button */}
+                            <button
+                              onClick={() => onEditListing(item.id)}
+                              className="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors flex items-center justify-center cursor-pointer font-bold"
+                              title="Sửa tin này"
+                            >
+                              <span className="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            {/* Live Delete Button code */}
+                            <button
+                              onClick={() => {
+                                if (confirm(`Bạn chắc chắn muốn xóa niêm yết "${item.title}"? Thao tác không hoàn tác.`)) {
+                                  onDeleteListing(item.id);
+                                }
+                              }}
+                              className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors flex items-center justify-center cursor-pointer font-bold"
+                              title="Xóa tin này"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  );
+}

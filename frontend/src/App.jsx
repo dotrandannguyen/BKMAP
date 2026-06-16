@@ -1,20 +1,304 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import UserPage from './pages/UserPage';
+import React, { useState, useEffect } from 'react';
+import { loadListings, saveListings, clearListings, resetToBaseline } from './mockData';
+
+// Component Imports
+import Navbar from './components/Navbar';
+import HomepageView from './components/HomepageView';
+import MapView from './components/MapView';
+import DetailView from './components/DetailView';
+import DashboardView from './components/DashboardView';
+import CreateListingView from './components/CreateListingView';
+
+// Page Imports
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import UserPage from './pages/UserPage';
 
-function App() {
-    return (
-        <Router>
-            <Routes>
-                <Route path="/" element={<Navigate to="/login" replace />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/app" element={<UserPage />} />
-            </Routes>
-        </Router>
-    );
+export default function App() {
+  const [currentView, setCurrentView] = useState('HOME');
+  const [previousView, setPreviousView] = useState('HOME');
+  const [listings, setListings] = useState([]);
+  const [selectedListingId, setSelectedListingId] = useState('');
+  const [editingListing, setEditingListing] = useState(null);
+  
+  // User Authentication State
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState('');
+
+  // Search state across components
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priceFilter, setPriceFilter] = useState('all');
+
+  // Bookmark / Saved listings tracking
+  const [savedIds, setSavedIds] = useState([]);
+
+  // Initial load
+  useEffect(() => {
+    const hasCleared = sessionStorage.getItem('bks_map_cleared_once');
+    if (!hasCleared) {
+      clearListings();
+      sessionStorage.setItem('bks_map_cleared_once', 'true');
+      setListings([]);
+    } else {
+      const data = loadListings();
+      setListings(data);
+    }
+
+    // Khôi phục phiên đăng nhập khi F5
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      setIsLoggedIn(true);
+      setUserEmail(localStorage.getItem('userEmail') || '');
+      setUserName(localStorage.getItem('userName') || '');
+    }
+  }, []);
+
+  // Sync back state
+  const handleAddListing = (newListing) => {
+    // Inject realistic coordinate around DUT if not provided
+    if (!newListing.lat || !newListing.lng) {
+      newListing.lat = 16.07548 + (Math.random() - 0.5) * 0.01;
+      newListing.lng = 108.14983 + (Math.random() - 0.5) * 0.01;
+    }
+    // Add timestamps and ownership
+    const now = new Date().toISOString();
+    newListing.updatedAt = now;
+    
+    const existingIndex = listings.findIndex(l => l.id === newListing.id);
+    let updated;
+    if (existingIndex >= 0) {
+      updated = [...listings];
+      updated[existingIndex] = newListing;
+    } else {
+      newListing.createdAt = now;
+      newListing.ownerEmail = userEmail || 'guest@example.com';
+      updated = [newListing, ...listings];
+    }
+    
+    setListings(updated);
+    saveListings(updated);
+  };
+
+  const handleEditListing = (id) => {
+    const listingToEdit = listings.find(l => l.id === id);
+    if (listingToEdit) {
+      setEditingListing(listingToEdit);
+      handleViewChange('CREATE');
+    }
+  };
+
+  const handleDeleteListing = (id) => {
+    const updated = listings.filter((item) => item.id !== id);
+    setListings(updated);
+    saveListings(updated);
+    
+    // Fallback if deleted listing was selected
+    if (selectedListingId === id) {
+      const remaining = updated[0]?.id || '';
+      setSelectedListingId(remaining);
+    }
+  };
+
+  const handleToggleStatus = (id) => {
+    const updated = listings.map((item) => {
+      if (item.id === id) {
+        const nextStatus = item.status === 'Hoạt động' ? 'Bảo trì' : 'Hoạt động';
+        return { ...item, status: nextStatus };
+      }
+      return item;
+    });
+    setListings(updated);
+    saveListings(updated);
+  };
+
+  const handleSelectListing = (id) => {
+    setSelectedListingId(id);
+    handleViewChange('DETAIL');
+  };
+
+  const toggleSaved = (id, e) => {
+    e.stopPropagation();
+    if (savedIds.includes(id)) {
+      setSavedIds(savedIds.filter(saved => saved !== id));
+    } else {
+      setSavedIds([...savedIds, id]);
+    }
+  };
+
+  // Auth Callbacks
+  const handleLoginSuccess = (email, name) => {
+    setIsLoggedIn(true);
+    setUserEmail(email);
+    setUserName(name || email.split('@')[0]);
+    setCurrentView('USER');
+  };
+
+  const handleRegisterSuccess = (name, email) => {
+    setCurrentView('LOGIN');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    
+    setIsLoggedIn(false);
+    setUserEmail('');
+    setUserName('');
+    setCurrentView('HOME');
+  };
+
+  // Database Management Callbacks
+  const handleClearAll = () => {
+    const empty = clearListings();
+    setListings(empty);
+    setSelectedListingId('');
+    alert('🗑️ Đã xóa sạch dữ liệu trọ trong LocalStorage. Ứng dụng hiện đang ở trạng thái rỗng.');
+  };
+
+  const handleResetData = () => {
+    const baseline = resetToBaseline();
+    setListings(baseline);
+    setSelectedListingId('loft-skyline');
+    alert('🔄 Đã khôi phục dữ liệu phòng trọ mẫu thành công.');
+  };
+
+  const handleViewChange = (view) => {
+    if (view === 'CREATE' && editingListing && currentView !== 'DASHBOARD') {
+      // Keep editingListing if navigating to CREATE from Edit button (which sets view internally)
+      // Actually we should clear editingListing if user clicks "Đăng trọ mới" manually.
+      // We will clear it if they click "Đăng trọ mới" from Navbar/Dashboard.
+    }
+    if (view === 'LOGOUT') {
+      handleLogout();
+    } else if (view === 'BACK') {
+      setCurrentView(previousView);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    } else {
+      if (view === 'CREATE' && currentView !== 'CREATE' && !editingListing) {
+         // handled properly
+      }
+      setPreviousView(currentView);
+      setCurrentView(view);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
+
+  // Find active listing or fallback to first available
+  const activeListing = listings.find((item) => item.id === selectedListingId) || listings[0];
+
+  return (
+    <div className="min-h-screen flex flex-col font-sans antialiased text-[#0b1c30]">
+      {/* Dynamic Header Navbar Bar */}
+      <Navbar
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        savedCount={savedIds.length}
+        isLoggedIn={isLoggedIn}
+        userEmail={userEmail}
+        userName={userName}
+        onClearAll={handleClearAll}
+        onResetData={handleResetData}
+      />
+
+      {/* Main View Port */}
+      <main className="flex-1 pb-16 md:pb-0">
+        {currentView === 'HOME' && (
+          <HomepageView
+            listings={listings}
+            onSelectListing={handleSelectListing}
+            onViewChange={handleViewChange}
+            setSearchQuery={setSearchQuery}
+            setPriceFilter={setPriceFilter}
+            toggleSaved={toggleSaved}
+            savedIds={savedIds}
+            onResetData={handleResetData}
+          />
+        )}
+
+        {currentView === 'MAP' && (
+          <MapView
+            listings={listings}
+            onSelectListing={handleSelectListing}
+            onViewChange={handleViewChange}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            priceFilter={priceFilter}
+            setPriceFilter={setPriceFilter}
+            toggleSaved={toggleSaved}
+            savedIds={savedIds}
+          />
+        )}
+
+        {currentView === 'DETAIL' && activeListing && (
+          <DetailView
+            listing={activeListing}
+            onViewChange={handleViewChange}
+            toggleSaved={toggleSaved}
+            savedIds={savedIds}
+          />
+        )}
+
+        {currentView === 'DETAIL' && !activeListing && (
+          <div className="py-20 text-center max-w-lg mx-auto space-y-4">
+            <span className="material-symbols-outlined text-4xl text-slate-300">error</span>
+            <h2 className="text-lg font-bold">Không tìm thấy thông tin phòng trọ</h2>
+            <button onClick={() => handleViewChange('MAP')} className="bg-primary text-white px-5 py-2 rounded-xl text-xs font-bold">
+              Quay lại Bản đồ
+            </button>
+          </div>
+        )}
+
+        {currentView === 'DASHBOARD' && (
+          <DashboardView
+            listings={listings.filter((item) => item.ownerEmail === userEmail || item.ownerEmail === 'guest@example.com')}
+            onViewChange={(view) => {
+              if (view === 'CREATE') setEditingListing(null);
+              handleViewChange(view);
+            }}
+            onDeleteListing={handleDeleteListing}
+            onToggleStatus={handleToggleStatus}
+            onSelectListing={handleSelectListing}
+            onEditListing={handleEditListing}
+            onResetData={handleResetData}
+            onClearAll={handleClearAll}
+          />
+        )}
+
+        {currentView === 'CREATE' && (
+          <CreateListingView
+            onAddListing={handleAddListing}
+            onViewChange={handleViewChange}
+            initialData={editingListing}
+          />
+        )}
+
+        {currentView === 'LOGIN' && (
+          <LoginPage
+            onViewChange={handleViewChange}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        )}
+
+        {currentView === 'REGISTER' && (
+          <RegisterPage
+            onViewChange={handleViewChange}
+            onRegisterSuccess={handleRegisterSuccess}
+          />
+        )}
+
+        {currentView === 'USER' && (
+          <UserPage
+            onViewChange={handleViewChange}
+            userEmail={userEmail || 'sinhvien@dut.udn.vn'}
+            userName={userName}
+            listings={listings}
+            savedIds={savedIds}
+            onSelectListing={handleSelectListing}
+          />
+        )}
+      </main>
+    </div>
+  );
 }
-
-export default App;

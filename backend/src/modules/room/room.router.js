@@ -63,4 +63,5 @@ router.patch(
 	authMiddleware,
 	roomController.reorderImages
 );
+
 export default router;

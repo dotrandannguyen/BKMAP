@@ -226,6 +226,7 @@ export const roomRepository = {
 		});
 	},
 
+
 	async addImageToRoom(roomId, imageUrl, displayOrder, storagePath) {
 		return await prisma.roomImage.create({
 			data: {
@@ -265,4 +266,5 @@ export const roomRepository = {
 			)
 		);
 	},
+
 };

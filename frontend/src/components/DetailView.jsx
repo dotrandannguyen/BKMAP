@@ -1,0 +1,380 @@
+import React, { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+export default function DetailView({ listing, onViewChange, toggleSaved, savedIds }) {
+  const [activeImage, setActiveImage] = useState(listing.images && listing.images.length > 0 ? listing.images[0] : '');
+
+  // Booking details alert states
+  const [contactSuccess, setContactSuccess] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyPhone = () => {
+    const textToCopy = listing.host.phone || '0901234567';
+    
+    // Fallback function for copying text
+    const fallbackCopy = (text) => {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";  // Avoid scrolling to bottom
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback: Unable to copy', err);
+      }
+      document.body.removeChild(textArea);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        })
+        .catch(() => fallbackCopy(textToCopy));
+    } else {
+      fallbackCopy(textToCopy);
+    }
+  };
+
+
+  const formatVND = (num) => {
+    return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const galleryImages = listing.images && listing.images.length > 0 ? listing.images : [];
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 animate-fade-in pb-28">
+      {/* Back button */}
+      <button
+        onClick={() => onViewChange('BACK')}
+        className="mb-6 flex items-center gap-2 text-primary font-bold text-sm hover:underline cursor-pointer group"
+      >
+        <span className="material-symbols-outlined text-sm font-bold group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
+        <span>Quay lại</span>
+      </button>
+
+      {/* Title Header metadata panel */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="bg-slate-100 text-on-surface text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase">
+              {listing.type}
+            </span>
+          </div>
+
+          <h1 className="text-2xl md:text-3xl font-black text-on-surface tracking-tight leading-tight">
+            {listing.title}
+          </h1>
+
+          <p className="text-xs md:text-sm text-on-surface-variant font-medium mt-1 flex items-center gap-1">
+            <span className="material-symbols-outlined text-base text-primary">location_on</span>
+            {listing.address}
+          </p>
+        </div>
+
+        {/* Wishlist interactive option */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <button
+            onClick={(e) => toggleSaved(listing.id, e)}
+            className="flex items-center gap-2 border border-outline-variant px-4 py-2.5 rounded-full text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer text-on-surface bg-white"
+          >
+            <span className="material-symbols-outlined text-red-500 text-base" style={{ fontVariationSettings: savedIds.includes(listing.id) ? "'FILL' 1" : "'FILL' 0" }}>
+              favorite
+            </span>
+            <span>{savedIds.includes(listing.id) ? 'Đã lưu' : 'Lưu tin'}</span>
+          </button>
+          
+          <button className="flex items-center gap-2 border border-outline-variant px-4 py-2.5 rounded-full text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer text-on-surface bg-white">
+            <span className="material-symbols-outlined text-base">share</span>
+            <span>Chia sẻ</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Picture gallery Shopee-style */}
+      {galleryImages.length > 0 && (
+        <div className="mb-10 max-w-2xl mx-auto space-y-3">
+          {/* Active main container */}
+          <div className="rounded-xl overflow-hidden shadow-xs relative bg-slate-100 aspect-[4/3] w-full group border border-slate-200">
+            <img
+              className="w-full h-full object-cover transition-opacity duration-300"
+              alt="Active highlight preview"
+              src={activeImage}
+              referrerPolicy="no-referrer"
+            />
+          </div>
+
+          {/* Detailed Thumbnail track */}
+          {galleryImages.length > 1 && (
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {galleryImages.map((imgUrl, idx) => (
+                <div
+                  key={idx}
+                  onMouseEnter={() => setActiveImage(imgUrl)}
+                  onClick={() => setActiveImage(imgUrl)}
+                  className={`flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden cursor-pointer relative bg-slate-100 border-2 transition-all ${
+                    activeImage === imgUrl ? 'border-primary' : 'border-transparent hover:border-slate-300'
+                  }`}
+                >
+                  <img
+                    className="w-full h-full object-cover"
+                    alt={`Detail photo ${idx + 1}`}
+                    src={imgUrl}
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className={`absolute inset-0 bg-black/10 transition-opacity ${activeImage === imgUrl ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'}`}></div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Main Splitscreen column content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left column (Host, description, amenities, reviews) */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Host Profile Card */}
+          <div className="glass-card p-6 rounded-3xl flex items-center justify-between border border-slate-200/50">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/20">
+                <img
+                  className="w-full h-full object-cover"
+                  alt={listing.host.name}
+                  src={listing.host.avatar}
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">Chủ nhà tiêu biểu</span>
+                <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host.name}</h3>
+                <p className="text-xs text-on-surface-variant font-medium">{listing.host.role}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end text-right">
+              <span className="text-xs font-semibold text-on-surface">Độ phản hồi</span>
+              <span className="text-sm font-black text-emerald-600">Nhanh (99%)</span>
+            </div>
+          </div>
+
+          {/* Description Section */}
+          <div className="space-y-3">
+            <h2 className="text-lg font-extrabold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-base">description</span>
+              Giới thiệu phòng trọ
+            </h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed text-justify">
+              {listing.description}
+            </p>
+          </div>
+
+          {/* Amenities grid Checklist */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-extrabold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-base">room_service</span>
+              Tiện ích cao cấp đi kèm
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-6 rounded-3xl border border-slate-200/65">
+              {listing.amenities.map((amenity, idx) => (
+                <div key={idx} className="flex items-center gap-3 text-xs sm:text-sm text-on-surface-variant">
+                  <span className="material-symbols-outlined text-emerald-600 font-bold bg-emerald-50 p-1.5 rounded-full">check</span>
+                  <span className="font-semibold">{amenity}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Additional Costs Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-extrabold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-base">payments</span>
+              Chi phí dịch vụ khác
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-6 rounded-3xl border border-slate-200/65">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary font-bold bg-primary/10 p-1.5 rounded-full">electric_bolt</span>
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-outline">Tiền điện</div>
+                  <div className="text-sm font-semibold text-on-surface">{listing.electricityPrice || 'Theo giá nhà nước'}</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-sky-500 font-bold bg-sky-50 p-1.5 rounded-full">water_drop</span>
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-outline">Tiền nước</div>
+                  <div className="text-sm font-semibold text-on-surface">{listing.waterPrice || 'Miễn phí'}</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-amber-500 font-bold bg-amber-50 p-1.5 rounded-full">receipt_long</span>
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-outline">Chi phí khác</div>
+                  <div className="text-sm font-semibold text-on-surface">{listing.otherCosts || 'Không có'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Static Map View Removed */}
+
+
+        </div>
+
+        {/* Right column (Booking cost calculator & checkout sticky card) */}
+        <div className="space-y-6">
+          <div className="sticky top-[110px] space-y-6">
+            
+            {/* Main Estimator card */}
+            <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-slate-100 space-y-6">
+              
+              <div className="space-y-1">
+                <span className="text-[10px] text-outline font-medium">Báo giá thuê cơ bản</span>
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-2xl font-black text-primary">
+                    {formatVND(listing.price)}
+                  </span>
+                  {listing.priceUSD && (
+                    <span className="text-xs text-on-surface-variant font-medium">
+                       / tháng
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* CONTACT SECTION PANEL */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <div className="flex items-center gap-1 text-xs font-black text-on-surface uppercase tracking-wide">
+                  <span className="material-symbols-outlined text-indigo-600 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
+                  <span>Liên hệ chủ trọ</span>
+                </div>
+                
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] text-outline font-semibold">Số điện thoại</span>
+                    <p className="text-sm font-black text-on-surface tracking-wider">
+                      {listing.host.phone || '0901234567'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleCopyPhone}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      isCopied 
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                        : 'bg-white text-primary border border-primary/20 hover:bg-primary/5 hover:border-primary/50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[14px]">
+                      {isCopied ? 'check' : 'content_copy'}
+                    </span>
+                    {isCopied ? 'Đã sao chép' : 'Sao chép'}
+                  </button>
+                </div>
+              </div>
+
+              {/* MAP SECTION PANEL */}
+              <div className="pt-4 border-t border-slate-100 space-y-4">
+                <div className="flex items-center gap-1 text-xs font-black text-on-surface uppercase tracking-wide">
+                  <span className="material-symbols-outlined text-indigo-600 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>map</span>
+                  <span>Vị trí trên bản đồ</span>
+                </div>
+
+                <div className="w-full h-64 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner z-0">
+                  <MapContainer 
+                    center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07548, 108.14983]} 
+                    zoom={15} 
+                    style={{ height: '100%', width: '100%' }}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <Marker position={[16.07548, 108.14983]} opacity={0.5}>
+                      <Popup>ĐH Bách Khoa Đà Nẵng</Popup>
+                    </Marker>
+                    {listing.lat && listing.lng ? (
+                      <Marker 
+                        position={[listing.lat, listing.lng]} 
+                        icon={L.divIcon({
+                          className: 'bg-transparent border-none',
+                          html: `
+                            <div class="relative flex justify-center items-center w-8 h-8">
+                              <span class="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping"></span>
+                              <span class="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-white shadow-sm"></span>
+                            </div>
+                          `,
+                          iconSize: [32, 32],
+                          iconAnchor: [16, 16],
+                          popupAnchor: [0, -16]
+                        })}
+                      >
+                        <Popup><strong className="text-red-600">Vị trí phòng trọ</strong></Popup>
+                      </Marker>
+                    ) : (
+                      <Marker position={[16.07348, 108.14783]}>
+                        <Popup>Vị trí phòng trọ (Mặc định)</Popup>
+                      </Marker>
+                    )}
+                  </MapContainer>
+                </div>
+                
+                <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 text-center space-y-1">
+                  <span className="text-[10px] text-primary uppercase font-extrabold tracking-widest">Khoảng cách đến DUT</span>
+                  <p className="text-xl font-black text-primary">
+                    {listing.distanceDUT < 1 
+                      ? `${Math.round(listing.distanceDUT * 1000)}m` 
+                      : `${Number(listing.distanceDUT).toFixed(1)} km`}
+                  </p>
+                  <p className="text-[10px] text-outline font-semibold">
+                    {listing.distanceText}
+                  </p>
+                </div>
+              </div>
+
+              {/* CTA Action button lines */}
+              <div className="space-y-2">
+
+                <button
+                  onClick={() => {
+                    setContactSuccess(true);
+                    setTimeout(() => setContactSuccess(false), 4550);
+                  }}
+                  className="w-full bg-white text-on-surface border border-outline-variant hover:bg-slate-50 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm">chat_bubble</span>
+                  <span>Nhắn tin với chủ trọ</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Notifications feedback alerts */}
+            {contactSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-200 text-emerald-950 text-xs font-semibold animate-slide-up flex gap-2.5 items-start">
+                <span className="material-symbols-outlined text-emerald-500 font-bold">chat</span>
+                <div>
+                  <p className="font-bold">Cửa sổ thoại bảo mật đã mở!</p>
+                  <p className="text-[100%] opacity-80 mt-0.5">Tin nhắn đã được gửi kèm đường dẫn sinh hoạt dự toán đến {listing.host.name} thành công.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
