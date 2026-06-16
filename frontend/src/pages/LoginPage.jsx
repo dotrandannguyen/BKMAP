@@ -35,6 +35,7 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include', // Bắt buộc để trình duyệt nhận HttpOnly Cookie (refreshToken)
                 body: JSON.stringify({ email, password }),
             });
 
@@ -45,6 +46,13 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
             }
 
             const userData = result.data?.user || result.user || { email };
+            const token = result.data?.accessToken || result.accessToken;
+
+            if (token) {
+                localStorage.setItem('accessToken', token);
+                localStorage.setItem('userEmail', userData.email);
+                localStorage.setItem('userName', userData.userName || userData.email.split('@')[0]);
+            }
             
             if (onLoginSuccess) {
                 onLoginSuccess(userData.email, userData.userName || userData.email.split('@')[0]);

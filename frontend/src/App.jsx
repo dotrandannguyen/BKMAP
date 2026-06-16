@@ -44,6 +44,14 @@ export default function App() {
       const data = loadListings();
       setListings(data);
     }
+
+    // Khôi phục phiên đăng nhập khi F5
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      setIsLoggedIn(true);
+      setUserEmail(localStorage.getItem('userEmail') || '');
+      setUserName(localStorage.getItem('userName') || '');
+    }
   }, []);
 
   // Sync back state
@@ -131,6 +139,10 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    
     setIsLoggedIn(false);
     setUserEmail('');
     setUserName('');

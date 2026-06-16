@@ -28,12 +28,15 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
   const [title, setTitle] = useState(initialData?.title || '');
   const [type, setType] = useState(initialData?.type || 'Room');
   const [price, setPrice] = useState(initialData?.price || 2500000);
+  const [area, setArea] = useState(initialData?.area || 20);
   const [distanceText, setDistanceText] = useState(initialData?.distanceText || 'Cách cổng phụ DUT 150m');
   const [address, setAddress] = useState(initialData?.address || 'Hòa Khánh Nam, Liên Chiểu, Đà Nẵng');
   const [description, setDescription] = useState(initialData?.description || '');
   const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
   const [imageUrls, setImageUrls] = useState(initialData?.images || []);
+  const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [electricityPrice, setElectricityPrice] = useState(initialData?.electricityPrice || '');
   const [waterPrice, setWaterPrice] = useState(initialData?.waterPrice || '');
   const [otherCosts, setOtherCosts] = useState(initialData?.otherCosts || '');
@@ -95,78 +98,143 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
     }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     if (!files || files.length === 0) return;
 
-    setIsUploading(true);
+    const newFiles = files.map(file => ({
+      file,
+      previewUrl: URL.createObjectURL(file)
+    }));
     
-    try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('images', file));
-
-      const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
-      const response = await fetch(`${apiUrl}/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) throw new Error('API Error');
-      
-      const data = await response.json();
-      const urls = data.data?.urls || data.urls;
-      if (urls && urls.length > 0) {
-        setImageUrls(prev => [...prev, ...urls]);
-      } else {
-        throw new Error('No URLs returned from API');
-      }
-    } catch (error) {
-      console.warn('Backend upload failed or unavailable. Falling back to local preview:', error);
-      // Fallback: Use local blob URLs for frontend-only preview
-      const localUrls = files.map(file => URL.createObjectURL(file));
-      setImageUrls(prev => [...prev, ...localUrls]);
-    } finally {
-      setIsUploading(false);
-    }
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+    setImageUrls(prev => [...prev, ...newFiles.map(f => f.previewUrl)]);
   };
 
-  const handleSaveListing = () => {
-    
-    const newHouse = {
-      ...(initialData || {}),
-      id: initialData?.id || `listing-${Date.now()}`,
-      title: title.trim() || 'Căn Hộ Sinh Viên Mẫu',
-      type: type,
-      price: price,
-      priceUSD: Math.round(price / 24800),
-      electricityPrice,
-      waterPrice,
-      otherCosts,
-      distanceDUT: distanceDUT || 0.8,
-      distanceText: distanceText.trim() || 'Cách cổng chính ĐH Bách Khoa 800m',
-      address: address.trim() || 'Liên Chiểu, Đà Nẵng',
-      rating: initialData?.rating || 5.0,
-      reviewCount: initialData?.reviewCount || 1,
-      verified: initialData?.verified || false,
-      images: imageUrls,
-      host: {
-        ...(initialData?.host || {}),
-        name: hostName || 'Người dùng BK\'s MAP',
-        avatar: initialData?.host?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(hostName || 'BKMAP')}&background=random&size=128`,
-        role: initialData?.host?.role || 'Chủ dãy trọ sinh viên',
-        phone: hostPhone || '0901234567',
-      },
-      amenities: selectedAmenities,
-      description: description.trim() || 'Không gian yên tĩnh lý tưởng cho sinh viên học tập nghiên cứu khoa học công nghệ.',
-      status: initialData?.status || 'Hoạt động',
-      occupancyRate: initialData?.occupancyRate || 0,
-      lat: position?.lat,
-      lng: position?.lng
-    };
+  const handleRemoveImage = (indexToRemove) => {
+    const urlToRemove = imageUrls[indexToRemove];
+    setImageUrls(prev => prev.filter((_, i) => i !== indexToRemove));
+    setSelectedFiles(prev => prev.filter(f => f.previewUrl !== urlToRemove));
+  };
 
-    onAddListing(newHouse);
-    alert(initialData ? '🎉 Cập nhật thông tin thành công!' : '🎉 Đăng tin thành công!');
-    onViewChange('DASHBOARD');
+  const handleSaveListing = async () => {
+    try {
+      setUploadStatus('Đang khởi tạo thông tin phòng...');
+      setIsUploading(true);
+
+      const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+      const token = localStorage.getItem('accessToken');
+
+      if (!token) {
+        throw new Error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.');
+      }
+
+      // 1. Tạo phòng trên Backend Node.js
+      const createRoomPayload = {
+        title: title.trim() || 'Căn Hộ Sinh Viên',
+        type: type,
+        price: price,
+        electricityPrice: electricityPrice ? Number(electricityPrice.replace(/\D/g, '')) || 0 : 0,
+        waterPrice: waterPrice ? Number(waterPrice.replace(/\D/g, '')) || 0 : 0,
+        distanceToBk: distanceDUT || 0.8,
+        address: address.trim() || 'Đà Nẵng',
+        ownerName: hostName || 'Người dùng BKMAP',
+        ownerPhone: hostPhone || '0901234567',
+        description: description.trim(),
+        status: 'AVAILABLE',
+        area: area,
+        latitude: position?.lat || 16.07548,
+        longitude: position?.lng || 108.14983,
+        // Map feature strings to IDs if needed by backend, keeping it empty for now if not strictly required
+      };
+
+      const createRes = await fetch(`${apiUrl}/rooms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(createRoomPayload)
+      });
+
+      if (!createRes.ok) {
+        const errData = await createRes.json();
+        throw new Error(errData.message || 'Lỗi khi tạo phòng trên server');
+      }
+
+      const createData = await createRes.json();
+      const roomId = createData.data?.room?.id || createData.room?.id;
+      
+      if (!roomId) {
+        throw new Error('Không nhận được ID phòng từ hệ thống');
+      }
+
+      // 2. Upload hình ảnh đồng thời (Concurrency) để tối ưu tốc độ
+      if (selectedFiles.length > 0) {
+        let uploadedCount = 0;
+        setUploadStatus(`Đang tải lên Supabase (0/${selectedFiles.length})...`);
+        
+        const uploadPromises = selectedFiles.map(async (fileObj) => {
+          const formData = new FormData();
+          formData.append('file', fileObj.file);
+
+          const uploadRes = await fetch(`${apiUrl}/rooms/${roomId}/image`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          if (!uploadRes.ok) {
+             console.warn('Lỗi khi tải lên một ảnh:', await uploadRes.text());
+          }
+          
+          uploadedCount++;
+          setUploadStatus(`Đang tải lên Supabase (${uploadedCount}/${selectedFiles.length})...`);
+        });
+
+        // Đợi tất cả request chạy song song hoàn tất
+        await Promise.all(uploadPromises);
+      }
+
+      // Cập nhật State cho UI hiển thị ngay lập tức (Mock fallback)
+      const newHouse = {
+        ...(initialData || {}),
+        id: roomId,
+        title: createRoomPayload.title,
+        type: type,
+        price: price,
+        priceUSD: Math.round(price / 24800),
+        distanceText: distanceText.trim() || 'Cách cổng chính ĐH Bách Khoa 800m',
+        address: createRoomPayload.address,
+        rating: 5.0,
+        images: imageUrls,
+        host: { name: createRoomPayload.ownerName, phone: createRoomPayload.ownerPhone },
+        amenities: selectedAmenities,
+        description: description,
+        status: 'AVAILABLE',
+        area: area,
+        lat: createRoomPayload.latitude,
+        lng: createRoomPayload.longitude
+      };
+
+      onAddListing(newHouse);
+      
+      // Delay 100ms để React kịp cập nhật UI (ẩn spinner) trước khi bật alert block luồng
+      setTimeout(() => {
+        alert(initialData ? '🎉 Cập nhật thông tin thành công!' : '🎉 Đăng tin lên hệ thống thành công!');
+        onViewChange('DASHBOARD');
+      }, 100);
+      
+      
+    } catch (error) {
+      alert(`❌ Đã xảy ra lỗi: ${error.message}`);
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+      setUploadStatus('');
+    }
   };
 
   const formatVND = (num) => {
@@ -267,6 +335,17 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
                   type="number"
                   value={price}
                   onChange={(e) => setPrice(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-bold text-on-surface-variant">Diện tích sàn (m²):</label>
+                <input
+                  required
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black text-primary"
+                  type="number"
+                  value={area}
+                  onChange={(e) => setArea(Number(e.target.value))}
                 />
               </div>
 
@@ -440,7 +519,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
                       <div key={index} className="rounded-xl overflow-hidden border border-slate-200 h-24 relative group">
                         <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                         <button 
-                          onClick={() => setImageUrls(imageUrls.filter((_, i) => i !== index))}
+                          onClick={() => handleRemoveImage(index)}
                           className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <span className="material-symbols-outlined text-[10px]">close</span>
@@ -579,10 +658,20 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
           ) : (
             <button
               onClick={handleSaveListing}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-black px-8 py-3.5 rounded-2xl transition-all shadow-xl active:scale-95 cursor-pointer flex items-center gap-1.5"
+              disabled={isUploading}
+              className={`text-white text-xs sm:text-sm font-black px-8 py-3.5 rounded-2xl transition-all shadow-xl flex items-center gap-1.5 ${isUploading ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 cursor-pointer'}`}
             >
-              <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
-              <span>LƯU & ĐĂNG BÀI</span>
+              {isUploading ? (
+                <>
+                  <span className="material-symbols-outlined text-sm font-bold animate-spin">sync</span>
+                  <span>{uploadStatus || 'ĐANG XỬ LÝ...'}</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
+                  <span>LƯU & ĐĂNG BÀI</span>
+                </>
+              )}
             </button>
           )}
         </div>
