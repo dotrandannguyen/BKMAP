@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import './LoginPage.css';
-import { Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 
 const GoogleIcon = () => (
@@ -18,15 +17,45 @@ const AppleIcon = () => (
     </svg>
 );
 
-const LoginPage = () => {
+const LoginPage = ({ onViewChange, onLoginSuccess }) => {
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        // Simulate loadin
-        setTimeout(() => setIsLoading(false), 1500);
+        setError('');
+
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+            const response = await fetch(`${apiUrl}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
+            }
+
+            const userData = result.data?.user || result.user || { email };
+            
+            if (onLoginSuccess) {
+                onLoginSuccess(userData.email, userData.userName || userData.email.split('@')[0]);
+            } else {
+                onViewChange('HOME');
+            }
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -39,22 +68,29 @@ const LoginPage = () => {
 
             <div className="auth-card">
                 <div className="auth-header">
-                    <div className="notion-logo">
-                        <span>N</span>
+                    <div className="notion-logo" onClick={() => onViewChange('HOME')} style={{ cursor: 'pointer' }}>
+                        <span>B</span>
                     </div>
-                    <h1>Welcome back</h1>
-                    <p className="auth-subtitle">Log in to your Notion account</p>
+                    <h1>Chào mừng quay trở lại</h1>
+                    <p className="auth-subtitle">Đăng nhập tài khoản BK'S MAP</p>
                 </div>
+
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold">
+                        ⚠️ {error}
+                    </div>
+                )}
 
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="email">Email</label>
+                        <label htmlFor="email">Email sinh viên / Chủ nhà</label>
                         <div className="input-wrapper">
                             <Mail className="input-icon" size={18} />
                             <input
                                 id="email"
                                 type="email"
-                                placeholder="Enter your email address..."
+                                required
+                                placeholder="Nhập địa chỉ email của bạn..."
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="focus-glow"
@@ -62,38 +98,50 @@ const LoginPage = () => {
                         </div>
                     </div>
 
-                    <button type="submit" className="auth-btn primary-btn" disabled={isLoading}>
+                    <div className="form-group">
+                        <label htmlFor="password">Mật khẩu</label>
+                        <div className="input-wrapper">
+                            <Lock className="input-icon" size={18} />
+                            <input
+                                id="password"
+                                type="password"
+                                required
+                                placeholder="Nhập mật khẩu của bạn..."
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="focus-glow"
+                            />
+                        </div>
+                    </div>
+
+                    <button type="submit" className="auth-btn primary-btn font-bold" disabled={isLoading}>
                         {isLoading ? (
                             <>
                                 <Loader2 className="btn-icon spinning" size={18} />
-                                <span>Signing in...</span>
+                                <span>Đang đăng nhập...</span>
                             </>
                         ) : (
                             <>
-                                <span>Continue with Email</span>
+                                <span>Đăng nhập</span>
                                 <ArrowRight className="btn-icon-right" size={18} />
                             </>
                         )}
                     </button>
 
                     <div className="auth-divider">
-                        <span>OR</span>
+                        <span>HOẶC</span>
                     </div>
 
                     <div className="social-login">
-                        <button type="button" className="social-btn google-btn">
+                        <button type="button" onClick={() => { setEmail('dannguyen@dut.udn.vn'); setPassword('123456'); }} className="social-btn google-btn">
                             <GoogleIcon />
-                            <span>Continue with Google</span>
-                        </button>
-                        <button type="button" className="social-btn apple-btn">
-                            <AppleIcon />
-                            <span>Continue with Apple</span>
+                            <span>Tài khoản Test nhanh</span>
                         </button>
                     </div>
                 </form>
 
                 <div className="auth-footer">
-                    <p>Don't have an account? <Link to="/register" className="auth-link">Sign up</Link></p>
+                    <p>Chưa có tài khoản? <button onClick={() => onViewChange('REGISTER')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng ký ngay</button></p>
                 </div>
             </div>
         </div>

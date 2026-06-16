@@ -225,4 +225,47 @@ export const roomRepository = {
 			where: { id },
 		});
 	},
+
+	// Quản lý ảnh
+	async addImageToRoom(roomId, imageUrl, displayOrder, storagePath) {
+		return await prisma.roomImage.create({
+			data: {
+				roomId,
+				imageUrl,
+				displayOrder,
+				storagePath,
+			},
+		});
+	},
+
+	async findImageById(imageId) {
+		return await prisma.roomImage.findUnique({
+			where: { id: imageId },
+			include: { room: true },
+		});
+	},
+
+	async deleteImageById(imageId) {
+		return await prisma.roomImage.delete({
+			where: { id: imageId },
+		});
+	},
+
+	async updateImagesOrder(updates) {
+		// updates: [{ id: "...", displayOrder: 0 }, ...]
+		return await prisma.$transaction(
+			updates.map((update) =>
+				prisma.roomImage.update({
+					where: { id: update.id },
+					data: { displayOrder: update.displayOrder },
+				})
+			)
+		);
+	},
+
+	async countImagesByRoomId(roomId) {
+		return await prisma.roomImage.count({
+			where: { roomId },
+		});
+	},
 };

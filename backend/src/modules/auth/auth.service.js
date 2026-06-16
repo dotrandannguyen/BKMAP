@@ -54,6 +54,7 @@ export const authService = {
       email: newUser.email,
       userName: newUser.userName,
       avatar: newUser.avatar,
+      verifyToken: newUser.verifyToken,
       message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.',
     };
   },
@@ -73,9 +74,9 @@ export const authService = {
     }
 
     // NẾU MUỐN CHẶN LOGIN KHI CHƯA XÁC THỰC EMAIL THÌ MỞ ĐOẠN NÀY RA
-    if (!user.isVerified) {
-      throw new UnauthorizedException('Tài khoản chưa được xác thực. Vui lòng kiểm tra email.');
-    }
+    // if (!user.isVerified) {
+    //   throw new UnauthorizedException('Tài khoản chưa được xác thực. Vui lòng kiểm tra email.');
+    // }
 
     // JWT payload
     const payload = {

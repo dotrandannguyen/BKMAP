@@ -59,4 +59,44 @@ export const roomController = {
 			next(error);
 		}
 	},
+
+	async uploadImage(req, res, next) {
+		try {
+			const { id } = req.params;
+			const userId = req.user.id;
+			
+			// Build baseUrl manually if needed, or pass it via req.body
+			req.body.baseUrl = `${req.protocol}://${req.get('host')}`;
+			
+			const data = await roomService.uploadRoomImage(id, userId, req.file, req.body);
+			return new HttpResponse(res).success({
+				message: 'Tải ảnh lên thành công',
+				image: data,
+			});
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	async deleteImage(req, res, next) {
+		try {
+			const { id, imageId } = req.params;
+			const userId = req.user.id;
+			const data = await roomService.deleteRoomImage(id, imageId, userId);
+			return new HttpResponse(res).success(data);
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	async reorderImages(req, res, next) {
+		try {
+			const { id } = req.params;
+			const userId = req.user.id;
+			const data = await roomService.reorderImages(id, userId, req.body);
+			return new HttpResponse(res).success(data);
+		} catch (error) {
+			next(error);
+		}
+	},
 };

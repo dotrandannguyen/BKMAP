@@ -107,6 +107,7 @@ model RoomImage {
   id           String   @id @default(uuid()) @db.Uuid
   roomId       String   @db.Uuid
   imageUrl     String   @db.Text
+  storagePath  String?  @db.Text // Đường dẫn lưu trữ trên Supabase
   displayOrder Int      @default(0) // Thứ tự hiển thị
   createdAt    DateTime @default(now())
 

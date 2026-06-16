@@ -1,126 +1,110 @@
-:root {
-  /* Colors - Notion Dark Mode */
-  --bg-main: #191919;
-  --bg-sidebar: #202020;
-  --bg-hover: rgba(255, 255, 255, 0.055);
-  --bg-active: rgba(255, 255, 255, 0.09);
-  --bg-block-hover: rgba(255, 255, 255, 0.03);
+@import "tailwindcss";
 
-  --text-primary: #d4d4d4;
-  --text-secondary: #9b9b9b;
-  --text-tertiary: #6d6d6d;
-
-  --border-subtle: #2f2f2f;
-  --border-focused: #484848;
-
-  --cursor-color: rgba(35, 131, 226, 0.28);
-  /* Selection blue */
-
-  /* NEW: Accent Colors */
-  --accent-primary: #2383e2;
-  --accent-primary-hover: #1a6fb0;
-  --accent-glow: rgba(35, 131, 226, 0.35);
-
-  /* NEW: Gradients */
-  --gradient-primary: linear-gradient(135deg, #2383e2 0%, #1a6fb0 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-
-  /* NEW: Glass effects */
-  --glass-bg: rgba(32, 32, 32, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
-
-  /* Spacing */
-  --sidebar-width: 240px;
-  --topbar-height: 45px;
-
-  /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-}
-
-* {
-  box-sizing: border-box;
+@theme {
+  --color-primary: #004ac6;
+  --color-primary-container: #2563eb;
+  --color-secondary: #00687a;
+  --color-secondary-container: #57dffe;
+  --color-on-secondary-container: #006172;
+  --color-tertiary: #6a1edb;
+  --color-tertiary-container: #8343f4;
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #434655;
+  --color-outline: #737686;
+  --color-outline-variant: #c3c6d7;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container-lowest: #ffffff;
+  
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-main);
-  color: var(--text-primary);
   font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
-  overflow: hidden;
-  /* App-like feel */
+  background-color: #f8f9ff;
+  color: #0b1c30;
+  overflow-x: hidden;
 }
 
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* Glassmorphism Styles */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0px 15px 35px rgba(37, 99, 235, 0.05);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #3f3f3f;
-  border-radius: 5px;
-  border: 2px solid var(--bg-main);
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #4f4f4f;
+/* Micro interaction shadows */
+.shadow-premium {
+  box-shadow: 0px 20px 40px rgba(37, 99, 235, 0.08);
 }
 
-::-webkit-scrollbar-track {
+/* Custom Scrollbars */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-
-::selection {
-  background: var(--cursor-color);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 74, 198, 0.15);
+  border-radius: 99px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 74, 198, 0.3);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* Map mesh pattern */
+.map-mesh {
+  background-image: radial-gradient(circle at 2px 2px, rgba(0, 74, 198, 0.06) 1px, transparent 0);
+  background-size: 24px 24px;
 }
 
-/* Keyframe Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Pulse Animation for Markers */
+.pulse-marker::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: rgba(87, 223, 254, 0.5);
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  top: 0;
+  left: 0;
+  z-index: -1;
 }
 
-@keyframes pulse-glow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 var(--accent-glow);
-  }
-
-  50% {
-    box-shadow: 0 0 20px 2px var(--accent-glow);
-  }
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.8); opacity: 0; }
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-
-  100% {
-    background-position: 200% 0;
-  }
+/* Leaflet Custom DivIcon overrides */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
 }
 
-/* Focus Visible Utility */
-.focus-glow:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--accent-glow);
+#leaflet-map {
+  width: 100%;
+  height: 100%;
+  z-index: 10;
 }
+
