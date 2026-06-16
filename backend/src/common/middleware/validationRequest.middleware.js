@@ -16,7 +16,13 @@ export const validateRequestMiddleware = (schema) => {
 				if (Array.isArray(zodSchema)) {
 					zodSchema.forEach((s) => s.parse(value));
 				} else {
-					req[key] = zodSchema.parse(value);
+					const parsedValue = zodSchema.parse(value);
+					Object.defineProperty(req, key, {
+						value: parsedValue,
+						writable: true,
+						enumerable: true,
+						configurable: true
+					});
 				}
 			}
 

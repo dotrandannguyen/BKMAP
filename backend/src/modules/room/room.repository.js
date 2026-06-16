@@ -225,4 +225,44 @@ export const roomRepository = {
 			where: { id },
 		});
 	},
+
+	async addImageToRoom(roomId, imageUrl, displayOrder, storagePath) {
+		return await prisma.roomImage.create({
+			data: {
+				roomId,
+				imageUrl,
+				displayOrder,
+				storagePath,
+			},
+		});
+	},
+
+	async countImagesByRoomId(roomId) {
+		return await prisma.roomImage.count({
+			where: { roomId },
+		});
+	},
+
+	async findImageById(imageId) {
+		return await prisma.roomImage.findUnique({
+			where: { id: imageId },
+		});
+	},
+
+	async deleteImageById(imageId) {
+		return await prisma.roomImage.delete({
+			where: { id: imageId },
+		});
+	},
+
+	async updateImagesOrder(imagesData) {
+		return await prisma.$transaction(
+			imagesData.map((img) =>
+				prisma.roomImage.update({
+					where: { id: img.id },
+					data: { displayOrder: img.displayOrder },
+				})
+			)
+		);
+	},
 };
