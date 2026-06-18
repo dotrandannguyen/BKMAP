@@ -122,6 +122,9 @@ export const roomRepository = {
 				features: {
 					include: { feature: true },
 				},
+				creator: {
+					select: { email: true },
+				},
 			},
 		});
 
