@@ -166,10 +166,17 @@ export default function App() {
 
   const handleViewChange = (view) => {
     if (view === 'CREATE' && editingListing && currentView !== 'DASHBOARD') {
-      // Keep editingListing if navigating to CREATE from Edit button (which sets view internally)
-      // Actually we should clear editingListing if user clicks "Đăng trọ mới" manually.
-      // We will clear it if they click "Đăng trọ mới" from Navbar/Dashboard.
+      // Keep editingListing if navigating to CREATE from Edit button
     }
+    
+    // YÊU CẦU ĐĂNG NHẬP ĐỂ ĐĂNG TIN
+    if (view === 'CREATE' && !isLoggedIn) {
+      setPreviousView(currentView);
+      setCurrentView('LOGIN');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      return;
+    }
+
     if (view === 'LOGOUT') {
       handleLogout();
     } else if (view === 'BACK') {

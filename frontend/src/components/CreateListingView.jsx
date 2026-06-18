@@ -27,12 +27,12 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
   // Form State
   const [title, setTitle] = useState(initialData?.title || '');
   const [type, setType] = useState(initialData?.type || 'Room');
-  const [price, setPrice] = useState(initialData?.price || 2500000);
-  const [area, setArea] = useState(initialData?.area || 20);
+  const [price, setPrice] = useState(initialData?.price || '2500000');
+  const [area, setArea] = useState(initialData?.area || '20');
   const [distanceText, setDistanceText] = useState(initialData?.distanceText || 'Cách cổng phụ DUT 150m');
-  const [address, setAddress] = useState(initialData?.address || 'Hòa Khánh Nam, Liên Chiểu, Đà Nẵng');
+  const [address, setAddress] = useState(initialData?.address || 'Liên Chiểu, Đà Nẵng');
   const [description, setDescription] = useState(initialData?.description || '');
-  const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
+  //const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
   const [imageUrls, setImageUrls] = useState(initialData?.images || []);
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
