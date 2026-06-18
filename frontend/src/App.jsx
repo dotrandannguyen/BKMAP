@@ -88,15 +88,39 @@ export default function App() {
     }
   };
 
-  const handleDeleteListing = (id) => {
-    const updated = listings.filter((item) => item.id !== id);
-    setListings(updated);
-    saveListings(updated);
-    
-    // Fallback if deleted listing was selected
-    if (selectedListingId === id) {
-      const remaining = updated[0]?.id || '';
-      setSelectedListingId(remaining);
+  const handleDeleteListing = async (id) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        return;
+      }
+      const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+      
+      const res = await fetch(`${apiUrl}/rooms/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Lỗi từ server khi xóa phòng');
+      }
+
+      // Xóa thành công, cập nhật state UI và mockData
+      const updated = listings.filter((item) => item.id !== id);
+      setListings(updated);
+      saveListings(updated); // Fallback local
+
+      if (selectedListingId === id) {
+        const remaining = updated[0]?.id || '';
+        setSelectedListingId(remaining);
+      }
+    } catch (error) {
+      alert("Không thể xóa phòng: " + error.message);
+      console.error("Lỗi xóa phòng:", error);
     }
   };
 
@@ -166,10 +190,17 @@ export default function App() {
 
   const handleViewChange = (view) => {
     if (view === 'CREATE' && editingListing && currentView !== 'DASHBOARD') {
-      // Keep editingListing if navigating to CREATE from Edit button (which sets view internally)
-      // Actually we should clear editingListing if user clicks "Đăng trọ mới" manually.
-      // We will clear it if they click "Đăng trọ mới" from Navbar/Dashboard.
+      // Keep editingListing if navigating to CREATE from Edit button
     }
+    
+    // YÊU CẦU ĐĂNG NHẬP ĐỂ ĐĂNG TIN
+    if (view === 'CREATE' && !isLoggedIn) {
+      setPreviousView(currentView);
+      setCurrentView('LOGIN');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      return;
+    }
+
     if (view === 'LOGOUT') {
       handleLogout();
     } else if (view === 'BACK') {

@@ -27,12 +27,12 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
   // Form State
   const [title, setTitle] = useState(initialData?.title || '');
   const [type, setType] = useState(initialData?.type || 'Room');
-  const [price, setPrice] = useState(initialData?.price || 2500000);
-  const [area, setArea] = useState(initialData?.area || 20);
+  const [price, setPrice] = useState(initialData?.price || '2500000');
+  const [area, setArea] = useState(initialData?.area || '20');
   const [distanceText, setDistanceText] = useState(initialData?.distanceText || 'Cách cổng phụ DUT 150m');
-  const [address, setAddress] = useState(initialData?.address || 'Hòa Khánh Nam, Liên Chiểu, Đà Nẵng');
+  const [address, setAddress] = useState(initialData?.address || 'Liên Chiểu, Đà Nẵng');
   const [description, setDescription] = useState(initialData?.description || '');
-  const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
+  //const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
   const [imageUrls, setImageUrls] = useState(initialData?.images || []);
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
@@ -148,8 +148,17 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
         // Map feature strings to IDs if needed by backend, keeping it empty for now if not strictly required
       };
 
-      const createRes = await fetch(`${apiUrl}/rooms`, {
-        method: 'POST',
+      const isEditing = !!initialData?.id;
+      const endpoint = isEditing ? `${apiUrl}/rooms/${initialData.id}` : `${apiUrl}/rooms`;
+      const httpMethod = isEditing ? 'PATCH' : 'POST';
+
+      if (isEditing) {
+        // Chỉ lấy những url cũ thật (đã được lưu), loại bỏ các file preview (blob:)
+        createRoomPayload.imageUrls = imageUrls.filter(url => !url.startsWith('blob:'));
+      }
+
+      const createRes = await fetch(endpoint, {
+        method: httpMethod,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -163,7 +172,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
       }
 
       const createData = await createRes.json();
-      const roomId = createData.data?.room?.id || createData.room?.id;
+      const roomId = isEditing ? initialData.id : (createData.data?.room?.id || createData.room?.id);
       
       if (!roomId) {
         throw new Error('Không nhận được ID phòng từ hệ thống');
@@ -174,9 +183,10 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
         let uploadedCount = 0;
         setUploadStatus(`Đang tải lên Supabase (0/${selectedFiles.length})...`);
         
-        const uploadPromises = selectedFiles.map(async (fileObj) => {
+        const uploadPromises = selectedFiles.map(async (fileObj, index) => {
           const formData = new FormData();
           formData.append('file', fileObj.file);
+          formData.append('displayOrder', index);
 
           const uploadRes = await fetch(`${apiUrl}/rooms/${roomId}/image`, {
             method: 'POST',
@@ -198,7 +208,23 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
         await Promise.all(uploadPromises);
       }
 
-      // Cập nhật State cho UI hiển thị ngay lập tức (Mock fallback)
+      // 3. Fetch lại room từ backend để lấy Supabase URLs thực tế (thay vì blob: preview)
+      setUploadStatus('Đang đồng bộ dữ liệu...');
+      const roomRes = await fetch(`${apiUrl}/rooms/${roomId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      let realImageUrls = imageUrls; // Fallback
+      if (roomRes.ok) {
+        const roomData = await roomRes.json();
+        const roomDetail = roomData.data || roomData;
+        if (roomDetail.images && roomDetail.images.length > 0) {
+          realImageUrls = roomDetail.images
+            .sort((a, b) => a.displayOrder - b.displayOrder)
+            .map((img) => img.imageUrl);
+        }
+      }
+
+      // Cập nhật State cho UI hiển thị ngay lập tức
       const newHouse = {
         ...(initialData || {}),
         id: roomId,
@@ -209,7 +235,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
         distanceText: distanceText.trim() || 'Cách cổng chính ĐH Bách Khoa 800m',
         address: createRoomPayload.address,
         rating: 5.0,
-        images: imageUrls,
+        images: realImageUrls,
         host: { name: createRoomPayload.ownerName, phone: createRoomPayload.ownerPhone },
         amenities: selectedAmenities,
         description: description,

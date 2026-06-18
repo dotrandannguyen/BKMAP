@@ -1,32 +1,69 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import authRouter from './modules/auth/auth.router.js';
 import userRouter from './modules/user/users.router.js';
 import roomRouter from './modules/room/room.router.js';
-import uploadRouter from './modules/upload/upload.router.js';
 import path from 'path';
 import { errorHandlerMiddleware } from './common/middleware/errorHandler.Middleware.js';
+
 const app = express();
 
+// --- SECURITY HEADERS ---
+app.use(helmet());
+
+// --- CORS ---
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map(o => o.trim());
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow any origin for development
-    callback(null, true);
-  },
-  credentials: true,
+	origin: (origin, callback) => {
+		// Cho phép non-browser requests (Postman, curl) và các origin trong whitelist
+		if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+			callback(null, true);
+		} else {
+			callback(new Error(`CORS policy blocked: ${origin}`));
+		}
+	},
+	credentials: true,
 }));
+
+// --- RATE LIMITING ---
+// Global: 200 req / 15 phút
+const globalLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	max: 200,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { message: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' },
+});
+
+// Auth: Chặn brute-force
+const authLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	max: 10,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { message: 'Quá nhiều lần đăng nhập thất bại, vui lòng thử lại sau 15 phút.' },
+});
+
+app.use(globalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
+// --- BODY PARSING ---
 app.use(express.json());
 app.use(cookieParser());
-// app.use(express.urlencoded({ extended: true }));
+
+// --- ROUTES ---
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/rooms', roomRouter);
-app.use('/api/upload', uploadRouter);
 
 // Phục vụ thư mục uploads dạng static
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// --- ERROR HANDLER ---
 app.use(errorHandlerMiddleware);
 
 export default app;

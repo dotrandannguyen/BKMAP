@@ -54,7 +54,7 @@ export const authService = {
       email: newUser.email,
       userName: newUser.userName,
       avatar: newUser.avatar,
-      verifyToken: newUser.verifyToken,
+      // verifyToken KHÔNG trả về client — tránh bypass xác thực email
       message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.',
     };
   },

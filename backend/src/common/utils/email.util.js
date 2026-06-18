@@ -34,7 +34,8 @@ const initTransporter = async () => {
 
 export const sendVerificationEmail = async (to, token) => {
 	// Dẫn link trực tiếp về Backend API để user bấm vào là gọi thẳng hàm GET
-	const verifyUrl = `http://localhost:${process.env.PORT || 3000}/api/auth/verify-email?token=${token}`;
+	const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
+	const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${token}`;
 
 	const mailOptions = {
 		from: `"BKMAP Support" <${process.env.SMTP_USER || 'no-reply@bkmap.com'}>`,
