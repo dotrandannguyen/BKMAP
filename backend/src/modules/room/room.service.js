@@ -3,6 +3,7 @@ import { ClientException } from '../../common/exceptions/index.js';
 import { supabase } from '../../config/supabase.js';
 import sharp from 'sharp';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
+import { processCleanup } from '../../workers/cleanup.worker.js';
 
 export const roomService = {
 	async createRoom(dto, userId) {
@@ -82,7 +83,9 @@ export const roomService = {
 
 		// 3. Thực hiện update
 		try {
-			return await roomRepository.updateRoom(id, dto);
+			const updatedRoom = await roomRepository.updateRoom(id, dto);
+			processCleanup().catch(console.error);
+			return updatedRoom;
 		} catch (error) {
 			if (error.code === 'P2003') {
 				throw new ClientException(400, 'Dữ liệu liên kết không hợp lệ.');
@@ -108,22 +111,11 @@ export const roomService = {
 		}
 
 		// 3. Thực hiện xóa DB trước (Cascade sẽ xóa RoomImage)
+		// Repository will log the deleted images into OutboxFileDelete table
 		await roomRepository.deleteRoom(id);
 
-		// 4. Nếu xóa DB thành công, tiến hành xóa file trên Supabase để dọn dẹp storage
-		if (room.images && room.images.length > 0) {
-			const storagePaths = room.images
-				.map((img) => img.storagePath)
-				.filter((path) => path != null); // Lọc bỏ những ảnh cũ không có storagePath
-
-			if (storagePaths.length > 0) {
-				const { error } = await supabase.storage.from('BKMAP-images').remove(storagePaths);
-				if (error) {
-					console.error('Lỗi khi xóa ảnh trên Supabase (deleteRoom):', error);
-					// Không throw error vì thao tác chính (xóa room) đã thành công
-				}
-			}
-		}
+		// Kích hoạt xử lý xóa file ngầm trên Supabase ngay lập tức
+		processCleanup().catch(console.error);
 
 		return { message: 'Xóa phòng trọ thành công.' };
 	},
@@ -209,17 +201,11 @@ export const roomService = {
 		}
 
 		// 3. Xóa record trong Database trước để đảm bảo tính nhất quán
+		// Repository will log the deleted image into OutboxFileDelete table
 		await roomRepository.deleteImageById(imageId);
 
-		// 4. Xóa file thực tế trên Supabase nếu có storagePath
-		if (image.storagePath) {
-			const { error } = await supabase.storage.from('BKMAP-images').remove([image.storagePath]);
-			if (error) {
-				// Chỉ log lỗi để xử lý dọn dẹp sau, không văng lỗi ra cho client
-				// vì giao diện đã không còn thấy ảnh (do xóa DB thành công)
-				console.error(`Lỗi khi xóa ảnh trên Supabase: ${image.storagePath}`, error);
-			}
-		}
+		// Kích hoạt xử lý xóa file ngầm trên Supabase ngay lập tức
+		processCleanup().catch(console.error);
 
 		return { message: 'Xóa ảnh thành công.' };
 	},

@@ -3,6 +3,7 @@ import { authController } from './auth.controller.js';
 
 import { registerSchema, loginSchema, verifyEmailSchema } from './dto/requests/auth.request.js';
 import { validateRequestMiddleware } from '../../common/middleware/index.js';
+import { authMiddleware } from '../../common/middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.post(
 router.get('/verify-email', authController.verifyEmailGet);
 
 router.post('/refresh-token', authController.refreshToken);
-router.post('/logout', authController.logout); // You can add authentication middleware here if desired
+// authMiddleware đảm bảo req.user.id luôn tồn tại để xóa refreshToken trong DB
+router.post('/logout', authMiddleware, authController.logout);
 
 export default router;

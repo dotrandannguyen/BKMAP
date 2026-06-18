@@ -190,16 +190,45 @@ export const roomRepository = {
 				},
 			});
 
-			// Xử lý cập nhật ảnh (Xóa hết ảnh cũ, thêm ảnh mới)
+			// Xử lý cập nhật ảnh (Diff-based: chỉ xóa ảnh bị loại bỏ, giữ nguyên ảnh còn lại)
 			if (data.imageUrls) {
-				await tx.roomImage.deleteMany({ where: { roomId: id } });
-				if (data.imageUrls.length > 0) {
-					const imageRecords = data.imageUrls.map((url, index) => ({
-						roomId: id,
-						imageUrl: url,
-						displayOrder: index,
-					}));
-					await tx.roomImage.createMany({ data: imageRecords });
+				const oldImages = await tx.roomImage.findMany({ where: { roomId: id } });
+				const newUrlSet = new Set(data.imageUrls);
+				const oldUrlSet = new Set(oldImages.map((img) => img.imageUrl));
+
+				// Tìm ảnh cũ cần xóa (không nằm trong danh sách mới)
+				const imagesToDelete = oldImages.filter((img) => !newUrlSet.has(img.imageUrl));
+				const pathsToDelete = imagesToDelete.map((img) => img.storagePath).filter(Boolean);
+
+				if (imagesToDelete.length > 0) {
+					await tx.roomImage.deleteMany({
+						where: { id: { in: imagesToDelete.map((img) => img.id) } },
+					});
+
+					if (pathsToDelete.length > 0) {
+						await tx.outboxFileDelete.createMany({
+							data: pathsToDelete.map((path) => ({ storagePath: path, status: 'PENDING' })),
+						});
+					}
+				}
+
+				// Cập nhật displayOrder cho ảnh được giữ lại theo thứ tự mới
+				for (let i = 0; i < data.imageUrls.length; i++) {
+					const url = data.imageUrls[i];
+					if (oldUrlSet.has(url)) {
+						const existingImg = oldImages.find((img) => img.imageUrl === url);
+						if (existingImg && existingImg.displayOrder !== i) {
+							await tx.roomImage.update({
+								where: { id: existingImg.id },
+								data: { displayOrder: i },
+							});
+						}
+					} else {
+						// Ảnh hoàn toàn mới (URL chưa tồn tại) — tạo record mới
+						await tx.roomImage.create({
+							data: { roomId: id, imageUrl: url, displayOrder: i },
+						});
+					}
 				}
 			}
 
@@ -220,9 +249,22 @@ export const roomRepository = {
 	},
 
 	async deleteRoom(id) {
-		// Do đã config onDelete: Cascade trong schema, việc xóa Room sẽ tự động xóa RoomImage và RoomFeature liên quan
-		return await prisma.room.delete({
-			where: { id },
+		return await prisma.$transaction(async (tx) => {
+			const roomImages = await tx.roomImage.findMany({ where: { roomId: id } });
+			const paths = roomImages.map((img) => img.storagePath).filter(Boolean);
+
+			// Do đã config onDelete: Cascade trong schema, việc xóa Room sẽ tự động xóa RoomImage và RoomFeature liên quan
+			const deletedRoom = await tx.room.delete({
+				where: { id },
+			});
+
+			if (paths.length > 0) {
+				await tx.outboxFileDelete.createMany({
+					data: paths.map((path) => ({ storagePath: path, status: 'PENDING' })),
+				});
+			}
+
+			return deletedRoom;
 		});
 	},
 
@@ -251,8 +293,20 @@ export const roomRepository = {
 	},
 
 	async deleteImageById(imageId) {
-		return await prisma.roomImage.delete({
-			where: { id: imageId },
+		return await prisma.$transaction(async (tx) => {
+			const image = await tx.roomImage.findUnique({ where: { id: imageId } });
+
+			const deletedImage = await tx.roomImage.delete({
+				where: { id: imageId },
+			});
+
+			if (image && image.storagePath) {
+				await tx.outboxFileDelete.create({
+					data: { storagePath: image.storagePath, status: 'PENDING' },
+				});
+			}
+
+			return deletedImage;
 		});
 	},
 

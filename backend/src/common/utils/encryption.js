@@ -6,7 +6,11 @@ import { InternalServerException } from '../exceptions/index.js';
 // ENCRYPTION_IV_LENGTH=16
 
 const ALGORITHM = 'aes-256-cbc';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '12345678901234567890123456789012'; // Demo
+
+if (!process.env.ENCRYPTION_KEY) {
+	throw new Error('Thiếu biến môi trường ENCRYPTION_KEY. Hãy thêm vào file .env (32 ký tự).');
+}
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const IV_LENGTH = 16;
 
 export const encryptionUtils = {
