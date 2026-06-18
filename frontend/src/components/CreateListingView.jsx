@@ -32,7 +32,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
   const [distanceText, setDistanceText] = useState(initialData?.distanceText || 'Cách cổng phụ DUT 150m');
   const [address, setAddress] = useState(initialData?.address || 'Liên Chiểu, Đà Nẵng');
   const [description, setDescription] = useState(initialData?.description || '');
-  //const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
+  const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
   const [imageUrls, setImageUrls] = useState(initialData?.images || []);
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
@@ -133,16 +133,16 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
       const createRoomPayload = {
         title: title.trim() || 'Căn Hộ Sinh Viên',
         type: type,
-        price: price,
-        electricityPrice: electricityPrice ? Number(electricityPrice.replace(/\D/g, '')) || 0 : 0,
-        waterPrice: waterPrice ? Number(waterPrice.replace(/\D/g, '')) || 0 : 0,
+        price: Number(String(price).replace(/\D/g, '')) || 1000,
+        electricityPrice: electricityPrice ? Number(String(electricityPrice).replace(/\D/g, '')) || 0 : 0,
+        waterPrice: waterPrice ? Number(String(waterPrice).replace(/\D/g, '')) || 0 : 0,
         distanceToBk: distanceDUT || 0.8,
         address: address.trim() || 'Đà Nẵng',
         ownerName: hostName || 'Người dùng BKMAP',
         ownerPhone: hostPhone || '0901234567',
         description: description.trim(),
         status: 'AVAILABLE',
-        area: area,
+        area: Number(area) || 20,
         latitude: position?.lat || 16.07548,
         longitude: position?.lng || 108.14983,
         // Map feature strings to IDs if needed by backend, keeping it empty for now if not strictly required

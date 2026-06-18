@@ -33,17 +33,51 @@ export default function App() {
   // Bookmark / Saved listings tracking
   const [savedIds, setSavedIds] = useState([]);
 
-  // Initial load
+  // Initial load — luôn lấy data thật từ Backend thay vì LocalStorage mock
   useEffect(() => {
-    const hasCleared = sessionStorage.getItem('bks_map_cleared_once');
-    if (!hasCleared) {
-      clearListings();
-      sessionStorage.setItem('bks_map_cleared_once', 'true');
-      setListings([]);
-    } else {
-      const data = loadListings();
-      setListings(data);
-    }
+    const fetchRooms = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
+          ? import.meta.env.VITE_API_URL
+          : `http://${window.location.hostname}:3000/api`;
+
+        const res = await fetch(`${apiUrl}/rooms?limit=50`);
+        if (res.ok) {
+          const json = await res.json();
+          const raw = json.data?.data || json.data || [];
+          const roomsFromApi = raw.map(room => ({
+            id: room.id,
+            title: room.title,
+            type: room.type || 'Phòng trọ',
+            price: room.price,
+            priceUSD: Math.round(room.price / 24800),
+            distanceText: `Cách ĐHBK ${room.distanceToBk || 0.8}km`,
+            address: room.address,
+            rating: 5.0,
+            images: room.images?.length > 0
+              ? room.images.map(img => img.imageUrl)
+              : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'],
+            host: { name: 'Chủ trọ', phone: 'Liên hệ qua ứng dụng' },
+            amenities: room.features?.map(f => f.feature?.name || '').filter(Boolean) || [],
+            description: room.description || '',
+            status: room.status || 'AVAILABLE',
+            area: room.area,
+            lat: Number(room.latitude),
+            lng: Number(room.longitude),
+            ownerEmail: room.creator?.email || 'guest@example.com',
+          }));
+          setListings(roomsFromApi);
+        } else {
+          console.warn('API /rooms thất bại, fallback LocalStorage');
+          setListings(loadListings());
+        }
+      } catch (err) {
+        console.error('Lỗi load phòng từ server:', err);
+        setListings(loadListings());
+      }
+    };
+
+    fetchRooms();
 
     // Khôi phục phiên đăng nhập khi F5
     const token = localStorage.getItem('accessToken');
