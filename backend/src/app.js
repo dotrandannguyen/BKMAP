@@ -15,7 +15,7 @@ const app = express();
 app.use(helmet());
 
 // --- CORS ---
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map(o => o.trim());
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://172.19.80.1:5173,http://127.0.0.1:5173').split(',').map(o => o.trim());
 app.use(cors({
 	origin: (origin, callback) => {
 		// Cho phép non-browser requests (Postman, curl) và các origin trong whitelist

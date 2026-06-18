@@ -17,8 +17,8 @@ export const roomService = {
 		} catch (error) {
 			// Catch Prisma constraint errors or throw unexpected ones
 			if (error.code === 'P2003') {
-				// Foreign key constraint failed (ví dụ: featureId không tồn tại)
-				throw new ClientException(400, 'Dữ liệu liên kết không hợp lệ (Tiện ích không tồn tại).');
+				// Foreign key constraint failed
+				throw new ClientException(400, 'Dữ liệu liên kết không hợp lệ (User, Owner hoặc Tiện ích không tồn tại).');
 			}
 			throw error;
 		}

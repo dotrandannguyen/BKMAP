@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -21,7 +22,8 @@ function LocationPicker({ position, setPosition, calculateDistance }) {
   return position ? <Marker position={position} /> : null;
 }
 
-export default function CreateListingView({ onAddListing, onViewChange, initialData }) {
+export default function CreateListingView({ onAddListing, initialData }) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
   // Form State
@@ -250,7 +252,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
       // Delay 100ms để React kịp cập nhật UI (ẩn spinner) trước khi bật alert block luồng
       setTimeout(() => {
         alert(initialData ? '🎉 Cập nhật thông tin thành công!' : '🎉 Đăng tin lên hệ thống thành công!');
-        onViewChange('DASHBOARD');
+        navigate('/dashboard');
       }, 100);
       
       
@@ -272,7 +274,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
       
       {/* Back to dashboard */}
       <button
-        onClick={() => onViewChange('DASHBOARD')}
+        onClick={() => navigate('/dashboard')}
         className="mb-6 flex items-center gap-2 text-primary font-bold text-sm hover:underline cursor-pointer group"
       >
         <span className="material-symbols-outlined text-sm font-bold group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
@@ -695,7 +697,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
               ) : (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
-                  <span>LƯU & ĐĂNG BÀI</span>
+                  <span>{initialData ? 'CẬP NHẬT' : 'LƯU & ĐĂNG BÀI'}</span>
                 </>
               )}
             </button>

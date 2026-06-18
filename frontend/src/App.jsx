@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { loadListings, saveListings, clearListings, resetToBaseline } from './mockData';
 
 // Component Imports
@@ -14,9 +15,16 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import UserPage from './pages/UserPage';
 
+// Route guard: chuyển hướng về /login nếu chưa đăng nhập
+function RequireAuth({ isLoggedIn, children }) {
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 export default function App() {
-  const [currentView, setCurrentView] = useState('HOME');
-  const [previousView, setPreviousView] = useState('HOME');
+  const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [selectedListingId, setSelectedListingId] = useState('');
   const [editingListing, setEditingListing] = useState(null);
@@ -118,7 +126,7 @@ export default function App() {
     const listingToEdit = listings.find(l => l.id === id);
     if (listingToEdit) {
       setEditingListing(listingToEdit);
-      handleViewChange('CREATE');
+      navigate('/create');
     }
   };
 
@@ -172,7 +180,7 @@ export default function App() {
 
   const handleSelectListing = (id) => {
     setSelectedListingId(id);
-    handleViewChange('DETAIL');
+    navigate(`/rooms/${id}`);
   };
 
   const toggleSaved = (id, e) => {
@@ -189,11 +197,11 @@ export default function App() {
     setIsLoggedIn(true);
     setUserEmail(email);
     setUserName(name || email.split('@')[0]);
-    setCurrentView('USER');
+    navigate('/profile');
   };
 
-  const handleRegisterSuccess = (name, email) => {
-    setCurrentView('LOGIN');
+  const handleRegisterSuccess = () => {
+    navigate('/login');
   };
 
   const handleLogout = () => {
@@ -204,7 +212,7 @@ export default function App() {
     setIsLoggedIn(false);
     setUserEmail('');
     setUserName('');
-    setCurrentView('HOME');
+    navigate('/');
   };
 
   // Database Management Callbacks
@@ -222,34 +230,6 @@ export default function App() {
     alert('🔄 Đã khôi phục dữ liệu phòng trọ mẫu thành công.');
   };
 
-  const handleViewChange = (view) => {
-    if (view === 'CREATE' && editingListing && currentView !== 'DASHBOARD') {
-      // Keep editingListing if navigating to CREATE from Edit button
-    }
-    
-    // YÊU CẦU ĐĂNG NHẬP ĐỂ ĐĂNG TIN
-    if (view === 'CREATE' && !isLoggedIn) {
-      setPreviousView(currentView);
-      setCurrentView('LOGIN');
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      return;
-    }
-
-    if (view === 'LOGOUT') {
-      handleLogout();
-    } else if (view === 'BACK') {
-      setCurrentView(previousView);
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    } else {
-      if (view === 'CREATE' && currentView !== 'CREATE' && !editingListing) {
-         // handled properly
-      }
-      setPreviousView(currentView);
-      setCurrentView(view);
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    }
-  };
-
   // Find active listing or fallback to first available
   const activeListing = listings.find((item) => item.id === selectedListingId) || listings[0];
 
@@ -257,112 +237,99 @@ export default function App() {
     <div className="min-h-screen flex flex-col font-sans antialiased text-[#0b1c30]">
       {/* Dynamic Header Navbar Bar */}
       <Navbar
-        currentView={currentView}
-        onViewChange={handleViewChange}
         savedCount={savedIds.length}
         isLoggedIn={isLoggedIn}
         userEmail={userEmail}
         userName={userName}
         onClearAll={handleClearAll}
         onResetData={handleResetData}
+        onLogout={handleLogout}
       />
 
       {/* Main View Port */}
       <main className="flex-1 pb-16 md:pb-0">
-        {currentView === 'HOME' && (
-          <HomepageView
-            listings={listings}
-            onSelectListing={handleSelectListing}
-            onViewChange={handleViewChange}
-            setSearchQuery={setSearchQuery}
-            setPriceFilter={setPriceFilter}
-            toggleSaved={toggleSaved}
-            savedIds={savedIds}
-            onResetData={handleResetData}
-          />
-        )}
+        <Routes>
+          <Route path="/" element={
+            <HomepageView
+              listings={listings}
+              onSelectListing={handleSelectListing}
+              setSearchQuery={setSearchQuery}
+              setPriceFilter={setPriceFilter}
+              toggleSaved={toggleSaved}
+              savedIds={savedIds}
+              onResetData={handleResetData}
+            />
+          } />
 
-        {currentView === 'MAP' && (
-          <MapView
-            listings={listings}
-            onSelectListing={handleSelectListing}
-            onViewChange={handleViewChange}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            priceFilter={priceFilter}
-            setPriceFilter={setPriceFilter}
-            toggleSaved={toggleSaved}
-            savedIds={savedIds}
-          />
-        )}
+          <Route path="/map" element={
+            <MapView
+              listings={listings}
+              onSelectListing={handleSelectListing}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              priceFilter={priceFilter}
+              setPriceFilter={setPriceFilter}
+              toggleSaved={toggleSaved}
+              savedIds={savedIds}
+            />
+          } />
 
-        {currentView === 'DETAIL' && activeListing && (
-          <DetailView
-            listing={activeListing}
-            onViewChange={handleViewChange}
-            toggleSaved={toggleSaved}
-            savedIds={savedIds}
-          />
-        )}
+          <Route path="/rooms/:id" element={
+            <DetailView
+              listing={activeListing}
+              toggleSaved={toggleSaved}
+              savedIds={savedIds}
+            />
+          } />
 
-        {currentView === 'DETAIL' && !activeListing && (
-          <div className="py-20 text-center max-w-lg mx-auto space-y-4">
-            <span className="material-symbols-outlined text-4xl text-slate-300">error</span>
-            <h2 className="text-lg font-bold">Không tìm thấy thông tin phòng trọ</h2>
-            <button onClick={() => handleViewChange('MAP')} className="bg-primary text-white px-5 py-2 rounded-xl text-xs font-bold">
-              Quay lại Bản đồ
-            </button>
-          </div>
-        )}
+          <Route path="/dashboard" element={
+            <DashboardView
+              listings={listings.filter((item) => item.ownerEmail === userEmail || item.ownerEmail === 'guest@example.com')}
+              onDeleteListing={handleDeleteListing}
+              onToggleStatus={handleToggleStatus}
+              onSelectListing={handleSelectListing}
+              onEditListing={handleEditListing}
+              onResetData={handleResetData}
+              onClearAll={handleClearAll}
+              onCreateNew={() => { setEditingListing(null); navigate('/create'); }}
+            />
+          } />
 
-        {currentView === 'DASHBOARD' && (
-          <DashboardView
-            listings={listings.filter((item) => item.ownerEmail === userEmail || item.ownerEmail === 'guest@example.com')}
-            onViewChange={(view) => {
-              if (view === 'CREATE') setEditingListing(null);
-              handleViewChange(view);
-            }}
-            onDeleteListing={handleDeleteListing}
-            onToggleStatus={handleToggleStatus}
-            onSelectListing={handleSelectListing}
-            onEditListing={handleEditListing}
-            onResetData={handleResetData}
-            onClearAll={handleClearAll}
-          />
-        )}
+          <Route path="/create" element={
+            <RequireAuth isLoggedIn={isLoggedIn}>
+              <CreateListingView
+                onAddListing={handleAddListing}
+                initialData={editingListing}
+              />
+            </RequireAuth>
+          } />
 
-        {currentView === 'CREATE' && (
-          <CreateListingView
-            onAddListing={handleAddListing}
-            onViewChange={handleViewChange}
-            initialData={editingListing}
-          />
-        )}
+          <Route path="/login" element={
+            <LoginPage
+              onLoginSuccess={handleLoginSuccess}
+            />
+          } />
 
-        {currentView === 'LOGIN' && (
-          <LoginPage
-            onViewChange={handleViewChange}
-            onLoginSuccess={handleLoginSuccess}
-          />
-        )}
+          <Route path="/register" element={
+            <RegisterPage
+              onRegisterSuccess={handleRegisterSuccess}
+            />
+          } />
 
-        {currentView === 'REGISTER' && (
-          <RegisterPage
-            onViewChange={handleViewChange}
-            onRegisterSuccess={handleRegisterSuccess}
-          />
-        )}
+          <Route path="/profile" element={
+            <UserPage
+              userEmail={userEmail || 'sinhvien@dut.udn.vn'}
+              userName={userName}
+              listings={listings}
+              savedIds={savedIds}
+              onSelectListing={handleSelectListing}
+              onLogout={handleLogout}
+            />
+          } />
 
-        {currentView === 'USER' && (
-          <UserPage
-            onViewChange={handleViewChange}
-            userEmail={userEmail || 'sinhvien@dut.udn.vn'}
-            userName={userName}
-            listings={listings}
-            savedIds={savedIds}
-            onSelectListing={handleSelectListing}
-          />
-        )}
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
     </div>
   );

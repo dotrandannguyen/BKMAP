@@ -4,11 +4,11 @@ export default function DashboardView({
   listings,
   onDeleteListing,
   onToggleStatus,
-  onViewChange,
   onSelectListing,
   onEditListing,
   onResetData,
   onClearAll,
+  onCreateNew,
 }) {
   const [activeCategory, setActiveCategory] = useState('all');
   
@@ -76,7 +76,7 @@ export default function DashboardView({
         <div className="flex flex-wrap gap-2">
 
           <button
-            onClick={() => onViewChange('CREATE')}
+            onClick={() => onCreateNew()}
             className="bg-primary hover:bg-primary-container text-white text-xs sm:text-sm font-black px-6 py-3.5 rounded-2xl transition-all shadow-lg shadow-primary/15 active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm font-bold">add_box</span>
@@ -124,7 +124,7 @@ export default function DashboardView({
                 </p>
                 <div className="flex gap-2 justify-center pt-2">
                   <button
-                    onClick={() => onViewChange('CREATE')}
+                    onClick={() => onCreateNew()}
                     className="bg-white hover:bg-slate-100 text-slate-700 border text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
                   >
                     Đăng trọ mới

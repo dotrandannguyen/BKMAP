@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 
@@ -17,7 +18,8 @@ const AppleIcon = () => (
     </svg>
 );
 
-const LoginPage = ({ onViewChange, onLoginSuccess }) => {
+const LoginPage = ({ onLoginSuccess }) => {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -57,7 +59,7 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
             if (onLoginSuccess) {
                 onLoginSuccess(userData.email, userData.userName || userData.email.split('@')[0]);
             } else {
-                onViewChange('HOME');
+                navigate('/');
             }
         } catch (err) {
             setError(err.message);
@@ -76,7 +78,7 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
 
             <div className="auth-card">
                 <div className="auth-header">
-                    <div className="notion-logo" onClick={() => onViewChange('HOME')} style={{ cursor: 'pointer' }}>
+                    <div className="notion-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                         <span>B</span>
                     </div>
                     <h1>Chào mừng quay trở lại</h1>
@@ -149,7 +151,7 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
                 </form>
 
                 <div className="auth-footer">
-                    <p>Chưa có tài khoản? <button onClick={() => onViewChange('REGISTER')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng ký ngay</button></p>
+                    <p>Chưa có tài khoản? <button onClick={() => navigate('/register')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng ký ngay</button></p>
                 </div>
             </div>
         </div>

@@ -5,7 +5,6 @@ import 'leaflet/dist/leaflet.css';
 export default function MapView({
   listings,
   onSelectListing,
-  onViewChange,
   searchQuery,
   setSearchQuery,
   priceFilter,

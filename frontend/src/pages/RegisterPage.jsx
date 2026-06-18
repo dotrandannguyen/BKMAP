@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './RegisterPage.css';
 import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 
@@ -17,7 +18,8 @@ const AppleIcon = () => (
     </svg>
 );
 
-const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
+const RegisterPage = ({ onRegisterSuccess }) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -58,7 +60,7 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
                 if (onRegisterSuccess) {
                     onRegisterSuccess();
                 } else {
-                    onViewChange('LOGIN');
+                    navigate('/login');
                 }
             }, 1500);
         } catch (err) {
@@ -107,7 +109,7 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
                     if (onRegisterSuccess) {
                         onRegisterSuccess();
                     } else {
-                        onViewChange('LOGIN');
+                        navigate('/login');
                     }
                 }, 3000);
             }
@@ -141,7 +143,7 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
 
             <div className="auth-card">
                 <div className="auth-header">
-                    <div className="notion-logo" onClick={() => onViewChange('HOME')} style={{ cursor: 'pointer' }}>
+                    <div className="notion-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                         <span>B</span>
                     </div>
                     <h1>Tạo tài khoản mới</h1>
@@ -264,7 +266,7 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
                 </form>
 
                 <div className="auth-footer">
-                    <p>Đã có tài khoản? <button onClick={() => onViewChange('LOGIN')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng nhập</button></p>
+                    <p>Đã có tài khoản? <button onClick={() => navigate('/login')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng nhập</button></p>
                 </div>
 
                 <p className="terms-text">

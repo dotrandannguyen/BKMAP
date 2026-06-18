@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function HomepageView({
   listings,
   onSelectListing,
-  onViewChange,
   setSearchQuery,
   setPriceFilter,
   toggleSaved,
   savedIds,
   onResetData,
 }) {
+  const navigate = useNavigate();
   const [localSearch, setLocalSearch] = useState('');
   const [localPrice, setLocalPrice] = useState('Giá thuê: Mọi mức giá');
   const [emailSub, setEmailSub] = useState('');
@@ -54,12 +55,12 @@ export default function HomepageView({
       setPriceFilter('all');
     }
     // Switch to Map & List view
-    onViewChange('MAP');
+    navigate('/map');
   };
 
   const handleChipClick = (keyword) => {
     setSearchQuery(keyword);
-    onViewChange('MAP');
+    navigate('/map');
   };
 
   const handleSubscribe = (e) => {
@@ -195,7 +196,7 @@ export default function HomepageView({
               </div>
               {listings.length > 0 && (
                 <button 
-                  onClick={() => { setSearchQuery(''); onViewChange('MAP'); }}
+                  onClick={() => { setSearchQuery(''); navigate('/map'); }}
                   className="bg-primary/10 text-primary font-bold text-xs sm:text-sm px-5 py-2.5 rounded-full flex items-center gap-2 hover:bg-primary hover:text-white transition-all cursor-pointer whitespace-nowrap"
                 >
                   <span>Xem tất cả</span>
@@ -220,7 +221,7 @@ export default function HomepageView({
                 Khôi phục trọ mẫu
               </button>
               <button
-                onClick={() => onViewChange('CREATE')}
+                onClick={() => navigate('/create')}
                 className="bg-white hover:bg-slate-100 text-slate-700 border px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 Đăng trọ mới
@@ -490,9 +491,9 @@ export default function HomepageView({
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-on-surface uppercase tracking-widest">Nền tảng</h4>
             <ul className="space-y-2 text-xs text-on-surface-variant">
-              <li><button onClick={() => onViewChange('MAP')} className="hover:text-primary transition-colors cursor-pointer text-left">Tìm phòng trọ</button></li>
-              <li><button onClick={() => onViewChange('CREATE')} className="hover:text-primary transition-colors cursor-pointer text-left">Đăng tin cho thuê</button></li>
-              <li><button onClick={() => onViewChange('DASHBOARD')} className="hover:text-primary transition-colors cursor-pointer text-left">Xác thực nhà trọ</button></li>
+              <li><button onClick={() => navigate('/map')} className="hover:text-primary transition-colors cursor-pointer text-left">Tìm phòng trọ</button></li>
+              <li><button onClick={() => navigate('/create')} className="hover:text-primary transition-colors cursor-pointer text-left">Đăng tin cho thuê</button></li>
+              <li><button onClick={() => navigate('/dashboard')} className="hover:text-primary transition-colors cursor-pointer text-left">Xác thực nhà trọ</button></li>
             </ul>
           </div>
 

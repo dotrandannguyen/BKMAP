@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -11,7 +12,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-export default function DetailView({ listing, onViewChange, toggleSaved, savedIds }) {
+export default function DetailView({ listing, toggleSaved, savedIds }) {
+  const navigate = useNavigate();
   const [activeImage, setActiveImage] = useState(listing.images && listing.images.length > 0 ? listing.images[0] : '');
 
   // Booking details alert states
@@ -62,7 +64,7 @@ export default function DetailView({ listing, onViewChange, toggleSaved, savedId
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 animate-fade-in pb-28">
       {/* Back button */}
       <button
-        onClick={() => onViewChange('BACK')}
+        onClick={() => navigate(-1)}
         className="mb-6 flex items-center gap-2 text-primary font-bold text-sm hover:underline cursor-pointer group"
       >
         <span className="material-symbols-outlined text-sm font-bold group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
