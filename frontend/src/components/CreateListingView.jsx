@@ -38,6 +38,7 @@ export default function CreateListingView() {
   const navigate = useNavigate();
   const { editingListing: initialData, addListing } = useListingStore();
   const userEmail = useAuthStore((s) => s.userEmail);
+  const userName = useAuthStore((s) => s.userName);
   const onAddListing = (listing) => addListing(listing, userEmail);
   const [step, setStep] = useState(1);
 
@@ -48,17 +49,20 @@ export default function CreateListingView() {
 
   // Form State
   const [title, setTitle] = useState(initialData?.title || '');
-  const [type, setType] = useState(initialData?.type || 'Room');
-  const [price, setPrice] = useState(initialData?.price || '2500000');
+  const [type, setType] = useState(initialData?.type || 'Trọ');
+  const [price, setPrice] = useState(initialData?.price || '');
   const [area, setArea] = useState(initialData?.area || '20');
   const [distanceText, setDistanceText] = useState(initialData?.distanceText || 'Cách cổng phụ DUT 150m');
-  const [address, setAddress] = useState(initialData?.address || 'Liên Chiểu, Đà Nẵng');
+  const [address, setAddress] = useState(initialData?.address || 'Phường Liên Chiểu, Thành phố Đà Nẵng');
   const [description, setDescription] = useState(initialData?.description || '');
-  const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
+  const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || []);
   const [imageUrls, setImageUrls] = useState(initialData?.images || []);
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [priceError, setPriceError] = useState(false);
+  const [phoneError, setPhoneError] = useState(false);
 
   // Map Search States
   const [createSearchQuery, setCreateSearchQuery] = useState('');
@@ -68,7 +72,7 @@ export default function CreateListingView() {
   const [waterPrice, setWaterPrice] = useState(initialData?.waterPrice || '');
   const [otherCosts, setOtherCosts] = useState(initialData?.otherCosts || '');
   const [hostPhone, setHostPhone] = useState(initialData?.host?.phone || '');
-  const [hostName, setHostName] = useState(initialData?.host?.name || '');
+  const [hostName, setHostName] = useState(initialData?.host?.name || userName || '');
 
   // Default initial position to Bách Khoa if not editing existing lat/lng
   const [position, setPosition] = useState(initialData?.lat ? { lat: initialData.lat, lng: initialData.lng } : null);
@@ -151,6 +155,29 @@ export default function CreateListingView() {
     setCreateSearchSuggestions([]);
   };
 
+  const handleNextStep = () => {
+    if (step === 1) {
+      let hasError = false;
+      const parsedPrice = Number(price);
+      if (price === '' || isNaN(parsedPrice) || parsedPrice <= 0) {
+        setPriceError(true);
+        hasError = true;
+      } else {
+        setPriceError(false);
+      }
+      if (!hostPhone || !String(hostPhone).trim()) {
+        setPhoneError(true);
+        hasError = true;
+      } else {
+        setPhoneError(false);
+      }
+      if (hasError) {
+        return;
+      }
+    }
+    setStep(step + 1);
+  };
+
   // Sample image presets for zero-fuss rapid prototyping testing
   const PHOTO_PRESETS = [
     { name: 'Loft Gỗ', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYQcvZOxr8H-mD-jWJ9BMYndfkhO41GGefBPnH2rSCgdH5ebP23MNRl03vyxs_azv9iv78NZsG8Ucwq1jtHOrLy7l-PUgvDXZttSfKiV7gPhDvkmeUSnXhlSsReKML2GoxwB4DkYVxBQSzO7oLXc4plZVWq9wKni8O7MwEBakq8Yuz7AS-bO91rRsjqu6igm_L1GtLYHjO5IE-uXVqBymH8X4r819FvQK-p0ey6toDSwPYEkXRQOvXaSnYufNQVQMKJQXd5yrP-A0' },
@@ -218,16 +245,17 @@ export default function CreateListingView() {
         price: Number(String(price).replace(/\D/g, '')) || 1000,
         electricityPrice: electricityPrice ? Number(String(electricityPrice).replace(/\D/g, '')) || 0 : 0,
         waterPrice: waterPrice ? Number(String(waterPrice).replace(/\D/g, '')) || 0 : 0,
+        otherCosts: otherCosts.trim(),
         distanceToBk: distanceDUT || 0.8,
         address: address.trim() || 'Đà Nẵng',
-        ownerName: hostName || 'Người dùng BKMAP',
-        ownerPhone: hostPhone || '0901234567',
+        ownerName: hostName || userName || 'Người dùng BKMAP',
+        ownerPhone: hostPhone,
         description: description.trim(),
         status: 'AVAILABLE',
         area: Number(area) || 20,
         latitude: position?.lat || 16.07548,
         longitude: position?.lng || 108.14983,
-        // Map feature strings to IDs if needed by backend, keeping it empty for now if not strictly required
+        features: selectedAmenities,
       };
 
       const isEditing = !!initialData?.id;
@@ -263,7 +291,7 @@ export default function CreateListingView() {
       // 2. Upload hình ảnh đồng thời (Concurrency) để tối ưu tốc độ
       if (selectedFiles.length > 0) {
         let uploadedCount = 0;
-        setUploadStatus(`Đang tải lên Supabase (0/${selectedFiles.length})...`);
+        setUploadStatus(`Đang đăng (0/${selectedFiles.length})...`);
         
         const uploadPromises = selectedFiles.map(async (fileObj, index) => {
           const formData = new FormData();
@@ -324,16 +352,18 @@ export default function CreateListingView() {
         status: 'AVAILABLE',
         area: area,
         lat: createRoomPayload.latitude,
-        lng: createRoomPayload.longitude
+        lng: createRoomPayload.longitude,
+        electricityPrice: createRoomPayload.electricityPrice,
+        waterPrice: createRoomPayload.waterPrice,
+        otherCosts: createRoomPayload.otherCosts,
       };
 
       onAddListing(newHouse);
       
-      // Delay 100ms để React kịp cập nhật UI (ẩn spinner) trước khi bật alert block luồng
+      setIsSuccess(true);
       setTimeout(() => {
-        alert(initialData ? '🎉 Cập nhật thông tin thành công!' : '🎉 Đăng tin lên hệ thống thành công!');
         navigate('/dashboard');
-      }, 100);
+      }, 1500);
       
       
     } catch (error) {
@@ -430,34 +460,51 @@ export default function CreateListingView() {
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                 >
-                  <option value="Room">Room (Phòng trọ phổ thông)</option>
-                  <option value="Studio">Studio (Căn hộ chung cư mini khép kín)</option>
+                  <option value="Room">Trọ</option>
+                  <option value="Studio">Căn hộ chung cư mini</option>
                 </select>
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Giá cho thuê tháng (VND):</label>
+                <label className={`font-bold transition-colors ${priceError ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                  Giá cho thuê tháng (VND):
+                </label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black text-primary"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface font-black transition-all ${
+                    priceError
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
+                  placeholder="Ví dụ: 1000000"
                   type="number"
                   value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPrice(val === '' ? '' : Number(val));
+                    if (val !== '' && Number(val) > 0) {
+                      setPriceError(false);
+                    }
+                  }}
                 />
+                {priceError && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in">Vui lòng nhập giá thuê hợp lệ</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <label className="font-bold text-on-surface-variant">Diện tích sàn (m²):</label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black text-primary"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black"
+                  placeholder="Ví dụ: 20"
                   type="number"
                   value={area}
                   onChange={(e) => setArea(Number(e.target.value))}
                 />
               </div>
 
-              <div className="space-y-1.5">
+              {/* <div className="space-y-1.5">
                 <label className="font-bold text-on-surface-variant">Tên chủ trọ / Người đăng tin:</label>
                 <input
                   required
@@ -467,18 +514,33 @@ export default function CreateListingView() {
                   value={hostName}
                   onChange={(e) => setHostName(e.target.value)}
                 />
-              </div>
+              </div> */}
 
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Số điện thoại liên hệ chủ trọ:</label>
+                <label className={`font-bold transition-colors ${phoneError ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                  Số điện thoại liên hệ chủ trọ:
+                </label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface font-black transition-all ${
+                    phoneError
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
                   placeholder="Ví dụ: 0901234567"
                   type="tel"
                   value={hostPhone}
-                  onChange={(e) => setHostPhone(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setHostPhone(val);
+                    if (val.trim()) {
+                      setPhoneError(false);
+                    }
+                  }}
                 />
+                {phoneError && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in">Vui lòng nhập số điện thoại liên hệ</p>
+                )}
               </div>
 
               <div className="space-y-1.5 col-span-2">
@@ -754,7 +816,7 @@ export default function CreateListingView() {
                 <span className="text-[10px] uppercase font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">Chứng Thư Xác Nhận</span>
                 
                 <h4 className="text-base font-bold text-on-surface">Căn Hộ: {title || 'Chưa đặt tiêu đề'}</h4>
-                <p className="font-semibold text-outline">Thể Loại: {type === 'Room' ? 'Phòng trọ sinh viên' : 'Căn hộ chung cư mini'}</p>
+                <p className="font-semibold text-outline">Thể Loại: {type === 'Trọ' ? 'Phòng trọ sinh viên' : 'Căn hộ chung cư mini'}</p>
                 
                 <div className="space-y-1 pt-1.5 border-t border-slate-200">
                   <p className="flex items-center gap-1 text-on-surface-variant font-semibold">
@@ -828,7 +890,7 @@ export default function CreateListingView() {
 
           {step < 4 ? (
             <button
-              onClick={() => setStep(step + 1)}
+              onClick={handleNextStep}
               className="bg-primary hover:bg-primary-container text-white text-xs font-bold px-7 py-3 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1"
             >
               <span>Xem tiếp</span>
@@ -837,10 +899,21 @@ export default function CreateListingView() {
           ) : (
             <button
               onClick={handleSaveListing}
-              disabled={isUploading}
-              className={`text-white text-xs sm:text-sm font-black px-8 py-3.5 rounded-2xl transition-all shadow-xl flex items-center gap-1.5 ${isUploading ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 cursor-pointer'}`}
+              disabled={isUploading || isSuccess}
+              className={`text-white text-xs sm:text-sm font-black px-8 py-3.5 rounded-2xl transition-all shadow-xl flex items-center gap-1.5 ${
+                isSuccess
+                  ? 'bg-red-600 cursor-not-allowed'
+                  : isUploading
+                  ? 'bg-slate-400 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 cursor-pointer'
+              }`}
             >
-              {isUploading ? (
+              {isSuccess ? (
+                <>
+                  <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
+                  <span>{initialData ? 'ĐÃ CẬP NHẬT' : 'ĐÃ ĐĂNG'}</span>
+                </>
+              ) : isUploading ? (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold animate-spin">sync</span>
                   <span>{uploadStatus || 'ĐANG XỬ LÝ...'}</span>

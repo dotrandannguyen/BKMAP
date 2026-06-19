@@ -67,6 +67,7 @@ model Room {
   status           RoomStatus @default(AVAILABLE)
   sharedOwner      Boolean    @default(false) // Ở chung chủ hay không
   curfew           String?    @db.VarChar(100) // Giờ giới nghiêm
+  otherCosts       String?    @db.VarChar(255) // Chi phí khác
   description      String?    @db.Text // Mô tả chi tiết
 
   // Khóa ngoại

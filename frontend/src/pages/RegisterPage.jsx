@@ -259,7 +259,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                         ) : (
                             <>
                                 <span>Đăng ký</span>
-                                <ArrowRight className="btn-icon-right" size={18} />
+                                
                             </>
                         )}
                     </button>

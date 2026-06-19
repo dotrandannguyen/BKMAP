@@ -33,6 +33,7 @@ export default function DashboardView() {
     navigate('/create');
   };
   const [activeCategory, setActiveCategory] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState(null);
   
   // Filter listings based on active dashboard category
   const filtered = listings.filter((item) => {
@@ -211,11 +212,7 @@ export default function DashboardView() {
                             </button>
                             {/* Live Delete Button code */}
                             <button
-                              onClick={() => {
-                                if (confirm(`Bạn chắc chắn muốn xóa niêm yết "${item.title}"? Thao tác không hoàn tác.`)) {
-                                  onDeleteListing(item.id);
-                                }
-                              }}
+                              onClick={() => setDeleteTarget(item)}
                               className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors flex items-center justify-center cursor-pointer font-bold"
                               title="Xóa tin này"
                             >
@@ -233,6 +230,51 @@ export default function DashboardView() {
         </div>
 
       </div>
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div
+  className="fixed top-0 left-0 w-screen h-screen z-[99999]
+             flex items-center justify-center
+             bg-black/50 backdrop-blur-sm"
+>
+  <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+          
+            {/* Warning Icon */}
+            <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-red-600" style={{ fontSize: '28px' }}>warning</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Xác nhận xóa</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Bạn chắc chắn muốn xóa niêm yết <strong className="text-gray-700">"{deleteTarget.title}"</strong>?<br/>Thao tác không hoàn tác.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  onDeleteListing(deleteTarget.id);
+                  setDeleteTarget(null);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes modalPopIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
 
     </div>
   );

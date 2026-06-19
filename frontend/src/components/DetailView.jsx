@@ -167,7 +167,7 @@ export default function DetailView() {
                 <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/20 bg-slate-100 flex-shrink-0">
                   <img
                     className="w-full h-full object-cover"
-                    alt={listing.host?.name || 'Chủ trọ'}
+                    alt={listing.host?.name || 'Người dùng'}
                     src={listing.host.avatar}
                     referrerPolicy="no-referrer"
                   />
@@ -178,9 +178,9 @@ export default function DetailView() {
                 </div>
               )}
               <div>
-                <span className="text-[10px] uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">Chủ nhà tiêu biểu</span>
-                <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host?.name || 'Chủ trọ'}</h3>
-                <p className="text-xs text-on-surface-variant font-medium">{listing.host?.role || 'Chủ trọ'}</p>
+                
+                <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host?.name || 'Người dùng'}</h3>
+                <p className="text-xs text-on-surface-variant font-medium">{listing.host?.role || 'Người dùng'}</p>
               </div>
             </div>
              <div className="flex flex-col items-end text-right">
@@ -227,14 +227,18 @@ export default function DetailView() {
                 <span className="material-symbols-outlined text-primary font-bold bg-primary/10 p-1.5 rounded-full">electric_bolt</span>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-outline">Tiền điện</div>
-                  <div className="text-sm font-semibold text-on-surface">{listing.electricityPrice || 'Theo giá nhà nước'}</div>
+                  <div className="text-sm font-semibold text-on-surface">
+                    {listing.electricityPrice ? `${listing.electricityPrice.toLocaleString('vi-VN')} VNĐ/kWh` : 'Theo giá nhà nước'}
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-sky-500 font-bold bg-sky-50 p-1.5 rounded-full">water_drop</span>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-outline">Tiền nước</div>
-                  <div className="text-sm font-semibold text-on-surface">{listing.waterPrice || 'Miễn phí'}</div>
+                  <div className="text-sm font-semibold text-on-surface">
+                    {listing.waterPrice ? `${listing.waterPrice.toLocaleString('vi-VN')} VNĐ/m³` : 'Miễn phí'}
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-3">

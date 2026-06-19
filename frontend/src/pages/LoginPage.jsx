@@ -133,7 +133,7 @@ const LoginPage = () => {
                         ) : (
                             <>
                                 <span>Đăng nhập</span>
-                                <ArrowRight className="btn-icon-right" size={18} />
+                                
                             </>
                         )}
                     </button>

@@ -34,9 +34,9 @@ export const useListingStore = create((set, get) => ({
             ? room.images.map(img => img.imageUrl)
             : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'],
           host: {
-            name: room.creator?.userName || (room.creator?.email ? room.creator.email.split('@')[0] : 'Chủ trọ'),
+            name: room.owner?.userName || room.creator?.userName || (room.creator?.email ? room.creator.email.split('@')[0] : 'Chủ trọ'),
             avatar: room.creator?.avatar || '',
-            phone: 'Liên hệ qua ứng dụng'
+            phone: room.owner?.phoneNumber || 'Liên hệ qua ứng dụng'
           },
           amenities: room.features?.map(f => f.feature?.name || '').filter(Boolean) || [],
           description: room.description || '',
@@ -45,6 +45,11 @@ export const useListingStore = create((set, get) => ({
           lat: Number(room.latitude),
           lng: Number(room.longitude),
           ownerEmail: room.creator?.email || 'guest@example.com',
+          electricityPrice: room.electricityPrice,
+          waterPrice: room.waterPrice,
+          otherCosts: room.otherCosts,
+          createdAt: room.createdAt,
+          updatedAt: room.updatedAt,
         }));
         set({ listings: roomsFromApi });
       } else {
