@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useListingStore } from '../stores/listingStore';
@@ -24,12 +24,27 @@ function LocationPicker({ position, setPosition, calculateDistance }) {
   return position ? <Marker position={position} /> : null;
 }
 
+function MapViewCenter({ position }) {
+  const map = useMap();
+  useEffect(() => {
+    if (position) {
+      map.setView([position.lat, position.lng], 16);
+    }
+  }, [position, map]);
+  return null;
+}
+
 export default function CreateListingView() {
   const navigate = useNavigate();
   const { editingListing: initialData, addListing } = useListingStore();
   const userEmail = useAuthStore((s) => s.userEmail);
   const onAddListing = (listing) => addListing(listing, userEmail);
   const [step, setStep] = useState(1);
+
+  // Cuộn lên đầu trang khi đổi bước (Step)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   // Form State
   const [title, setTitle] = useState(initialData?.title || '');
@@ -44,6 +59,11 @@ export default function CreateListingView() {
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+
+  // Map Search States
+  const [createSearchQuery, setCreateSearchQuery] = useState('');
+  const [createSearchSuggestions, setCreateSearchSuggestions] = useState([]);
+  const [isSearchingCreate, setIsSearchingCreate] = useState(false);
   const [electricityPrice, setElectricityPrice] = useState(initialData?.electricityPrice || '');
   const [waterPrice, setWaterPrice] = useState(initialData?.waterPrice || '');
   const [otherCosts, setOtherCosts] = useState(initialData?.otherCosts || '');
@@ -74,6 +94,61 @@ export default function CreateListingView() {
     } else {
       setDistanceText(`Cách ĐH Bách Khoa ${dist.toFixed(1)}km`);
     }
+  };
+
+  const handleCreateSearch = async (query) => {
+    if (!query.trim()) {
+      setCreateSearchSuggestions([]);
+      return;
+    }
+    setIsSearchingCreate(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+      const res = await fetch(`${apiUrl}/geocode?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length === 0) {
+          alert('Không tìm thấy vị trí này. Vui lòng thử lại với từ khóa khác chi tiết hơn (Ví dụ: 280 Điện Biên Phủ, Đà Nẵng).');
+        }
+        setCreateSearchSuggestions(data);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(`Lỗi tìm kiếm: ${errData.message || 'Yêu cầu thất bại'}`);
+      }
+    } catch (error) {
+      console.error('Error searching address:', error);
+      alert(`Lỗi kết nối server: ${error.message}. Hãy chắc chắn rằng Backend của bạn đang chạy.`);
+    } finally {
+      setIsSearchingCreate(false);
+    }
+  };
+
+  const handleSelectCreateLocation = (loc) => {
+    const lat = parseFloat(loc.lat);
+    const lon = parseFloat(loc.lon);
+    
+    // Set position
+    const newPos = { lat, lng: lon };
+    setPosition(newPos);
+    
+    // Clean address string (remove zip code and country name)
+    let cleanAddress = loc.display_name || '';
+    cleanAddress = cleanAddress.replace(/,\s*Việt\s*Nam$/i, '');
+    cleanAddress = cleanAddress.replace(/,\s*\d{5,6}/g, '');
+
+    // Set address input field to show the selected address
+    setAddress(cleanAddress);
+    
+    // Calculate distance
+    calculateDistance(lat, lon);
+    
+    // Clear suggestions
+    setCreateSearchSuggestions([]);
+  };
+
+  const handleClearCreateSearch = () => {
+    setCreateSearchQuery('');
+    setCreateSearchSuggestions([]);
   };
 
   // Sample image presets for zero-fuss rapid prototyping testing
@@ -407,12 +482,83 @@ export default function CreateListingView() {
               </div>
 
               <div className="space-y-1.5 col-span-2">
-                <label className="font-bold text-on-surface-variant">Vị trí trên bản đồ (Tự động đo khoảng cách đến DUT):</label>
+                <label className="font-bold text-on-surface-variant">Vị trí trên bản đồ:</label>
+                
+                {/* Search Address Bar */}
+                <div className="relative mb-2">
+                  <div className="relative flex items-center bg-white rounded-xl shadow-xs border border-slate-200 focus-within:ring-1 focus-within:ring-primary p-0.5">
+                    <span className="material-symbols-outlined absolute left-3.5 text-slate-400 text-lg pointer-events-none select-none">
+                      search
+                    </span>
+                    <input
+                      type="text"
+                      className="w-full text-xs sm:text-sm font-semibold text-slate-800 bg-transparent py-2.5 pl-10 pr-16 focus:outline-none placeholder-slate-400 border-none"
+                      placeholder="Tìm vị trí nhanh (Ví dụ: 280 Điện Biên Phủ, Đà Nẵng)..."
+                      value={createSearchQuery}
+                      onChange={(e) => {
+                        setCreateSearchQuery(e.target.value);
+                        if (!e.target.value.trim()) {
+                          setCreateSearchSuggestions([]);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault(); // prevent form submission
+                          handleCreateSearch(createSearchQuery);
+                        }
+                      }}
+                    />
+                    <div className="absolute right-3 flex items-center gap-1.5">
+                      {isSearchingCreate ? (
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      ) : createSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={handleClearCreateSearch}
+                          className="material-symbols-outlined text-slate-400 hover:text-slate-600 cursor-pointer text-base p-0.5 select-none border-none bg-transparent"
+                          title="Xóa tìm kiếm"
+                        >
+                          close
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleCreateSearch(createSearchQuery)}
+                        className="bg-primary text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center cursor-pointer border-none shadow-xs"
+                        title="Tìm kiếm"
+                      >
+                        <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Suggestions List Dropdown */}
+                  {createSearchSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200/60 max-h-48 overflow-y-auto z-[1000] py-1 divide-y divide-slate-100">
+                      {createSearchSuggestions.map((loc, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleSelectCreateLocation(loc)}
+                          className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-primary cursor-pointer transition-all flex items-start gap-2 leading-tight text-left"
+                        >
+                          <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5 select-none">location_on</span>
+                          <div className="overflow-hidden">
+                            <span className="block font-bold text-slate-800 text-[11px] truncate">{loc.display_name.split(',')[0]}</span>
+                            <span className="block text-[10px] text-slate-400 mt-0.5 truncate">{loc.display_name}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Map picker frame */}
                 <div className="h-[300px] w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative z-0">
                   <MapContainer center={[16.07548, 108.14983]} zoom={15} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Marker position={[16.07548, 108.14983]} opacity={0.5} /> {/* Bách Khoa marker */}
                     <LocationPicker position={position} setPosition={setPosition} calculateDistance={calculateDistance} />
+                    <MapViewCenter position={position} />
                   </MapContainer>
                 </div>
               </div>
@@ -702,7 +848,7 @@ export default function CreateListingView() {
               ) : (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
-                  <span>{initialData ? 'CẬP NHẬT' : 'LƯU & ĐĂNG BÀI'}</span>
+                  <span>{initialData ? 'CẬP NHẬT' : 'ĐĂNG BÀI'}</span>
                 </>
               )}
             </button>

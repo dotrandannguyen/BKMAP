@@ -56,6 +56,27 @@ app.use(express.json());
 app.use(cookieParser());
 
 // --- ROUTES ---
+app.get('/api/geocode', async (req, res, next) => {
+	const { q } = req.query;
+	if (!q) {
+		return res.status(400).json({ message: 'Missing query parameter q' });
+	}
+	try {
+		const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=5&countrycodes=vn`, {
+			headers: {
+				'User-Agent': 'BKMAP-App/1.0',
+			},
+		});
+		if (response.ok) {
+			const data = await response.json();
+			return res.json(data);
+		}
+		return res.status(response.status).json({ message: 'Geocoding failed' });
+	} catch (error) {
+		next(error);
+	}
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/rooms', roomRouter);

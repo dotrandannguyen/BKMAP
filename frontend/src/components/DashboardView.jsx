@@ -34,36 +34,6 @@ export default function DashboardView() {
   };
   const [activeCategory, setActiveCategory] = useState('all');
   
-  // Local visits appointments state
-  const [visits, setVisits] = useState([
-    {
-      id: 'visit-1',
-      studentName: 'Nguyễn Duy Khánh',
-      timeText: 'Hôm nay lúc 14:30',
-      listingTitle: 'Skyline Student Loft',
-      status: 'pending',
-    },
-    {
-      id: 'visit-2',
-      studentName: 'Trịnh Thủy Tiên',
-      timeText: 'Ngày mai lúc 09:00',
-      listingTitle: 'Lotus Garden House',
-      status: 'pending',
-    },
-    {
-      id: 'visit-3',
-      studentName: 'Phan Anh Đức',
-      timeText: 'Thứ Năm lúc 16:15',
-      listingTitle: 'Cyan Studios',
-      status: 'accepted',
-    }
-  ]);
-
-  // Handle visit status changes
-  const handleVisitAction = (id, action) => {
-    setVisits(visits.map(v => v.id === id ? { ...v, status: action } : v));
-  };
-
   // Filter listings based on active dashboard category
   const filtered = listings.filter((item) => {
     if (activeCategory === 'verified') return item.verified === true;
@@ -92,7 +62,7 @@ export default function DashboardView() {
           <h1 className="text-2xl md:text-3xl font-black text-on-surface tracking-tight mt-1.5">
             Bảng Quản lý & Hoạt động
           </h1>
-          <p className="text-xs sm:text-sm text-on-surface-variant font-medium">Theo dõi hoạt động, tình trạng phòng thực tế và các lịch hẹn sinh viên.</p>
+          <p className="text-xs sm:text-sm text-on-surface-variant font-medium">Theo dõi hoạt động và tình trạng phòng thực tế.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">

@@ -302,14 +302,20 @@ export default function HomepageView() {
                     </div>
                     
                     {/* Host avatar */}
-                    <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
-                      <img
-                        alt={item.host.name}
-                        className="w-full h-full object-cover"
-                        src={item.host.avatar}
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
+                    {item.host?.avatar ? (
+                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
+                        <img
+                          alt={item.host.name || 'Chủ trọ'}
+                          className="w-full h-full object-cover"
+                          src={item.host.avatar}
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0">
+                        {item.host?.name ? item.host.name[0] : 'C'}
+                      </div>
+                    )}
                   </div>
 
                   {/* Amenity tags */}
