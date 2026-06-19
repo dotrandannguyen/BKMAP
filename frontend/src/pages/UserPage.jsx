@@ -1,5 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 import {
   Search,
   Home,
@@ -9,11 +12,19 @@ import {
   Heart
 } from 'lucide-react';
 
-const UserPage = ({ userEmail = 'dannguyen@dut.udn.vn', userName, listings = [], savedIds = [], onSelectListing, onLogout }) => {
+const UserPage = () => {
   const navigate = useNavigate();
-  const userDisplayName = userName || userEmail.split('@')[0];
+  const { userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar } = useAuthStore();
+  const { listings, selectListing } = useListingStore();
+  const { savedIds } = useUiStore();
 
+  const userDisplayName = userName || userEmail.split('@')[0];
   const savedListings = listings.filter(l => savedIds.includes(l.id));
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
+  };
 
   const formatVND = (num) => {
     return num.toLocaleString('vi-VN') + ' VNĐ';
@@ -25,9 +36,15 @@ const UserPage = ({ userEmail = 'dannguyen@dut.udn.vn', userName, listings = [],
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-full hidden md:flex">
         {/* User section */}
         <div className="px-5 py-4 flex items-center gap-3 cursor-pointer border-b border-slate-100 hover:bg-slate-50 transition-colors" onClick={() => navigate('/')}>
-          <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase shadow-sm shadow-primary/20">
-            {userDisplayName[0]}
-          </div>
+          {userAvatar ? (
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200">
+              <img src={userAvatar} alt={userDisplayName} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase shadow-sm shadow-primary/20">
+              {userDisplayName[0]}
+            </div>
+          )}
           <div className="flex-1 overflow-hidden">
             <span className="block font-bold text-slate-800 truncate text-sm">{userDisplayName}</span>
             <span className="block text-[10px] text-slate-500 truncate">{userEmail}</span>
@@ -57,7 +74,7 @@ const UserPage = ({ userEmail = 'dannguyen@dut.udn.vn', userName, listings = [],
             <Settings size={18} />
             <span className="text-sm font-semibold">Cài đặt cá nhân</span>
           </div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 cursor-pointer transition-colors" onClick={() => onLogout && onLogout()}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 cursor-pointer transition-colors" onClick={() => { logout(); navigate('/login'); }}>
             <Trash2 size={18} />
             <span className="text-sm font-semibold">Đăng xuất tài khoản</span>
           </div>

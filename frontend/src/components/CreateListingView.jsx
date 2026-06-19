@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useListingStore } from '../stores/listingStore';
+import { useAuthStore } from '../stores/authStore';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -22,8 +24,11 @@ function LocationPicker({ position, setPosition, calculateDistance }) {
   return position ? <Marker position={position} /> : null;
 }
 
-export default function CreateListingView({ onAddListing, initialData }) {
+export default function CreateListingView() {
   const navigate = useNavigate();
+  const { editingListing: initialData, addListing } = useListingStore();
+  const userEmail = useAuthStore((s) => s.userEmail);
+  const onAddListing = (listing) => addListing(listing, userEmail);
   const [step, setStep] = useState(1);
 
   // Form State

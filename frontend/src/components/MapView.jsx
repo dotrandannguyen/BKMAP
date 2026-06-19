@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 
-export default function MapView({
-  listings,
-  onSelectListing,
-  searchQuery,
-  setSearchQuery,
-  priceFilter,
-  setPriceFilter,
-  toggleSaved,
-  savedIds,
-}) {
+export default function MapView() {
+  const navigate = useNavigate();
+  const { listings, selectListing } = useListingStore();
+  const { searchQuery, setSearchQuery, priceFilter, setPriceFilter, savedIds, toggleSaved } = useUiStore();
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
+  };
   const [selectedPin, setSelectedPin] = useState(null);
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [showMobileMap, setShowMobileMap] = useState(false);

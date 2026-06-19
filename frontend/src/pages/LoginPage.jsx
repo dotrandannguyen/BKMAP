@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -18,8 +19,9 @@ const AppleIcon = () => (
     </svg>
 );
 
-const LoginPage = ({ onLoginSuccess }) => {
+const LoginPage = () => {
     const navigate = useNavigate();
+    const login = useAuthStore((s) => s.login);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -54,13 +56,11 @@ const LoginPage = ({ onLoginSuccess }) => {
                 localStorage.setItem('accessToken', token);
                 localStorage.setItem('userEmail', userData.email);
                 localStorage.setItem('userName', userData.userName || userData.email.split('@')[0]);
+                localStorage.setItem('userAvatar', userData.avatar || '');
             }
             
-            if (onLoginSuccess) {
-                onLoginSuccess(userData.email, userData.userName || userData.email.split('@')[0]);
-            } else {
-                navigate('/');
-            }
+            login(userData.email, userData.userName || userData.email.split('@')[0], userData.avatar || '');
+            navigate('/profile');
         } catch (err) {
             setError(err.message);
         } finally {
