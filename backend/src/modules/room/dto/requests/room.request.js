@@ -17,6 +17,8 @@ export const getRoomsSchema = {
 		
 		// Feature filtering (ví dụ: ?features=wifi,ac hoặc mảng tuỳ setup, ở đây xử lý dạng chuỗi phẩy)
 		features: z.string().optional(),
+		search: z.string().optional(),
+		ownerEmail: z.string().optional(),
 	}),
 };
 

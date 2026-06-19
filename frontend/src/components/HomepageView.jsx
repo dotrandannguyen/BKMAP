@@ -5,8 +5,12 @@ import { useUiStore } from '../stores/uiStore';
 
 export default function HomepageView() {
   const navigate = useNavigate();
-  const { listings, selectListing, resetData } = useListingStore();
+  const { listings, selectListing, resetData, fetchRooms } = useListingStore();
   const { setSearchQuery, setPriceFilter, savedIds, toggleSaved } = useUiStore();
+
+  React.useEffect(() => {
+    fetchRooms({ limit: 10 });
+  }, [fetchRooms]);
 
   const onSelectListing = (id) => {
     selectListing(id);

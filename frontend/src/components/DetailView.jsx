@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -19,8 +19,107 @@ export default function DetailView() {
   const { id } = useParams();
   const listings = useListingStore((s) => s.listings);
   const { savedIds, toggleSaved } = useUiStore();
-  const listing = listings.find((item) => item.id === id) || listings[0];
-  const [activeImage, setActiveImage] = useState(listing.images && listing.images.length > 0 ? listing.images[0] : '');
+
+  const [localListing, setLocalListing] = useState(() => listings.find((item) => item.id === id) || null);
+  const [loading, setLoading] = useState(!localListing);
+  const [error, setError] = useState(null);
+  const [activeImage, setActiveImage] = useState('');
+
+  useEffect(() => {
+    // Sync with store listings cache if loaded
+    const cached = listings.find((item) => item.id === id);
+    if (cached) {
+      setLocalListing(cached);
+      if (cached.images && cached.images.length > 0 && !activeImage) {
+        setActiveImage(cached.images[0]);
+      }
+    }
+
+    const fetchListingDetail = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+        const res = await fetch(`${apiUrl}/rooms/${id}`);
+        if (!res.ok) throw new Error('Không tìm thấy phòng trọ');
+        const json = await res.json();
+        const room = json.data;
+
+        // Map backend response schema to frontend representation
+        const mapped = {
+          id: room.id,
+          title: room.title,
+          type: room.type || 'Phòng trọ',
+          price: room.price,
+          priceUSD: Math.round(room.price / 24800),
+          distanceText: `Cách ĐHBK ${room.distanceToBk || 0.8}km`,
+          address: room.address,
+          rating: 5.0,
+          images: room.images?.length > 0
+            ? room.images.map(img => img.imageUrl)
+            : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'],
+          host: {
+            name: room.owner?.userName || room.creator?.userName || (room.creator?.email ? room.creator.email.split('@')[0] : 'Chủ trọ'),
+            avatar: room.creator?.avatar || '',
+            phone: room.owner?.phoneNumber || 'Liên hệ qua ứng dụng'
+          },
+          amenities: room.features?.map(f => f.feature?.name || '').filter(Boolean) || [],
+          description: room.description || '',
+          status: room.status || 'AVAILABLE',
+          area: room.area,
+          lat: Number(room.latitude),
+          lng: Number(room.longitude),
+          ownerEmail: room.creator?.email || 'guest@example.com',
+          electricityPrice: room.electricityPrice,
+          waterPrice: room.waterPrice,
+          otherCosts: room.otherCosts,
+          createdAt: room.createdAt,
+          updatedAt: room.updatedAt,
+        };
+
+        setLocalListing(mapped);
+        if (mapped.images && mapped.images.length > 0 && !activeImage) {
+          setActiveImage(mapped.images[0]);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Lỗi tải chi tiết phòng:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchListingDetail();
+  }, [id, listings]);
+
+  if (loading && !localListing) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-32 flex flex-col items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-primary animate-spin mb-4"></div>
+        <p className="text-sm text-slate-500 font-semibold">Đang tải thông tin phòng trọ...</p>
+      </div>
+    );
+  }
+
+  if (error && !localListing) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-32 flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4">
+          <span className="material-symbols-outlined text-3xl">warning</span>
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Đã xảy ra lỗi</h2>
+        <p className="text-sm text-slate-500 mb-6 max-w-md">{error}</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20 hover:bg-sky-600 transition-all cursor-pointer"
+        >
+          Trở về trang chủ
+        </button>
+      </div>
+    );
+  }
+
+  if (!localListing) return null;
+
+  const listing = localListing;
 
   // Booking details alert states
   const [contactSuccess, setContactSuccess] = useState(false);

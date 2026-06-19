@@ -135,6 +135,32 @@ export const roomRepository = {
 			where.ward = { contains: filters.ward, mode: 'insensitive' };
 		}
 
+		if (filters.ownerEmail) {
+			where.creator = {
+				email: filters.ownerEmail,
+			};
+		}
+
+		if (filters.search) {
+			const searchPattern = filters.search.trim();
+			if (searchPattern) {
+				where.OR = [
+					{ title: { contains: searchPattern, mode: 'insensitive' } },
+					{ address: { contains: searchPattern, mode: 'insensitive' } },
+					{ description: { contains: searchPattern, mode: 'insensitive' } },
+					{
+						features: {
+							some: {
+								feature: {
+									name: { contains: searchPattern, mode: 'insensitive' }
+								}
+							}
+						}
+					}
+				];
+			}
+		}
+
 		// Tính tổng số lượng
 		const total = await prisma.room.count({ where });
 

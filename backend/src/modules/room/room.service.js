@@ -39,6 +39,8 @@ export const roomService = {
 			distanceToBk: query.distanceToBk,
 			status: query.status,
 			ward: query.ward,
+			search: query.search,
+			ownerEmail: query.ownerEmail,
 		};
 
 		const { total, rooms } = await roomRepository.findAll(filters, skip, limit);

@@ -14,10 +14,37 @@ export const useListingStore = create((set, get) => ({
   editingListing: null,
 
   // Fetch phòng trọ từ Backend API
-  fetchRooms: async () => {
+  fetchRooms: async (filters = {}) => {
     try {
       const apiUrl = getApiUrl();
-      const res = await fetch(`${apiUrl}/rooms?limit=50`);
+      const params = new URLSearchParams();
+
+      if (filters.limit) {
+        params.append('limit', filters.limit);
+      } else {
+        params.append('limit', '50');
+      }
+      if (filters.page) params.append('page', filters.page);
+      if (filters.ownerEmail) params.append('ownerEmail', filters.ownerEmail);
+      if (filters.search) params.append('search', filters.search);
+
+      // Ánh xạ priceFilter thành minPrice/maxPrice
+      if (filters.priceFilter && filters.priceFilter !== 'all') {
+        if (filters.priceFilter === 'under-1m') {
+          params.append('maxPrice', '999999');
+        } else if (filters.priceFilter === '1m-2m') {
+          params.append('minPrice', '1000000');
+          params.append('maxPrice', '2000000');
+        } else if (filters.priceFilter === '2m-3m') {
+          params.append('minPrice', '2000000');
+          params.append('maxPrice', '3000000');
+        } else if (filters.priceFilter === 'above-3m') {
+          params.append('minPrice', '3000001');
+        }
+      }
+
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const res = await fetch(`${apiUrl}/rooms${queryString}`);
       if (res.ok) {
         const json = await res.json();
         const raw = json.data?.data || json.data || [];

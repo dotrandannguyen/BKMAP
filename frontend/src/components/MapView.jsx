@@ -37,41 +37,20 @@ export default function MapView() {
     setLocalSearch(searchQuery);
   }, [searchQuery]);
 
-  const filteredListings = listings.filter((item) => {
-    // 1. Search Query filter (matches title, address, amenities, or price)
-    const searchLower = localSearch.toLowerCase().trim();
-    
-    // Create searchable price strings (e.g. 2500000 -> "2.5", "2.5tr", "2.5 triệu")
-    const priceInMillions = item.price / 1000000;
-    const priceStr1 = `${priceInMillions}tr`;
-    const priceStr2 = `${priceInMillions} tr`;
-    const priceStr3 = `${priceInMillions} triệu`;
-    const priceStr4 = item.price.toString();
+  // Debounced API call to fetch rooms based on searchQuery and priceFilter
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      fetchRooms({
+        search: searchQuery,
+        priceFilter: priceFilter,
+        limit: 100
+      });
+    }, 400);
 
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchLower) ||
-      item.address.toLowerCase().includes(searchLower) ||
-      item.amenities.some((a) => a.toLowerCase().includes(searchLower)) ||
-      (item.distanceText && item.distanceText.toLowerCase().includes(searchLower)) ||
-      priceStr1.includes(searchLower) ||
-      priceStr2.includes(searchLower) ||
-      priceStr3.includes(searchLower) ||
-      priceStr4.includes(searchLower);
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery, priceFilter, fetchRooms]);
 
-    // 2. Price filter
-    let matchesPrice = true;
-    if (priceFilter === 'under-1m') {
-      matchesPrice = item.price < 1000000;
-    } else if (priceFilter === '1m-2m') {
-      matchesPrice = item.price >= 1000000 && item.price <= 2000000;
-    } else if (priceFilter === '2m-3m') {
-      matchesPrice = item.price >= 2000000 && item.price <= 3000000;
-    } else if (priceFilter === 'above-3m') {
-      matchesPrice = item.price > 3000000;
-    }
-
-    return matchesSearch && matchesPrice;
-  });
+  const filteredListings = listings;
 
   // 1. Initialize Map
   useEffect(() => {

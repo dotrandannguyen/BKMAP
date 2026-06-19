@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useListingStore } from '../stores/listingStore';
 import { useAuthStore } from '../stores/authStore';
@@ -6,7 +6,13 @@ import { useAuthStore } from '../stores/authStore';
 export default function DashboardView() {
   const navigate = useNavigate();
   const userEmail = useAuthStore((s) => s.userEmail);
-  const { listings: allListings, deleteListing, toggleStatus, selectListing, setEditingListing, resetData, clearAll } = useListingStore();
+  const { listings: allListings, deleteListing, toggleStatus, selectListing, setEditingListing, resetData, clearAll, fetchRooms } = useListingStore();
+
+  useEffect(() => {
+    if (userEmail) {
+      fetchRooms({ ownerEmail: userEmail, limit: 100 });
+    }
+  }, [userEmail, fetchRooms]);
 
   const listings = allListings.filter((item) => item.ownerEmail === userEmail || item.ownerEmail === 'guest@example.com');
 
