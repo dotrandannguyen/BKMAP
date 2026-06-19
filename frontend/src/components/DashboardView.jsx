@@ -1,15 +1,37 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useListingStore } from '../stores/listingStore';
+import { useAuthStore } from '../stores/authStore';
 
-export default function DashboardView({
-  listings,
-  onDeleteListing,
-  onToggleStatus,
-  onSelectListing,
-  onEditListing,
-  onResetData,
-  onClearAll,
-  onCreateNew,
-}) {
+export default function DashboardView() {
+  const navigate = useNavigate();
+  const userEmail = useAuthStore((s) => s.userEmail);
+  const { listings: allListings, deleteListing, toggleStatus, selectListing, setEditingListing, resetData, clearAll } = useListingStore();
+
+  const listings = allListings.filter((item) => item.ownerEmail === userEmail || item.ownerEmail === 'guest@example.com');
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
+  };
+  const onEditListing = (id) => {
+    const listingToEdit = allListings.find(l => l.id === id);
+    if (listingToEdit) {
+      setEditingListing(listingToEdit);
+      navigate('/create');
+    }
+  };
+  const onDeleteListing = async (id) => {
+    try {
+      await deleteListing(id);
+    } catch (error) {
+      alert('Không thể xóa phòng: ' + error.message);
+    }
+  };
+  const onCreateNew = () => {
+    setEditingListing(null);
+    navigate('/create');
+  };
   const [activeCategory, setActiveCategory] = useState('all');
   
   // Local visits appointments state
@@ -186,7 +208,7 @@ export default function DashboardView({
                         {/* Active/Maintenance Status col */}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
-                            onClick={() => onToggleStatus(item.id)}
+                            onClick={() => toggleStatus(item.id)}
                             className={`px-3 py-1.5 rounded-full text-[11px] font-black cursor-pointer transition-colors ${
                               item.status === 'Hoạt động'
                                 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/50 hover:bg-emerald-100'

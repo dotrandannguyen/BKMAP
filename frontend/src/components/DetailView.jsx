@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -12,8 +14,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-export default function DetailView({ listing, toggleSaved, savedIds }) {
+export default function DetailView() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const listings = useListingStore((s) => s.listings);
+  const { savedIds, toggleSaved } = useUiStore();
+  const listing = listings.find((item) => item.id === id) || listings[0];
   const [activeImage, setActiveImage] = useState(listing.images && listing.images.length > 0 ? listing.images[0] : '');
 
   // Booking details alert states
@@ -157,22 +163,27 @@ export default function DetailView({ listing, toggleSaved, savedIds }) {
           {/* Host Profile Card */}
           <div className="glass-card p-6 rounded-3xl flex items-center justify-between border border-slate-200/50">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/20">
-                <img
-                  className="w-full h-full object-cover"
-                  alt={listing.host.name}
-                  src={listing.host.avatar}
-                  referrerPolicy="no-referrer"
-                />
-              </div>
+              {listing.host?.avatar ? (
+                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/20 bg-slate-100 flex-shrink-0">
+                  <img
+                    className="w-full h-full object-cover"
+                    alt={listing.host?.name || 'Chủ trọ'}
+                    src={listing.host.avatar}
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-full border-2 border-primary/20 bg-indigo-600 text-white flex items-center justify-center font-black text-lg uppercase shadow-sm flex-shrink-0">
+                  {listing.host?.name ? listing.host.name[0] : 'C'}
+                </div>
+              )}
               <div>
                 <span className="text-[10px] uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">Chủ nhà tiêu biểu</span>
-                <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host.name}</h3>
-                <p className="text-xs text-on-surface-variant font-medium">{listing.host.role}</p>
+                <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host?.name || 'Chủ trọ'}</h3>
+                <p className="text-xs text-on-surface-variant font-medium">{listing.host?.role || 'Chủ trọ'}</p>
               </div>
             </div>
-
-            <div className="flex flex-col items-end text-right">
+             <div className="flex flex-col items-end text-right">
               <span className="text-xs font-semibold text-on-surface">Độ phản hồi</span>
               <span className="text-sm font-black text-emerald-600">Nhanh (99%)</span>
             </div>

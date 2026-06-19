@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 
-export default function HomepageView({
-  listings,
-  onSelectListing,
-  setSearchQuery,
-  setPriceFilter,
-  toggleSaved,
-  savedIds,
-  onResetData,
-}) {
+export default function HomepageView() {
   const navigate = useNavigate();
+  const { listings, selectListing, resetData } = useListingStore();
+  const { setSearchQuery, setPriceFilter, savedIds, toggleSaved } = useUiStore();
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
+  };
   const [localSearch, setLocalSearch] = useState('');
   const [localPrice, setLocalPrice] = useState('Giá thuê: Mọi mức giá');
   const [emailSub, setEmailSub] = useState('');
@@ -215,7 +216,7 @@ export default function HomepageView({
             </p>
             <div className="flex gap-3 justify-center pt-2">
               <button
-                onClick={onResetData}
+                onClick={resetData}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
               >
                 Khôi phục trọ mẫu

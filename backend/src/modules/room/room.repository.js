@@ -123,7 +123,7 @@ export const roomRepository = {
 					include: { feature: true },
 				},
 				creator: {
-					select: { email: true },
+					select: { id: true, userName: true, email: true, avatar: true },
 				},
 			},
 		});
@@ -137,7 +137,7 @@ export const roomRepository = {
 			include: {
 				owner: true,
 				creator: {
-					select: { id: true, userName: true, email: true },
+					select: { id: true, userName: true, email: true, avatar: true },
 				},
 				images: {
 					orderBy: { displayOrder: 'asc' },

@@ -1,16 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
 
-export default function Navbar({
-  savedCount,
-  isLoggedIn,
-  userEmail,
-  userName,
-  onClearAll,
-  onResetData,
-  onLogout
-}) {
+export default function Navbar() {
   const location = useLocation();
+  const { isLoggedIn, userEmail, userName, userAvatar } = useAuthStore();
+  const savedCount = useUiStore((s) => s.savedIds.length);
   const userDisplayName = isLoggedIn ? (userName || userEmail.split('@')[0]) : '';
 
   return (
@@ -81,9 +77,15 @@ export default function Navbar({
                   className="flex items-center gap-2 cursor-pointer hover:opacity-85 active:scale-95 transition-all"
                   title="Xem trang cá nhân sổ tay của bạn"
                 >
-                  <div className="w-8.5 h-8.5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-xs uppercase shadow-sm border border-indigo-200">
-                    {userDisplayName[0]}
-                  </div>
+                  {userAvatar ? (
+                    <div className="w-8.5 h-8.5 rounded-full overflow-hidden border border-indigo-200 shadow-sm">
+                      <img src={userAvatar} alt={userDisplayName} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-8.5 h-8.5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-xs uppercase shadow-sm border border-indigo-200">
+                      {userDisplayName[0]}
+                    </div>
+                  )}
                   <span className="hidden lg:inline text-xs font-bold text-slate-700 max-w-28 truncate">{userDisplayName}</span>
                 </Link>
               </div>
