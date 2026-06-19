@@ -60,8 +60,8 @@ model Room {
   // Thông tin cơ bản
   price            Int // Giá thuê (đơn vị: VNĐ)
   area             Decimal @db.Decimal(5, 2) // Diện tích m2
-  electricityPrice Int? // Giá điện
-  waterPrice       Int? // Giá nước
+  electricityPrice String? // Giá điện
+  waterPrice       String? // Giá nước
 
   // Phân loại
   status           RoomStatus @default(AVAILABLE)

@@ -71,9 +71,6 @@ export default function MapView() {
         <div class="w-9 h-9 rounded-full bg-red-600 border-2 border-white shadow-lg flex items-center justify-center animate-bounce-slow" style="animation: bounceSlow 3s infinite;">
           <span class="material-symbols-outlined text-white" style="font-size: 18px;">school</span>
         </div>
-        <div class="bg-red-600 text-white font-black text-[8px] px-1.5 py-0.5 rounded shadow-sm -mt-0.5 border border-white whitespace-nowrap">
-          ĐH BÁCH KHOA
-        </div>
       </div>
     `;
 
@@ -114,7 +111,7 @@ export default function MapView() {
       if (!item.lat || !item.lng) return;
 
       const isSelected = selectedPin?.id === item.id;
-      const priceText = formatVND(item.price);
+      const priceText = formatPriceShort(item.price);
 
       // Custom div marker tag (Zillow/Airbnb style)
       const htmlContent = `
@@ -181,10 +178,20 @@ export default function MapView() {
   };
 
   const formatVND = (num) => {
+    
+    return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const formatPriceShort = (num) => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1).replace('.0', '') + 'Tr';
     }
-    return num.toLocaleString('vi-VN');
+    return (num / 1000).toFixed(0) + 'K';
+  };
+
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
   };
 
   return (
@@ -347,7 +354,7 @@ export default function MapView() {
                       <div className="space-y-0.5">
                         <p className="text-[11px] text-on-surface-variant line-clamp-1 flex items-center gap-0.5">
                           <span className="material-symbols-outlined text-[13px] text-primary">location_on</span>
-                          {item.address}
+                          {formatAddressShort(item.address)}
                         </p>
                         {item.distanceText && (
                           <p className="text-[10px] text-slate-500 font-medium flex items-center gap-0.5">
@@ -416,7 +423,7 @@ export default function MapView() {
                   </div>
                 </div>
                 <h4 className="text-xs font-bold text-on-surface truncate pr-2">{selectedPin.title}</h4>
-                <p className="text-[10px] text-on-surface-variant truncate">{selectedPin.address}</p>
+                <p className="text-[10px] text-on-surface-variant truncate">{formatAddressShort(selectedPin.address)}</p>
                 {selectedPin.distanceText && (
                   <p className="text-[9px] text-slate-500 truncate flex items-center gap-0.5 mt-0.5">
                     <span className="material-symbols-outlined text-[10px]">directions_walk</span>
@@ -427,7 +434,7 @@ export default function MapView() {
 
               <div className="flex justify-between items-center pt-1.5 border-t border-slate-100">
                 <span className="text-xs font-black text-primary leading-none">
-                  {formatVND(selectedPin.price)}/th
+                  {formatVND(selectedPin.price)}/tháng
                 </span>
                 <button
                   onClick={() => onSelectListing(selectedPin.id)}

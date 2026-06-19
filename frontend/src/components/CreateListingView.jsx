@@ -280,8 +280,8 @@ export default function CreateListingView() {
         title: title.trim() || 'Căn Hộ Sinh Viên',
         type: type,
         price: Number(String(price).replace(/\D/g, '')) || 1000,
-        electricityPrice: electricityPrice ? Number(String(electricityPrice).replace(/\D/g, '')) || 0 : 0,
-        waterPrice: waterPrice ? Number(String(waterPrice).replace(/\D/g, '')) || 0 : 0,
+        electricityPrice: electricityPrice ? String(electricityPrice) : '',
+        waterPrice: waterPrice ? String(waterPrice) : '',
         otherCosts: otherCosts.trim(),
         distanceToBk: distanceDUT || 0.8,
         address: address.trim() || 'Đà Nẵng',
@@ -900,7 +900,7 @@ export default function CreateListingView() {
                     <h5 className="font-bold text-xs text-on-surface truncate leading-tight">{title || 'Căn Hộ Trống Mẫu'}</h5>
                     <p className="text-[10px] text-on-surface-variant truncate">{distanceText}</p>
                     <div className="pt-1.5 border-t border-slate-100 flex justify-between items-center">
-                      <span className="text-xs font-black text-primary">{formatVND(price)}/th</span>
+                      <span className="text-xs font-black text-primary">{formatVND(price)}/tháng</span>
                       <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-md">Hoạt động</span>
                     </div>
                   </div>

@@ -55,6 +55,7 @@ export const useListingStore = create((set, get) => ({
           price: room.price,
           priceUSD: Math.round(room.price / 24800),
           distanceText: `Cách ĐHBK ${room.distanceToBk || 0.8}km`,
+          distanceDUT: room.distanceToBk || 0.8,
           address: room.address,
           rating: 5.0,
           images: room.images?.length > 0

@@ -30,6 +30,11 @@ const UserPage = () => {
     return num.toLocaleString('vi-VN') + ' VNĐ';
   };
 
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
+  };
+
   return (
     <div className="flex h-[calc(100vh-64px)] font-sans antialiased bg-slate-50">
       {/* Sidebar */}
@@ -136,9 +141,9 @@ const UserPage = () => {
                       <h3 className="font-bold text-slate-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                         {listing.title}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                      <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]">location_on</span>
-                        <span className="line-clamp-1">{listing.address}</span>
+                        <span className="line-clamp-1">{formatAddressShort(listing.address)}</span>
                       </p>
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">

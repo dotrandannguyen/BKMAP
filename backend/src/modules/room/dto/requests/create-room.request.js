@@ -15,8 +15,8 @@ export const createRoomSchema = {
 		// Cơ bản
 		price: z.number({ required_error: 'Giá thuê là bắt buộc' }).int().positive('Giá thuê phải lớn hơn 0'),
 		area: z.number({ required_error: 'Diện tích là bắt buộc' }).positive('Diện tích phải lớn hơn 0'),
-		electricityPrice: z.number().int().optional().nullable(),
-		waterPrice: z.number().int().optional().nullable(),
+		electricityPrice: z.string().optional().nullable(),
+		waterPrice: z.string().optional().nullable(),
 		otherCosts: z.string().max(255).optional().nullable(),
 
 		// Phân loại
