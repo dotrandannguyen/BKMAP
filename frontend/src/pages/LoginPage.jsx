@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
@@ -26,6 +26,41 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Xử lý callback từ Google OAuth (parse token + user info từ URL query params)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const googleError = params.get('error');
+
+        if (googleError) {
+            setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+            // Xóa query params khỏi URL
+            window.history.replaceState({}, '', '/login');
+            return;
+        }
+
+        if (token) {
+            const email = params.get('email') || '';
+            const name = params.get('name') || email.split('@')[0];
+            const avatar = params.get('avatar') || '';
+
+            // Lưu vào localStorage (giống hệt luồng login thường)
+            localStorage.setItem('accessToken', token);
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userName', name);
+            localStorage.setItem('userAvatar', avatar);
+
+            // Cập nhật Zustand store
+            login(email, name, avatar);
+
+            // Xóa query params khỏi URL (bảo mật: không để token lộ trên thanh địa chỉ)
+            window.history.replaceState({}, '', '/login');
+
+            // Chuyển hướng về trang profile
+            navigate('/profile');
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -143,9 +178,14 @@ const LoginPage = () => {
                     </div>
 
                     <div className="social-login">
-                        <button type="button" onClick={() => { setEmail('dannguyen@dut.udn.vn'); setPassword('123456'); }} className="social-btn google-btn">
+                        <button type="button" onClick={() => {
+                            const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
+                                ? import.meta.env.VITE_API_URL
+                                : `http://${window.location.hostname}:3000/api`;
+                            window.location.href = `${backendUrl}/auth/google`;
+                        }} className="social-btn google-btn">
                             <GoogleIcon />
-                            <span>Tài khoản Test nhanh</span>
+                            <span>Đăng nhập bằng Google</span>
                         </button>
                     </div>
                 </form>

@@ -263,6 +263,22 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                             </>
                         )}
                     </button>
+
+                    <div className="auth-divider">
+                        <span>HOẶC</span>
+                    </div>
+
+                    <div className="social-login">
+                        <button type="button" onClick={() => {
+                            const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
+                                ? import.meta.env.VITE_API_URL
+                                : `http://${window.location.hostname}:3000/api`;
+                            window.location.href = `${backendUrl}/auth/google`;
+                        }} className="social-btn google-btn">
+                            <GoogleIcon />
+                            <span>Đăng ký bằng Google</span>
+                        </button>
+                    </div>
                 </form>
 
                 <div className="auth-footer">

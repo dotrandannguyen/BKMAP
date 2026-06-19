@@ -8,6 +8,7 @@ import userRouter from './modules/user/users.router.js';
 import roomRouter from './modules/room/room.router.js';
 import path from 'path';
 import { errorHandlerMiddleware } from './common/middleware/errorHandler.Middleware.js';
+import passport from './config/passport.js';
 
 const app = express();
 
@@ -54,6 +55,9 @@ app.use('/api/auth/register', authLimiter);
 // --- BODY PARSING ---
 app.use(express.json());
 app.use(cookieParser());
+
+// --- PASSPORT (stateless — KHÔNG dùng session) ---
+app.use(passport.initialize());
 
 // --- ROUTES ---
 app.get('/api/geocode', async (req, res, next) => {

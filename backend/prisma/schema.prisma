@@ -20,13 +20,15 @@ enum RoomStatus {
 model User {
   id                 String    @id @default(uuid()) @db.Uuid
   email              String    @unique @db.VarChar(50)
-  passwordHash       String    @db.VarChar(255)
+  passwordHash       String?   @db.VarChar(255) // Nullable: user Google không có password
   userName           String?   @db.VarChar(100)
   avatar             String?   @db.Text
   isVerified         Boolean   @default(false)
   verifyToken        String?   @db.VarChar(255)
   tokenExpires       DateTime?
   hashedRefreshToken String?   @db.Text
+  googleId           String?   @unique @db.VarChar(255) // Google Subject ID
+  authProvider       String    @default("local") @db.VarChar(20) // "local" | "google"
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
