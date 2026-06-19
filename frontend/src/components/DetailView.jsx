@@ -415,12 +415,29 @@ export default function DetailView() {
 
                 <div className="w-full h-64 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner z-0">
                   <MapContainer 
-                    center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07548, 108.14983]} 
+                    center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07380, 108.14990]} 
                     zoom={15} 
                     style={{ height: '100%', width: '100%' }}
                   >
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <Marker position={[16.07548, 108.14983]} opacity={0.5}>
+                    <Marker 
+                      position={[16.07380, 108.14990]} 
+                      icon={L.divIcon({
+                        html: `
+                          <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow-md flex items-center justify-center">
+                              <span class="material-symbols-outlined text-white" style="font-size: 16px;">school</span>
+                            </div>
+                            <div class="bg-red-600 text-white font-bold text-[8px] px-1 py-0.5 rounded shadow-sm border border-white whitespace-nowrap mt-0.5">
+                              ĐH BÁCH KHOA
+                            </div>
+                          </div>
+                        `,
+                        className: 'school-div-icon',
+                        iconSize: [70, 40],
+                        iconAnchor: [35, 20]
+                      })}
+                    >
                       <Popup>ĐH Bách Khoa Đà Nẵng</Popup>
                     </Marker>
                     {listing.lat && listing.lng ? (

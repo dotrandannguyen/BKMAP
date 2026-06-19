@@ -7,7 +7,7 @@ import { useUiStore } from '../stores/uiStore';
 
 export default function MapView() {
   const navigate = useNavigate();
-  const { listings, selectListing } = useListingStore();
+  const { listings, selectListing, fetchRooms } = useListingStore();
   const { searchQuery, setSearchQuery, priceFilter, setPriceFilter, savedIds, toggleSaved } = useUiStore();
 
   const onSelectListing = (id) => {
@@ -56,14 +56,35 @@ export default function MapView() {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Create Leaflet map centered at DUT: 16.075480, 108.149836
+    // Create Leaflet map centered at DUT: 16.07380, 108.14990
     const map = L.map(mapContainerRef.current, {
       zoomControl: false // Disable default zoom control to use our custom UI
-    }).setView([16.07548, 108.14983], 15);
+    }).setView([16.07380, 108.14990], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap'
     }).addTo(map);
+
+    // Custom school icon for DUT
+    const schoolHtml = `
+      <div class="flex flex-col items-center select-none cursor-default">
+        <div class="w-9 h-9 rounded-full bg-red-600 border-2 border-white shadow-lg flex items-center justify-center animate-bounce-slow" style="animation: bounceSlow 3s infinite;">
+          <span class="material-symbols-outlined text-white" style="font-size: 18px;">school</span>
+        </div>
+        <div class="bg-red-600 text-white font-black text-[8px] px-1.5 py-0.5 rounded shadow-sm -mt-0.5 border border-white whitespace-nowrap">
+          ĐH BÁCH KHOA
+        </div>
+      </div>
+    `;
+
+    const schoolIcon = L.divIcon({
+      html: schoolHtml,
+      className: 'school-div-icon-main',
+      iconSize: [80, 45],
+      iconAnchor: [40, 45]
+    });
+
+    L.marker([16.07380, 108.14990], { icon: schoolIcon }).addTo(map);
 
     const markersLayer = L.layerGroup().addTo(map);
 
@@ -156,7 +177,7 @@ export default function MapView() {
   };
 
   const handleLocateDUT = () => {
-    mapInstanceRef.current?.setView([16.07548, 108.14983], 15);
+    mapInstanceRef.current?.setView([16.07380, 108.14990], 15);
   };
 
   const formatVND = (num) => {
@@ -473,6 +494,13 @@ export default function MapView() {
           <span>Bản đồ</span>
         </button>
       </div>
+
+      <style>{`
+        @keyframes bounceSlow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+      `}</style>
     </div>
   );
 }

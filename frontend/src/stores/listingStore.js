@@ -92,8 +92,8 @@ export const useListingStore = create((set, get) => ({
   // Thêm hoặc cập nhật listing
   addListing: (newListing, userEmail) => {
     if (!newListing.lat || !newListing.lng) {
-      newListing.lat = 16.07548 + (Math.random() - 0.5) * 0.01;
-      newListing.lng = 108.14983 + (Math.random() - 0.5) * 0.01;
+      newListing.lat = 16.07380 + (Math.random() - 0.5) * 0.01;
+      newListing.lng = 108.14990 + (Math.random() - 0.5) * 0.01;
     }
     const now = new Date().toISOString();
     newListing.updatedAt = now;

@@ -14,6 +14,19 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+const schoolIcon = L.divIcon({
+  html: `
+    <div class="flex flex-col items-center">
+      <div class="w-7 h-7 rounded-full bg-red-600 border border-white shadow-md flex items-center justify-center">
+        <span class="material-symbols-outlined text-white" style="font-size: 14px;">school</span>
+      </div>
+    </div>
+  `,
+  className: 'school-div-icon',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14]
+});
+
 function LocationPicker({ position, setPosition, calculateDistance }) {
   useMapEvents({
     click(e) {
@@ -51,7 +64,7 @@ export default function CreateListingView() {
   const [title, setTitle] = useState(initialData?.title || '');
   const [type, setType] = useState(initialData?.type || 'Trọ');
   const [price, setPrice] = useState(initialData?.price || '');
-  const [area, setArea] = useState(initialData?.area || '20');
+  const [area, setArea] = useState(initialData?.area || '');
   const [distanceText, setDistanceText] = useState(initialData?.distanceText || 'Cách cổng phụ DUT 150m');
   const [address, setAddress] = useState(initialData?.address || 'Phường Liên Chiểu, Thành phố Đà Nẵng');
   const [description, setDescription] = useState(initialData?.description || '');
@@ -78,8 +91,8 @@ export default function CreateListingView() {
   const [position, setPosition] = useState(initialData?.lat ? { lat: initialData.lat, lng: initialData.lng } : null);
   const [distanceDUT, setDistanceDUT] = useState(initialData?.distanceDUT || null);
 
-  // Haversine formula
-  const calculateDistance = (lat, lng) => {
+  // Haversine formula (used as a fallback)
+  const calculateHaversine = (lat, lng) => {
     const dutLat = 16.07548;
     const dutLng = 108.14983;
     const R = 6371; // km
@@ -89,14 +102,38 @@ export default function CreateListingView() {
               Math.cos(dutLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
               Math.sin(dLng/2) * Math.sin(dLng/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const dist = R * c;
-    setDistanceDUT(dist);
-    
-    // Auto fill text
-    if (dist < 1) {
-      setDistanceText(`Cách ĐH Bách Khoa ${(dist * 1000).toFixed(0)}m`);
-    } else {
-      setDistanceText(`Cách ĐH Bách Khoa ${dist.toFixed(1)}km`);
+    return R * c;
+  };
+
+  // Calculate distance using OSRM walking path, falling back to Haversine
+  const calculateDistance = async (lat, lng) => {
+    const dutLat = 16.07548;
+    const dutLng = 108.14983;
+    try {
+      // Use foot routing for students walking to campus
+      const res = await fetch(`https://router.project-osrm.org/route/v1/foot/${dutLng},${dutLat};${lng},${lat}?overview=false`);
+      if (!res.ok) throw new Error('OSRM API request failed');
+      const data = await res.json();
+      if (data.code === 'Ok' && data.routes?.[0]) {
+        const dist = data.routes[0].distance / 1000; // convert to km
+        setDistanceDUT(dist);
+        if (dist < 1) {
+          setDistanceText(`Cách ĐH Bách Khoa ${(dist * 1000).toFixed(0)}m`);
+        } else {
+          setDistanceText(`Cách ĐH Bách Khoa ${dist.toFixed(1)}km`);
+        }
+        return;
+      }
+      throw new Error('Invalid route response');
+    } catch (error) {
+      console.warn('OSRM routing failed, using Haversine formula fallback:', error);
+      const dist = calculateHaversine(lat, lng);
+      setDistanceDUT(dist);
+      if (dist < 1) {
+        setDistanceText(`Cách ĐH Bách Khoa ${(dist * 1000).toFixed(0)}m`);
+      } else {
+        setDistanceText(`Cách ĐH Bách Khoa ${dist.toFixed(1)}km`);
+      }
     }
   };
 
@@ -253,8 +290,8 @@ export default function CreateListingView() {
         description: description.trim(),
         status: 'AVAILABLE',
         area: Number(area) || 20,
-        latitude: position?.lat || 16.07548,
-        longitude: position?.lng || 108.14983,
+        latitude: position?.lat || 16.07380,
+        longitude: position?.lng || 108.14990,
         features: selectedAmenities,
       };
 
@@ -616,9 +653,9 @@ export default function CreateListingView() {
 
                 {/* Map picker frame */}
                 <div className="h-[300px] w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative z-0">
-                  <MapContainer center={[16.07548, 108.14983]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                  <MapContainer center={[16.07380, 108.14990]} zoom={15} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <Marker position={[16.07548, 108.14983]} opacity={0.5} /> {/* Bách Khoa marker */}
+                    <Marker position={[16.07380, 108.14990]} icon={schoolIcon} /> {/* Bách Khoa marker */}
                     <LocationPicker position={position} setPosition={setPosition} calculateDistance={calculateDistance} />
                     <MapViewCenter position={position} />
                   </MapContainer>
