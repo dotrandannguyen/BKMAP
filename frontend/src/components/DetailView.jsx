@@ -50,7 +50,8 @@ export default function DetailView() {
           type: room.type || 'Phòng trọ',
           price: room.price,
           priceUSD: Math.round(room.price / 24800),
-          distanceText: `Cách ĐHBK ${room.distanceToBk || 0.8}km`,
+          distanceText: `Từ vị trí trọ hiện tại`,
+          distanceDUT: room.distanceToBk || 0.8,
           address: room.address,
           rating: 5.0,
           images: room.images?.length > 0
@@ -327,7 +328,7 @@ export default function DetailView() {
                 <div>
                   <div className="text-[10px] uppercase font-bold text-outline">Tiền điện</div>
                   <div className="text-sm font-semibold text-on-surface">
-                    {listing.electricityPrice ? `${listing.electricityPrice.toLocaleString('vi-VN')} VNĐ/kWh` : 'Theo giá nhà nước'}
+                    {listing.electricityPrice ? listing.electricityPrice : 'Trao đổi khi liên hệ'}
                   </div>
                 </div>
               </div>
@@ -336,7 +337,7 @@ export default function DetailView() {
                 <div>
                   <div className="text-[10px] uppercase font-bold text-outline">Tiền nước</div>
                   <div className="text-sm font-semibold text-on-surface">
-                    {listing.waterPrice ? `${listing.waterPrice.toLocaleString('vi-VN')} VNĐ/m³` : 'Miễn phí'}
+                    {listing.waterPrice ? listing.waterPrice : 'Trao đổi khi liên hệ'}
                   </div>
                 </div>
               </div>
@@ -467,8 +468,8 @@ export default function DetailView() {
                 </div>
                 
                 <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 text-center space-y-1">
-                  <span className="text-[10px] text-primary uppercase font-extrabold tracking-widest">Khoảng cách đến DUT</span>
-                  <p className="text-xl font-black text-primary">
+                  <span className="text-[14px] text-primary uppercase font-extrabold tracking-widest">Khoảng cách đến DUT</span>
+                  <p className="text-[27px] font-black text-primary">
                     {listing.distanceDUT < 1 
                       ? `${Math.round(listing.distanceDUT * 1000)}m` 
                       : `${Number(listing.distanceDUT).toFixed(1)} km`}

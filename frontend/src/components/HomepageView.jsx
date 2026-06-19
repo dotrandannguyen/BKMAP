@@ -79,10 +79,12 @@ export default function HomepageView() {
 
   // Safe locale string helper for large numbers
   const formatVND = (num) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace('.0', '') + 'Tr';
-    }
-    return num.toLocaleString('vi-VN');
+    return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
   };
 
   return (
@@ -253,9 +255,6 @@ export default function HomepageView() {
                   
                   {/* Badges on Top */}
                   <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[90%]">
-                    <span className="bg-primary text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md">
-                      {formatVND(item.price)}/tháng
-                    </span>
                     {item.verified && (
                       <span className="bg-white/95 backdrop-blur-md text-primary text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
                         <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
@@ -287,9 +286,13 @@ export default function HomepageView() {
                       <h4 className="text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
                         {item.title}
                       </h4>
-                      <p className="text-xs text-on-surface-variant font-medium flex items-start gap-1">
-                        <span className="material-symbols-outlined text-sm text-primary shrink-0 mt-0.5">location_on</span>
-                        <span className="line-clamp-2">{item.address}</span>
+                      <p className="text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
+                        {formatVND(item.price)}
+                        <span className="text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
+                      </p>
+                      <p className="text-xs text-on-surface-variant font-medium flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
+                        <span className="line-clamp-2">{formatAddressShort(item.address)}</span>
                       </p>
                       <div className="flex items-center gap-3 mt-1">
                         {item.distanceText && (

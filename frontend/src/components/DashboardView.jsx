@@ -53,10 +53,12 @@ export default function DashboardView() {
 
 
   const formatVND = (num) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace('.0', '') + 'Tr';
-    }
-    return num.toLocaleString('vi-VN');
+    return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
   };
 
   return (
@@ -169,7 +171,7 @@ export default function DashboardView() {
                               >
                                 {item.title}
                               </span>
-                              <span className="text-[10px] text-outline font-semibold uppercase mt-0.5 block">{item.type} • {item.distanceText || item.address}</span>
+                              <span className="text-[10px] text-outline font-semibold uppercase mt-0.5 block">{item.type} • {item.distanceText || formatAddressShort(item.address)}</span>
                             </div>
                           </div>
                         </td>
@@ -177,7 +179,7 @@ export default function DashboardView() {
                         {/* Price col */}
                         <td className="px-6 py-4 font-black text-primary text-xs sm:text-sm whitespace-nowrap">
                           {formatVND(item.price)}
-                          <span className="text-[10px] font-medium text-outline">/th</span>
+                          <span className="text-[10px] font-medium text-outline">/tháng</span>
                         </td>
 
 
