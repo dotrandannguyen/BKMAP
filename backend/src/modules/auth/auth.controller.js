@@ -59,7 +59,7 @@ export const authController = {
 			const safeMessage = error.message === 'Token Expired.' ? 'Link xác thực đã hết hạn.' : 'Token không hợp lệ hoặc đã được sử dụng.';
 			return res.status(400).send(`
 				<div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-					<h2 style="color: #dc3545;">Xác thực thất bại ❌</h2>
+					<h2 style="color: #dc3545;">Xác thực thất bại </h2>
 					<p>${safeMessage}</p>
 				</div>
 			`);
