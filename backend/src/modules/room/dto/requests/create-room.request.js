@@ -10,7 +10,7 @@ export const createRoomSchema = {
 		ward: z.string().max(100).optional().nullable(),
 		latitude: z.number({ required_error: 'Vĩ độ là bắt buộc', invalid_type_error: 'Vĩ độ phải là số' }),
 		longitude: z.number({ required_error: 'Kinh độ là bắt buộc', invalid_type_error: 'Kinh độ phải là số' }),
-		distanceToBk: z.number().optional().nullable(),
+		distanceToBk: z.number().max(1000, 'Khoảng cách không được vượt quá 1000km').optional().nullable(),
 
 		// Cơ bản
 		price: z.number({ required_error: 'Giá thuê là bắt buộc' }).int().positive('Giá thuê phải lớn hơn 0'),
@@ -27,7 +27,7 @@ export const createRoomSchema = {
 
 		// Thông tin chủ trọ
 		ownerName: z.string().min(1, 'Tên chủ trọ không được để trống').max(100),
-		ownerPhone: z.string().min(1, 'Số điện thoại chủ trọ không được để trống').max(20),
+		ownerPhone: z.string().regex(/^\d{10}$/, 'Số điện thoại phải gồm đúng 10 chữ số'),
 
 		// Ảnh & Tiện ích
 		imageUrls: z.array(z.string().url('URL ảnh không hợp lệ')).optional().default([]),

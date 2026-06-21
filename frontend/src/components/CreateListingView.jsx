@@ -251,7 +251,15 @@ export default function CreateListingView() {
   const processFiles = (files) => {
     if (!files || files.length === 0) return;
 
-    const newFiles = files.map(file => ({
+    let allowedFiles = files;
+    if (selectedFiles.length + files.length > 10) {
+      toast.warning('Chỉ được phép tải lên tối đa 10 ảnh. Các ảnh thừa sẽ bị bỏ qua.');
+      allowedFiles = files.slice(0, 10 - selectedFiles.length);
+    }
+
+    if (allowedFiles.length === 0) return;
+
+    const newFiles = allowedFiles.map(file => ({
       file,
       previewUrl: URL.createObjectURL(file)
     }));
