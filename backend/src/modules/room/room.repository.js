@@ -31,6 +31,7 @@ export const roomRepository = {
 					area: data.area,
 					electricityPrice: data.electricityPrice,
 					waterPrice: data.waterPrice,
+					otherCosts: data.otherCosts,
 					status: data.status,
 					sharedOwner: data.sharedOwner,
 					curfew: data.curfew,
@@ -63,6 +64,33 @@ export const roomRepository = {
 				await tx.roomFeature.createMany({
 					data: featureRecords,
 				});
+			}
+
+			// Liên kết RoomFeature bằng tên tiện ích (nếu có)
+			if (data.features && data.features.length > 0) {
+				for (const featureName of data.features) {
+					let feature = await tx.feature.findUnique({
+						where: { name: featureName },
+					});
+					if (!feature) {
+						feature = await tx.feature.create({
+							data: { name: featureName },
+						});
+					}
+					await tx.roomFeature.upsert({
+						where: {
+							roomId_featureId: {
+								roomId: newRoom.id,
+								featureId: feature.id,
+							},
+						},
+						update: {},
+						create: {
+							roomId: newRoom.id,
+							featureId: feature.id,
+						},
+					});
+				}
 			}
 
 			// Trả về Room đã được lấy kèm các bảng liên kết
@@ -107,6 +135,32 @@ export const roomRepository = {
 			where.ward = { contains: filters.ward, mode: 'insensitive' };
 		}
 
+		if (filters.ownerEmail) {
+			where.creator = {
+				email: filters.ownerEmail,
+			};
+		}
+
+		if (filters.search) {
+			const searchPattern = filters.search.trim();
+			if (searchPattern) {
+				where.OR = [
+					{ title: { contains: searchPattern, mode: 'insensitive' } },
+					{ address: { contains: searchPattern, mode: 'insensitive' } },
+					{ description: { contains: searchPattern, mode: 'insensitive' } },
+					{
+						features: {
+							some: {
+								feature: {
+									name: { contains: searchPattern, mode: 'insensitive' }
+								}
+							}
+						}
+					}
+				];
+			}
+		}
+
 		// Tính tổng số lượng
 		const total = await prisma.room.count({ where });
 
@@ -116,6 +170,7 @@ export const roomRepository = {
 			take,
 			orderBy: { createdAt: 'desc' },
 			include: {
+				owner: true,
 				images: {
 					orderBy: { displayOrder: 'asc' },
 				},
@@ -123,7 +178,7 @@ export const roomRepository = {
 					include: { feature: true },
 				},
 				creator: {
-					select: { email: true },
+					select: { id: true, userName: true, email: true, avatar: true },
 				},
 			},
 		});
@@ -137,7 +192,7 @@ export const roomRepository = {
 			include: {
 				owner: true,
 				creator: {
-					select: { id: true, userName: true, email: true },
+					select: { id: true, userName: true, email: true, avatar: true },
 				},
 				images: {
 					orderBy: { displayOrder: 'asc' },
@@ -185,6 +240,7 @@ export const roomRepository = {
 					area: data.area,
 					electricityPrice: data.electricityPrice,
 					waterPrice: data.waterPrice,
+					otherCosts: data.otherCosts,
 					status: data.status,
 					sharedOwner: data.sharedOwner,
 					curfew: data.curfew,
@@ -244,6 +300,37 @@ export const roomRepository = {
 						featureId: featureId,
 					}));
 					await tx.roomFeature.createMany({ data: featureRecords });
+				}
+			}
+
+			// Cập nhật tiện ích từ mảng tên
+			if (data.features) {
+				// Nếu không gửi featureIds cùng lúc, chúng ta xóa liên kết cũ và liên kết các tiện ích mới bằng tên
+				if (!data.featureIds) {
+					await tx.roomFeature.deleteMany({ where: { roomId: id } });
+				}
+				for (const featureName of data.features) {
+					let feature = await tx.feature.findUnique({
+						where: { name: featureName },
+					});
+					if (!feature) {
+						feature = await tx.feature.create({
+							data: { name: featureName },
+						});
+					}
+					await tx.roomFeature.upsert({
+						where: {
+							roomId_featureId: {
+								roomId: id,
+								featureId: feature.id,
+							},
+						},
+						update: {},
+						create: {
+							roomId: id,
+							featureId: feature.id,
+						},
+					});
 				}
 			}
 

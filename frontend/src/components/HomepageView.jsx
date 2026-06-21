@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 
-export default function HomepageView({
-  listings,
-  onSelectListing,
-  onViewChange,
-  setSearchQuery,
-  setPriceFilter,
-  toggleSaved,
-  savedIds,
-  onResetData,
-}) {
+export default function HomepageView() {
+  const navigate = useNavigate();
+  const { listings, selectListing, resetData, fetchRooms } = useListingStore();
+  const { setSearchQuery, setPriceFilter, savedIds, toggleSaved } = useUiStore();
+
+  React.useEffect(() => {
+    fetchRooms({ limit: 10 });
+  }, [fetchRooms]);
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
+  };
   const [localSearch, setLocalSearch] = useState('');
   const [localPrice, setLocalPrice] = useState('Giá thuê: Mọi mức giá');
   const [emailSub, setEmailSub] = useState('');
@@ -54,12 +60,12 @@ export default function HomepageView({
       setPriceFilter('all');
     }
     // Switch to Map & List view
-    onViewChange('MAP');
+    navigate('/map');
   };
 
   const handleChipClick = (keyword) => {
     setSearchQuery(keyword);
-    onViewChange('MAP');
+    navigate('/map');
   };
 
   const handleSubscribe = (e) => {
@@ -73,10 +79,12 @@ export default function HomepageView({
 
   // Safe locale string helper for large numbers
   const formatVND = (num) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace('.0', '') + 'Tr';
-    }
-    return num.toLocaleString('vi-VN');
+    return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
   };
 
   return (
@@ -195,7 +203,7 @@ export default function HomepageView({
               </div>
               {listings.length > 0 && (
                 <button 
-                  onClick={() => { setSearchQuery(''); onViewChange('MAP'); }}
+                  onClick={() => { setSearchQuery(''); navigate('/map'); }}
                   className="bg-primary/10 text-primary font-bold text-xs sm:text-sm px-5 py-2.5 rounded-full flex items-center gap-2 hover:bg-primary hover:text-white transition-all cursor-pointer whitespace-nowrap"
                 >
                   <span>Xem tất cả</span>
@@ -213,14 +221,14 @@ export default function HomepageView({
               Hiện tại danh sách phòng trọ đang trống. Bạn có thể khôi phục dữ liệu mẫu để thử nghiệm tính năng hoặc tiến hành tự đăng tin cho thuê phòng mới.
             </p>
             <div className="flex gap-3 justify-center pt-2">
-              <button
-                onClick={onResetData}
+              {/* <button
+                onClick={resetData}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer"
               >
                 Khôi phục trọ mẫu
-              </button>
+              </button> */}
               <button
-                onClick={() => onViewChange('CREATE')}
+                onClick={() => navigate('/create')}
                 className="bg-white hover:bg-slate-100 text-slate-700 border px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 Đăng trọ mới
@@ -247,9 +255,6 @@ export default function HomepageView({
                   
                   {/* Badges on Top */}
                   <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[90%]">
-                    <span className="bg-primary text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md">
-                      {formatVND(item.price)}/tháng
-                    </span>
                     {item.verified && (
                       <span className="bg-white/95 backdrop-blur-md text-primary text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
                         <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
@@ -281,9 +286,13 @@ export default function HomepageView({
                       <h4 className="text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
                         {item.title}
                       </h4>
-                      <p className="text-xs text-on-surface-variant font-medium flex items-start gap-1">
-                        <span className="material-symbols-outlined text-sm text-primary shrink-0 mt-0.5">location_on</span>
-                        <span className="line-clamp-2">{item.address}</span>
+                      <p className="text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
+                        {formatVND(item.price)}
+                        <span className="text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
+                      </p>
+                      <p className="text-xs text-on-surface-variant font-medium flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
+                        <span className="line-clamp-2">{formatAddressShort(item.address)}</span>
                       </p>
                       <div className="flex items-center gap-3 mt-1">
                         {item.distanceText && (
@@ -300,14 +309,20 @@ export default function HomepageView({
                     </div>
                     
                     {/* Host avatar */}
-                    <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
-                      <img
-                        alt={item.host.name}
-                        className="w-full h-full object-cover"
-                        src={item.host.avatar}
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
+                    {item.host?.avatar ? (
+                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
+                        <img
+                          alt={item.host.name || 'Chủ trọ'}
+                          className="w-full h-full object-cover"
+                          src={item.host.avatar}
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0">
+                        {item.host?.name ? item.host.name[0] : 'C'}
+                      </div>
+                    )}
                   </div>
 
                   {/* Amenity tags */}
@@ -490,9 +505,9 @@ export default function HomepageView({
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-on-surface uppercase tracking-widest">Nền tảng</h4>
             <ul className="space-y-2 text-xs text-on-surface-variant">
-              <li><button onClick={() => onViewChange('MAP')} className="hover:text-primary transition-colors cursor-pointer text-left">Tìm phòng trọ</button></li>
-              <li><button onClick={() => onViewChange('CREATE')} className="hover:text-primary transition-colors cursor-pointer text-left">Đăng tin cho thuê</button></li>
-              <li><button onClick={() => onViewChange('DASHBOARD')} className="hover:text-primary transition-colors cursor-pointer text-left">Xác thực nhà trọ</button></li>
+              <li><button onClick={() => navigate('/map')} className="hover:text-primary transition-colors cursor-pointer text-left">Tìm phòng trọ</button></li>
+              <li><button onClick={() => navigate('/create')} className="hover:text-primary transition-colors cursor-pointer text-left">Đăng tin cho thuê</button></li>
+              <li><button onClick={() => navigate('/dashboard')} className="hover:text-primary transition-colors cursor-pointer text-left">Xác thực nhà trọ</button></li>
             </ul>
           </div>
 

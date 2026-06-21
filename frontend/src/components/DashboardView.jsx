@@ -1,47 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useListingStore } from '../stores/listingStore';
+import { useAuthStore } from '../stores/authStore';
 
-export default function DashboardView({
-  listings,
-  onDeleteListing,
-  onToggleStatus,
-  onViewChange,
-  onSelectListing,
-  onEditListing,
-  onResetData,
-  onClearAll,
-}) {
-  const [activeCategory, setActiveCategory] = useState('all');
-  
-  // Local visits appointments state
-  const [visits, setVisits] = useState([
-    {
-      id: 'visit-1',
-      studentName: 'Nguyễn Duy Khánh',
-      timeText: 'Hôm nay lúc 14:30',
-      listingTitle: 'Skyline Student Loft',
-      status: 'pending',
-    },
-    {
-      id: 'visit-2',
-      studentName: 'Trịnh Thủy Tiên',
-      timeText: 'Ngày mai lúc 09:00',
-      listingTitle: 'Lotus Garden House',
-      status: 'pending',
-    },
-    {
-      id: 'visit-3',
-      studentName: 'Phan Anh Đức',
-      timeText: 'Thứ Năm lúc 16:15',
-      listingTitle: 'Cyan Studios',
-      status: 'accepted',
+export default function DashboardView() {
+  const navigate = useNavigate();
+  const userEmail = useAuthStore((s) => s.userEmail);
+  const { listings: allListings, deleteListing, toggleStatus, selectListing, setEditingListing, resetData, clearAll, fetchRooms } = useListingStore();
+
+  useEffect(() => {
+    if (userEmail) {
+      fetchRooms({ ownerEmail: userEmail, limit: 100 });
     }
-  ]);
+  }, [userEmail, fetchRooms]);
 
-  // Handle visit status changes
-  const handleVisitAction = (id, action) => {
-    setVisits(visits.map(v => v.id === id ? { ...v, status: action } : v));
+  const listings = allListings.filter((item) => item.ownerEmail === userEmail || item.ownerEmail === 'guest@example.com');
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
   };
-
+  const onEditListing = (id) => {
+    const listingToEdit = allListings.find(l => l.id === id);
+    if (listingToEdit) {
+      setEditingListing(listingToEdit);
+      navigate('/create');
+    }
+  };
+  const onDeleteListing = async (id) => {
+    try {
+      await deleteListing(id);
+    } catch (error) {
+      toast.error('Không thể xóa phòng: ' + error.message);
+    }
+  };
+  const onCreateNew = () => {
+    setEditingListing(null);
+    navigate('/create');
+  };
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  
   // Filter listings based on active dashboard category
   const filtered = listings.filter((item) => {
     if (activeCategory === 'verified') return item.verified === true;
@@ -54,10 +54,12 @@ export default function DashboardView({
 
 
   const formatVND = (num) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace('.0', '') + 'Tr';
-    }
-    return num.toLocaleString('vi-VN');
+    return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
   };
 
   return (
@@ -70,13 +72,13 @@ export default function DashboardView({
           <h1 className="text-2xl md:text-3xl font-black text-on-surface tracking-tight mt-1.5">
             Bảng Quản lý & Hoạt động
           </h1>
-          <p className="text-xs sm:text-sm text-on-surface-variant font-medium">Theo dõi hoạt động, tình trạng phòng thực tế và các lịch hẹn sinh viên.</p>
+          <p className="text-xs sm:text-sm text-on-surface-variant font-medium">Theo dõi hoạt động và tình trạng phòng thực tế.</p>
         </div>
 
         <div className="flex flex-wrap gap-2">
 
           <button
-            onClick={() => onViewChange('CREATE')}
+            onClick={() => onCreateNew()}
             className="bg-primary hover:bg-primary-container text-white text-xs sm:text-sm font-black px-6 py-3.5 rounded-2xl transition-all shadow-lg shadow-primary/15 active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-sm font-bold">add_box</span>
@@ -116,7 +118,7 @@ export default function DashboardView({
                 </p>
                 <div className="flex gap-2 justify-center pt-2">
                   <button
-                    onClick={() => onViewChange('CREATE')}
+                    onClick={() => onCreateNew()}
                     className="bg-white hover:bg-slate-100 text-slate-700 border text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
                   >
                     Đăng trọ mới
@@ -161,7 +163,7 @@ export default function DashboardView({
                               >
                                 {item.title}
                               </span>
-                              <span className="text-[10px] text-outline font-semibold uppercase mt-0.5 block">{item.type} • {item.distanceText || item.address}</span>
+                              <span className="text-[10px] text-outline font-semibold uppercase mt-0.5 block">{item.type} • {item.distanceText || formatAddressShort(item.address)}</span>
                             </div>
                           </div>
                         </td>
@@ -169,8 +171,9 @@ export default function DashboardView({
                         {/* Price col */}
                         <td className="px-6 py-4 font-black text-primary text-xs sm:text-sm whitespace-nowrap">
                           {formatVND(item.price)}
-                          <span className="text-[10px] font-medium text-outline">/th</span>
+                          <span className="text-[10px] font-medium text-outline">/tháng</span>
                         </td>
+
 
 
 
@@ -195,11 +198,7 @@ export default function DashboardView({
                             </button>
                             {/* Live Delete Button code */}
                             <button
-                              onClick={() => {
-                                if (confirm(`Bạn chắc chắn muốn xóa niêm yết "${item.title}"? Thao tác không hoàn tác.`)) {
-                                  onDeleteListing(item.id);
-                                }
-                              }}
+                              onClick={() => setDeleteTarget(item)}
                               className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors flex items-center justify-center cursor-pointer font-bold"
                               title="Xóa tin này"
                             >
@@ -217,6 +216,51 @@ export default function DashboardView({
         </div>
 
       </div>
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div
+  className="fixed top-0 left-0 w-screen h-screen z-[99999]
+             flex items-center justify-center
+             bg-black/50 backdrop-blur-sm"
+>
+  <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+          
+            {/* Warning Icon */}
+            <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-red-600" style={{ fontSize: '28px' }}>warning</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Xác nhận xóa</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Bạn chắc chắn muốn xóa niêm yết <strong className="text-gray-700">"{deleteTarget.title}"</strong>?<br/>Thao tác không hoàn tác.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  onDeleteListing(deleteTarget.id);
+                  setDeleteTarget(null);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes modalPopIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
 
     </div>
   );

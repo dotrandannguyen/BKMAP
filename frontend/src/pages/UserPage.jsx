@@ -1,4 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 import {
   Search,
   Home,
@@ -8,13 +12,27 @@ import {
   Heart
 } from 'lucide-react';
 
-const UserPage = ({ onViewChange, userEmail = 'dannguyen@dut.udn.vn', userName, listings = [], savedIds = [], onSelectListing }) => {
-  const userDisplayName = userName || userEmail.split('@')[0];
+const UserPage = () => {
+  const navigate = useNavigate();
+  const { userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar } = useAuthStore();
+  const { listings, selectListing } = useListingStore();
+  const { savedIds } = useUiStore();
 
+  const userDisplayName = userName || userEmail.split('@')[0];
   const savedListings = listings.filter(l => savedIds.includes(l.id));
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
+  };
 
   const formatVND = (num) => {
     return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
   };
 
   return (
@@ -22,10 +40,16 @@ const UserPage = ({ onViewChange, userEmail = 'dannguyen@dut.udn.vn', userName, 
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-full hidden md:flex">
         {/* User section */}
-        <div className="px-5 py-4 flex items-center gap-3 cursor-pointer border-b border-slate-100 hover:bg-slate-50 transition-colors" onClick={() => onViewChange('HOME')}>
-          <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase shadow-sm shadow-primary/20">
-            {userDisplayName[0]}
-          </div>
+        <div className="px-5 py-4 flex items-center gap-3 cursor-pointer border-b border-slate-100 hover:bg-slate-50 transition-colors" onClick={() => navigate('/')}>
+          {userAvatar ? (
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200">
+              <img src={userAvatar} alt={userDisplayName} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase shadow-sm shadow-primary/20">
+              {userDisplayName[0]}
+            </div>
+          )}
           <div className="flex-1 overflow-hidden">
             <span className="block font-bold text-slate-800 truncate text-sm">{userDisplayName}</span>
             <span className="block text-[10px] text-slate-500 truncate">{userEmail}</span>
@@ -39,11 +63,11 @@ const UserPage = ({ onViewChange, userEmail = 'dannguyen@dut.udn.vn', userName, 
             <Heart size={18} fill="currentColor" />
             <span className="text-sm">Nhà trọ yêu thích</span>
           </div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => onViewChange('MAP')}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => navigate('/map')}>
             <Search size={18} />
             <span className="text-sm font-semibold">Tìm phòng trọ</span>
           </div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => onViewChange('HOME')}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => navigate('/')}>
             <Home size={18} />
             <span className="text-sm font-semibold">Trang chủ</span>
           </div>
@@ -55,7 +79,7 @@ const UserPage = ({ onViewChange, userEmail = 'dannguyen@dut.udn.vn', userName, 
             <Settings size={18} />
             <span className="text-sm font-semibold">Cài đặt cá nhân</span>
           </div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 cursor-pointer transition-colors" onClick={() => onViewChange('LOGOUT')}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 cursor-pointer transition-colors" onClick={() => { logout(); navigate('/login'); }}>
             <Trash2 size={18} />
             <span className="text-sm font-semibold">Đăng xuất tài khoản</span>
           </div>
@@ -83,7 +107,7 @@ const UserPage = ({ onViewChange, userEmail = 'dannguyen@dut.udn.vn', userName, 
                 Khi bạn lướt xem phòng trọ, hãy bấm vào biểu tượng trái tim để lưu lại những căn ưng ý nhất nhé.
               </p>
               <button 
-                onClick={() => onViewChange('MAP')}
+                onClick={() => navigate('/map')}
                 className="mt-4 bg-primary hover:bg-primary-container text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all"
               >
                 Khám phá ngay
@@ -117,9 +141,9 @@ const UserPage = ({ onViewChange, userEmail = 'dannguyen@dut.udn.vn', userName, 
                       <h3 className="font-bold text-slate-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                         {listing.title}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                      <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]">location_on</span>
-                        <span className="line-clamp-1">{listing.address}</span>
+                        <span className="line-clamp-1">{formatAddressShort(listing.address)}</span>
                       </p>
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">

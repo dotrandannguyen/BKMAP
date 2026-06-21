@@ -15,8 +15,9 @@ export const createRoomSchema = {
 		// Cơ bản
 		price: z.number({ required_error: 'Giá thuê là bắt buộc' }).int().positive('Giá thuê phải lớn hơn 0'),
 		area: z.number({ required_error: 'Diện tích là bắt buộc' }).positive('Diện tích phải lớn hơn 0'),
-		electricityPrice: z.number().int().optional().nullable(),
-		waterPrice: z.number().int().optional().nullable(),
+		electricityPrice: z.string().optional().nullable(),
+		waterPrice: z.string().optional().nullable(),
+		otherCosts: z.string().max(255).optional().nullable(),
 
 		// Phân loại
 		status: z.enum(['AVAILABLE', 'ALMOST_FULL', 'FULL']).optional().default('AVAILABLE'),
@@ -31,5 +32,6 @@ export const createRoomSchema = {
 		// Ảnh & Tiện ích
 		imageUrls: z.array(z.string().url('URL ảnh không hợp lệ')).optional().default([]),
 		featureIds: z.array(z.string().uuid('ID tiện ích không hợp lệ')).optional().default([]),
+		features: z.array(z.string()).optional().default([]),
 	}),
 };

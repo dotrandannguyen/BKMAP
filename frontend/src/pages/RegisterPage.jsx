@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './RegisterPage.css';
-import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -17,7 +18,8 @@ const AppleIcon = () => (
     </svg>
 );
 
-const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
+const RegisterPage = ({ onRegisterSuccess }) => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -58,7 +60,7 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
                 if (onRegisterSuccess) {
                     onRegisterSuccess();
                 } else {
-                    onViewChange('LOGIN');
+                    navigate('/login');
                 }
             }, 1500);
         } catch (err) {
@@ -107,7 +109,7 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
                     if (onRegisterSuccess) {
                         onRegisterSuccess();
                     } else {
-                        onViewChange('LOGIN');
+                        navigate('/login');
                     }
                 }, 3000);
             }
@@ -141,7 +143,7 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
 
             <div className="auth-card">
                 <div className="auth-header">
-                    <div className="notion-logo" onClick={() => onViewChange('HOME')} style={{ cursor: 'pointer' }}>
+                    <div className="notion-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                         <span>B</span>
                     </div>
                     <h1>Tạo tài khoản mới</h1>
@@ -149,20 +151,26 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold">
-                        ⚠️ {error}
+                    <div className="mb-5 py-3 px-4 bg-red-50/80 text-red-700 border border-red-200/60 rounded-2xl text-sm font-medium flex items-center gap-3 shadow-sm shadow-red-100/50 animate-fade-in relative overflow-hidden w-full">
+                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500"></div>
+                        <AlertCircle size={20} className="text-red-500 flex-shrink-0" />
+                        <span className="leading-snug">{error}</span>
                     </div>
                 )}
 
                 {successMsg && (
-                    <div className="mb-4 p-3.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold flex flex-col items-start gap-2 w-full">
-                        <span>🎉 {successMsg}</span>
+                    <div className="mb-5 py-3 px-4 bg-emerald-50/80 text-emerald-700 border border-emerald-200/60 rounded-2xl text-sm font-medium flex flex-col items-start gap-3 shadow-sm shadow-emerald-100/50 animate-fade-in relative overflow-hidden w-full">
+                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></div>
+                        <div className="flex items-start gap-3 w-full">
+                            <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                            <span className="leading-snug flex-1">{successMsg}</span>
+                        </div>
                         {verifyToken && (
                             <button
                                 type="button"
                                 onClick={handleAutoVerify}
                                 disabled={isVerifying}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] uppercase tracking-wide cursor-pointer transition-colors active:scale-95 disabled:opacity-50"
+                                className="ml-8 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer transition-colors active:scale-95 disabled:opacity-50"
                             >
                                 {isVerifying ? 'Đang kích hoạt...' : '⚡ Kích hoạt tài khoản Dev nhanh'}
                             </button>
@@ -257,14 +265,30 @@ const RegisterPage = ({ onViewChange, onRegisterSuccess }) => {
                         ) : (
                             <>
                                 <span>Đăng ký</span>
-                                <ArrowRight className="btn-icon-right" size={18} />
+                                
                             </>
                         )}
                     </button>
+
+                    <div className="auth-divider">
+                        <span>HOẶC</span>
+                    </div>
+
+                    <div className="social-login">
+                        <button type="button" onClick={() => {
+                            const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
+                                ? import.meta.env.VITE_API_URL
+                                : `http://${window.location.hostname}:3000/api`;
+                            window.location.href = `${backendUrl}/auth/google`;
+                        }} className="social-btn google-btn">
+                            <GoogleIcon />
+                            <span>Đăng ký bằng Google</span>
+                        </button>
+                    </div>
                 </form>
 
                 <div className="auth-footer">
-                    <p>Đã có tài khoản? <button onClick={() => onViewChange('LOGIN')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng nhập</button></p>
+                    <p>Đã có tài khoản? <button onClick={() => navigate('/login')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng nhập</button></p>
                 </div>
 
                 <p className="terms-text">

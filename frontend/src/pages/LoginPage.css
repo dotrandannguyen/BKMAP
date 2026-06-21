@@ -192,7 +192,7 @@
 }
 
 .primary-btn {
-    background: var(--gradient-primary);
+    background: linear-gradient(135deg, #2383e2 0%, #1a6bc4 100%);
     color: white;
     box-shadow: 0 2px 8px rgba(35, 131, 226, 0.3);
 }
@@ -200,6 +200,7 @@
 .primary-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(35, 131, 226, 0.4);
+    background: linear-gradient(135deg, #1a6bc4 0%, #155da8 100%);
 }
 
 .primary-btn:active:not(:disabled) {

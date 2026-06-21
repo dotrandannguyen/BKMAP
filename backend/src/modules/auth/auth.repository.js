@@ -50,4 +50,31 @@ export const authRepository = {
 			data: { hashedRefreshToken: hashedRefreshToken },
 		});
 	},
+
+	async findUserByGoogleId(googleId) {
+		return await prisma.user.findUnique({
+			where: { googleId },
+		});
+	},
+
+	async updateGoogleId(userId, googleId) {
+		return await prisma.user.update({
+			where: { id: userId },
+			data: { googleId, authProvider: 'google' },
+		});
+	},
+
+	async createGoogleUser(data) {
+		return await prisma.user.create({
+			data: {
+				email: data.email,
+				passwordHash: null,
+				userName: data.userName,
+				avatar: data.avatar,
+				isVerified: true, // Google đã xác thực email
+				googleId: data.googleId,
+				authProvider: 'google',
+			},
+		});
+	},
 };

@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useListingStore } from '../stores/listingStore';
+import { useAuthStore } from '../stores/authStore';
+import { toast } from 'react-toastify';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -9,6 +13,19 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const schoolIcon = L.divIcon({
+  html: `
+    <div class="flex flex-col items-center">
+      <div class="w-7 h-7 rounded-full bg-red-600 border border-white shadow-md flex items-center justify-center">
+        <span class="material-symbols-outlined text-white" style="font-size: 14px;">school</span>
+      </div>
+    </div>
+  `,
+  className: 'school-div-icon',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14]
 });
 
 function LocationPicker({ position, setPosition, calculateDistance }) {
@@ -21,34 +38,65 @@ function LocationPicker({ position, setPosition, calculateDistance }) {
   return position ? <Marker position={position} /> : null;
 }
 
-export default function CreateListingView({ onAddListing, onViewChange, initialData }) {
+function MapViewCenter({ position }) {
+  const map = useMap();
+  useEffect(() => {
+    if (position) {
+      map.setView([position.lat, position.lng], 16);
+    }
+  }, [position, map]);
+  return null;
+}
+
+export default function CreateListingView() {
+  const navigate = useNavigate();
+  const { editingListing: initialData, addListing } = useListingStore();
+  const userEmail = useAuthStore((s) => s.userEmail);
+  const userName = useAuthStore((s) => s.userName);
+  const onAddListing = (listing) => addListing(listing, userEmail);
   const [step, setStep] = useState(1);
+
+  // Cuộn lên đầu trang khi đổi bước (Step)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   // Form State
   const [title, setTitle] = useState(initialData?.title || '');
-  const [type, setType] = useState(initialData?.type || 'Room');
-  const [price, setPrice] = useState(initialData?.price || '2500000');
-  const [area, setArea] = useState(initialData?.area || '20');
+  const [type, setType] = useState(initialData?.type || 'Trọ');
+  const [price, setPrice] = useState(initialData?.price || '');
+  const [area, setArea] = useState(initialData?.area || '');
   const [distanceText, setDistanceText] = useState(initialData?.distanceText || 'Cách cổng phụ DUT 150m');
-  const [address, setAddress] = useState(initialData?.address || 'Liên Chiểu, Đà Nẵng');
+  const [address, setAddress] = useState(initialData?.address || 'Phường Liên Chiểu, Thành phố Đà Nẵng');
   const [description, setDescription] = useState(initialData?.description || '');
-  const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || ['WiFi tốc độ cao', 'Điều hòa nhiệt độ']);
+  const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || []);
   const [imageUrls, setImageUrls] = useState(initialData?.images || []);
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [priceError, setPriceError] = useState(false);
+  const [phoneError, setPhoneError] = useState(false);
+
+  // Map Search States
+  const [createSearchQuery, setCreateSearchQuery] = useState('');
+  const [createSearchSuggestions, setCreateSearchSuggestions] = useState([]);
+  const [isSearchingCreate, setIsSearchingCreate] = useState(false);
   const [electricityPrice, setElectricityPrice] = useState(initialData?.electricityPrice || '');
   const [waterPrice, setWaterPrice] = useState(initialData?.waterPrice || '');
   const [otherCosts, setOtherCosts] = useState(initialData?.otherCosts || '');
+  
+  // Drag and drop state
+  const [isDragActive, setIsDragActive] = useState(false);
   const [hostPhone, setHostPhone] = useState(initialData?.host?.phone || '');
-  const [hostName, setHostName] = useState(initialData?.host?.name || '');
+  const [hostName, setHostName] = useState(initialData?.host?.name || userName || '');
 
   // Default initial position to Bách Khoa if not editing existing lat/lng
   const [position, setPosition] = useState(initialData?.lat ? { lat: initialData.lat, lng: initialData.lng } : null);
   const [distanceDUT, setDistanceDUT] = useState(initialData?.distanceDUT || null);
 
-  // Haversine formula
-  const calculateDistance = (lat, lng) => {
+  // Haversine formula (used as a fallback)
+  const calculateHaversine = (lat, lng) => {
     const dutLat = 16.07548;
     const dutLng = 108.14983;
     const R = 6371; // km
@@ -58,15 +106,117 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
               Math.cos(dutLat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
               Math.sin(dLng/2) * Math.sin(dLng/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const dist = R * c;
-    setDistanceDUT(dist);
-    
-    // Auto fill text
-    if (dist < 1) {
-      setDistanceText(`Cách ĐH Bách Khoa ${(dist * 1000).toFixed(0)}m`);
-    } else {
-      setDistanceText(`Cách ĐH Bách Khoa ${dist.toFixed(1)}km`);
+    return R * c;
+  };
+
+  // Calculate distance using OSRM walking path, falling back to Haversine
+  const calculateDistance = async (lat, lng) => {
+    const dutLat = 16.07548;
+    const dutLng = 108.14983;
+    try {
+      // Use foot routing for students walking to campus
+      const res = await fetch(`https://router.project-osrm.org/route/v1/foot/${dutLng},${dutLat};${lng},${lat}?overview=false`);
+      if (!res.ok) throw new Error('OSRM API request failed');
+      const data = await res.json();
+      if (data.code === 'Ok' && data.routes?.[0]) {
+        const dist = data.routes[0].distance / 1000; // convert to km
+        setDistanceDUT(dist);
+        if (dist < 1) {
+          setDistanceText(`Cách ĐH Bách Khoa ${(dist * 1000).toFixed(0)}m`);
+        } else {
+          setDistanceText(`Cách ĐH Bách Khoa ${dist.toFixed(1)}km`);
+        }
+        return;
+      }
+      throw new Error('Invalid route response');
+    } catch (error) {
+      console.warn('OSRM routing failed, using Haversine formula fallback:', error);
+      const dist = calculateHaversine(lat, lng);
+      setDistanceDUT(dist);
+      if (dist < 1) {
+        setDistanceText(`Cách ĐH Bách Khoa ${(dist * 1000).toFixed(0)}m`);
+      } else {
+        setDistanceText(`Cách ĐH Bách Khoa ${dist.toFixed(1)}km`);
+      }
     }
+  };
+
+  const handleCreateSearch = async (query) => {
+    if (!query.trim()) {
+      setCreateSearchSuggestions([]);
+      return;
+    }
+    setIsSearchingCreate(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+      const res = await fetch(`${apiUrl}/geocode?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length === 0) {
+          toast.warning('Không tìm thấy vị trí này. Vui lòng thử lại với từ khóa khác chi tiết hơn (Ví dụ: 280 Điện Biên Phủ, Đà Nẵng).');
+        }
+        setCreateSearchSuggestions(data);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        toast.error(`Lỗi tìm kiếm: ${errData.message || 'Yêu cầu thất bại'}`);
+      }
+    } catch (error) {
+      console.error('Error searching address:', error);
+      toast.error(`Lỗi kết nối server: ${error.message}. Hãy chắc chắn rằng Backend của bạn đang chạy.`);
+    } finally {
+      setIsSearchingCreate(false);
+    }
+  };
+
+  const handleSelectCreateLocation = (loc) => {
+    const lat = parseFloat(loc.lat);
+    const lon = parseFloat(loc.lon);
+    
+    // Set position
+    const newPos = { lat, lng: lon };
+    setPosition(newPos);
+    
+    // Clean address string (remove zip code and country name)
+    let cleanAddress = loc.display_name || '';
+    cleanAddress = cleanAddress.replace(/,\s*Việt\s*Nam$/i, '');
+    cleanAddress = cleanAddress.replace(/,\s*\d{5,6}/g, '');
+
+    // Set address input field to show the selected address
+    setAddress(cleanAddress);
+    
+    // Calculate distance
+    calculateDistance(lat, lon);
+    
+    // Clear suggestions
+    setCreateSearchSuggestions([]);
+  };
+
+  const handleClearCreateSearch = () => {
+    setCreateSearchQuery('');
+    setCreateSearchSuggestions([]);
+  };
+
+  const handleNextStep = () => {
+    if (step === 1) {
+      let hasError = false;
+      const parsedPrice = Number(price);
+      if (price === '' || isNaN(parsedPrice) || parsedPrice <= 0) {
+        setPriceError(true);
+        hasError = true;
+      } else {
+        setPriceError(false);
+      }
+      if (!hostPhone || !String(hostPhone).trim()) {
+        setPhoneError(true);
+        hasError = true;
+      } else {
+        setPhoneError(false);
+      }
+      if (hasError) {
+        return;
+      }
+    }
+    setStep(step + 1);
   };
 
   // Sample image presets for zero-fuss rapid prototyping testing
@@ -98,8 +248,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
     }
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
+  const processFiles = (files) => {
     if (!files || files.length === 0) return;
 
     const newFiles = files.map(file => ({
@@ -109,6 +258,34 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
     
     setSelectedFiles(prev => [...prev, ...newFiles]);
     setImageUrls(prev => [...prev, ...newFiles.map(f => f.previewUrl)]);
+  };
+
+  const handleImageUpload = (e) => {
+    if (e.target.files) {
+      processFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isUploading) setIsDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    
+    if (!isUploading && e.dataTransfer.files) {
+      processFiles(Array.from(e.dataTransfer.files));
+    }
   };
 
   const handleRemoveImage = (indexToRemove) => {
@@ -134,18 +311,19 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
         title: title.trim() || 'Căn Hộ Sinh Viên',
         type: type,
         price: Number(String(price).replace(/\D/g, '')) || 1000,
-        electricityPrice: electricityPrice ? Number(String(electricityPrice).replace(/\D/g, '')) || 0 : 0,
-        waterPrice: waterPrice ? Number(String(waterPrice).replace(/\D/g, '')) || 0 : 0,
+        electricityPrice: electricityPrice ? String(electricityPrice) : '',
+        waterPrice: waterPrice ? String(waterPrice) : '',
+        otherCosts: otherCosts.trim(),
         distanceToBk: distanceDUT || 0.8,
         address: address.trim() || 'Đà Nẵng',
-        ownerName: hostName || 'Người dùng BKMAP',
-        ownerPhone: hostPhone || '0901234567',
+        ownerName: hostName || userName || 'Người dùng BKMAP',
+        ownerPhone: hostPhone,
         description: description.trim(),
         status: 'AVAILABLE',
         area: Number(area) || 20,
-        latitude: position?.lat || 16.07548,
-        longitude: position?.lng || 108.14983,
-        // Map feature strings to IDs if needed by backend, keeping it empty for now if not strictly required
+        latitude: position?.lat || 16.07380,
+        longitude: position?.lng || 108.14990,
+        features: selectedAmenities,
       };
 
       const isEditing = !!initialData?.id;
@@ -181,7 +359,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
       // 2. Upload hình ảnh đồng thời (Concurrency) để tối ưu tốc độ
       if (selectedFiles.length > 0) {
         let uploadedCount = 0;
-        setUploadStatus(`Đang tải lên Supabase (0/${selectedFiles.length})...`);
+        setUploadStatus(`Đang đăng (0/${selectedFiles.length})...`);
         
         const uploadPromises = selectedFiles.map(async (fileObj, index) => {
           const formData = new FormData();
@@ -198,6 +376,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
 
           if (!uploadRes.ok) {
              console.warn('Lỗi khi tải lên một ảnh:', await uploadRes.text());
+             toast.error('Tải lên một số ảnh thất bại. Vui lòng thử lại.');
           }
           
           uploadedCount++;
@@ -242,20 +421,22 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
         status: 'AVAILABLE',
         area: area,
         lat: createRoomPayload.latitude,
-        lng: createRoomPayload.longitude
+        lng: createRoomPayload.longitude,
+        electricityPrice: createRoomPayload.electricityPrice,
+        waterPrice: createRoomPayload.waterPrice,
+        otherCosts: createRoomPayload.otherCosts,
       };
 
       onAddListing(newHouse);
       
-      // Delay 100ms để React kịp cập nhật UI (ẩn spinner) trước khi bật alert block luồng
+      setIsSuccess(true);
       setTimeout(() => {
-        alert(initialData ? '🎉 Cập nhật thông tin thành công!' : '🎉 Đăng tin lên hệ thống thành công!');
-        onViewChange('DASHBOARD');
-      }, 100);
+        navigate('/dashboard');
+      }, 1500);
       
       
     } catch (error) {
-      alert(`❌ Đã xảy ra lỗi: ${error.message}`);
+      toast.error(`❌ Đã xảy ra lỗi: ${error.message}`);
       console.error(error);
     } finally {
       setIsUploading(false);
@@ -272,7 +453,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
       
       {/* Back to dashboard */}
       <button
-        onClick={() => onViewChange('DASHBOARD')}
+        onClick={() => navigate('/dashboard')}
         className="mb-6 flex items-center gap-2 text-primary font-bold text-sm hover:underline cursor-pointer group"
       >
         <span className="material-symbols-outlined text-sm font-bold group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
@@ -348,34 +529,51 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                 >
-                  <option value="Room">Room (Phòng trọ phổ thông)</option>
-                  <option value="Studio">Studio (Căn hộ chung cư mini khép kín)</option>
+                  <option value="Room">Trọ</option>
+                  <option value="Studio">Căn hộ chung cư mini</option>
                 </select>
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Giá cho thuê tháng (VND):</label>
+                <label className={`font-bold transition-colors ${priceError ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                  Giá cho thuê tháng (VND):
+                </label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black text-primary"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface font-black transition-all ${
+                    priceError
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
+                  placeholder="Ví dụ: 1000000"
                   type="number"
                   value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPrice(val === '' ? '' : Number(val));
+                    if (val !== '' && Number(val) > 0) {
+                      setPriceError(false);
+                    }
+                  }}
                 />
+                {priceError && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in">Vui lòng nhập giá thuê hợp lệ</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <label className="font-bold text-on-surface-variant">Diện tích sàn (m²):</label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black text-primary"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black"
+                  placeholder="Ví dụ: 20"
                   type="number"
                   value={area}
                   onChange={(e) => setArea(Number(e.target.value))}
                 />
               </div>
 
-              <div className="space-y-1.5">
+              {/* <div className="space-y-1.5">
                 <label className="font-bold text-on-surface-variant">Tên chủ trọ / Người đăng tin:</label>
                 <input
                   required
@@ -385,27 +583,113 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
                   value={hostName}
                   onChange={(e) => setHostName(e.target.value)}
                 />
-              </div>
+              </div> */}
 
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Số điện thoại liên hệ chủ trọ:</label>
+                <label className={`font-bold transition-colors ${phoneError ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                  Số điện thoại liên hệ chủ trọ:
+                </label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface font-black transition-all ${
+                    phoneError
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
                   placeholder="Ví dụ: 0901234567"
                   type="tel"
                   value={hostPhone}
-                  onChange={(e) => setHostPhone(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setHostPhone(val);
+                    if (val.trim()) {
+                      setPhoneError(false);
+                    }
+                  }}
                 />
+                {phoneError && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in">Vui lòng nhập số điện thoại liên hệ</p>
+                )}
               </div>
 
               <div className="space-y-1.5 col-span-2">
-                <label className="font-bold text-on-surface-variant">Vị trí trên bản đồ (Tự động đo khoảng cách đến DUT):</label>
+                <label className="font-bold text-on-surface-variant">Vị trí trên bản đồ:</label>
+                
+                {/* Search Address Bar */}
+                <div className="relative mb-2">
+                  <div className="relative flex items-center bg-white rounded-xl shadow-xs border border-slate-200 focus-within:ring-1 focus-within:ring-primary p-0.5">
+                    <span className="material-symbols-outlined absolute left-3.5 text-slate-400 text-lg pointer-events-none select-none">
+                      search
+                    </span>
+                    <input
+                      type="text"
+                      className="w-full text-xs sm:text-sm font-semibold text-slate-800 bg-transparent py-2.5 pl-10 pr-16 focus:outline-none placeholder-slate-400 border-none"
+                      placeholder="Tìm vị trí nhanh (Ví dụ: 280 Điện Biên Phủ, Đà Nẵng)..."
+                      value={createSearchQuery}
+                      onChange={(e) => {
+                        setCreateSearchQuery(e.target.value);
+                        if (!e.target.value.trim()) {
+                          setCreateSearchSuggestions([]);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault(); // prevent form submission
+                          handleCreateSearch(createSearchQuery);
+                        }
+                      }}
+                    />
+                    <div className="absolute right-3 flex items-center gap-1.5">
+                      {isSearchingCreate ? (
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      ) : createSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={handleClearCreateSearch}
+                          className="material-symbols-outlined text-slate-400 hover:text-slate-600 cursor-pointer text-base p-0.5 select-none border-none bg-transparent"
+                          title="Xóa tìm kiếm"
+                        >
+                          close
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleCreateSearch(createSearchQuery)}
+                        className="bg-primary text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center cursor-pointer border-none shadow-xs"
+                        title="Tìm kiếm"
+                      >
+                        <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Suggestions List Dropdown */}
+                  {createSearchSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200/60 max-h-48 overflow-y-auto z-[1000] py-1 divide-y divide-slate-100">
+                      {createSearchSuggestions.map((loc, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleSelectCreateLocation(loc)}
+                          className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-primary cursor-pointer transition-all flex items-start gap-2 leading-tight text-left"
+                        >
+                          <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5 select-none">location_on</span>
+                          <div className="overflow-hidden">
+                            <span className="block font-bold text-slate-800 text-[11px] truncate">{loc.display_name.split(',')[0]}</span>
+                            <span className="block text-[10px] text-slate-400 mt-0.5 truncate">{loc.display_name}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Map picker frame */}
                 <div className="h-[300px] w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative z-0">
-                  <MapContainer center={[16.07548, 108.14983]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                  <MapContainer center={[16.07380, 108.14990]} zoom={15} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <Marker position={[16.07548, 108.14983]} opacity={0.5} /> {/* Bách Khoa marker */}
+                    <Marker position={[16.07380, 108.14990]} icon={schoolIcon} /> {/* Bách Khoa marker */}
                     <LocationPicker position={position} setPosition={setPosition} calculateDistance={calculateDistance} />
+                    <MapViewCenter position={position} />
                   </MapContainer>
                 </div>
               </div>
@@ -522,23 +806,41 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
             
             <div className="space-y-4 text-xs sm:text-sm">
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Tải ảnh lên từ máy tính:</label>
-                <div className="flex items-center gap-4">
+                <label className="font-bold text-on-surface-variant mb-2 block">Tải ảnh lên từ máy tính:</label>
+                
+                <div 
+                  className={`relative border-2 border-dashed rounded-3xl transition-colors flex flex-col items-center justify-center p-10 cursor-pointer group overflow-hidden ${
+                    isDragActive ? 'border-primary bg-primary/10' : 'border-primary/40 bg-primary/5 hover:bg-primary/10'
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <input
                     type="file"
                     multiple
                     accept="image/*"
                     onChange={handleImageUpload}
-                    className="block w-full text-sm text-slate-500
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-full file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-primary/10 file:text-primary
-                      hover:file:bg-primary/20
-                      cursor-pointer"
+                    disabled={isUploading}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                    title="Nhấn để tải ảnh lên"
                   />
-                  {isUploading && <span className="text-sm text-slate-500 font-medium">Đang tải...</span>}
+                  
+                  <div className={`w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center text-primary mb-4 transition-transform ${isUploading ? 'animate-bounce' : 'group-hover:scale-110'}`}>
+                    <span className="material-symbols-outlined text-3xl">
+                      {isUploading ? 'hourglass_empty' : 'cloud_upload'}
+                    </span>
+                  </div>
+                  
+                  <p className="font-bold text-slate-700 text-base">
+                    {isUploading ? 'Đang tải ảnh lên...' : 'Nhấn để chọn ảnh hoặc kéo thả vào đây'}
+                  </p>
+                  {!isUploading && (
+                    <p className="text-slate-500 text-xs mt-2 font-medium">Hỗ trợ JPG, PNG, WEBP</p>
+                  )}
+                  
                 </div>
+
                 {imageUrls.length > 0 && (
                   <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {imageUrls.map((url, index) => (
@@ -560,7 +862,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
               <div className="bg-indigo-50/50 p-5 rounded-3xl space-y-3 border border-indigo-100">
                 <p className="font-extrabold text-indigo-950 flex items-center gap-1">
                   <span className="material-symbols-outlined text-base">photo_library</span>
-                  Chọn ảnh mẫu phòng có sẵn (Khuyên dùng thử nghiệm):
+                  Chọn ảnh mẫu phòng có sẵn:
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -601,7 +903,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
                 <span className="text-[10px] uppercase font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">Chứng Thư Xác Nhận</span>
                 
                 <h4 className="text-base font-bold text-on-surface">Căn Hộ: {title || 'Chưa đặt tiêu đề'}</h4>
-                <p className="font-semibold text-outline">Thể Loại: {type === 'Room' ? 'Phòng trọ sinh viên' : 'Căn hộ chung cư mini'}</p>
+                <p className="font-semibold text-outline">Thể Loại: {type === 'Trọ' ? 'Phòng trọ sinh viên' : 'Căn hộ chung cư mini'}</p>
                 
                 <div className="space-y-1 pt-1.5 border-t border-slate-200">
                   <p className="flex items-center gap-1 text-on-surface-variant font-semibold">
@@ -648,7 +950,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
                     <h5 className="font-bold text-xs text-on-surface truncate leading-tight">{title || 'Căn Hộ Trống Mẫu'}</h5>
                     <p className="text-[10px] text-on-surface-variant truncate">{distanceText}</p>
                     <div className="pt-1.5 border-t border-slate-100 flex justify-between items-center">
-                      <span className="text-xs font-black text-primary">{formatVND(price)}/th</span>
+                      <span className="text-xs font-black text-primary">{formatVND(price)}/tháng</span>
                       <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-md">Hoạt động</span>
                     </div>
                   </div>
@@ -675,7 +977,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
 
           {step < 4 ? (
             <button
-              onClick={() => setStep(step + 1)}
+              onClick={handleNextStep}
               className="bg-primary hover:bg-primary-container text-white text-xs font-bold px-7 py-3 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1"
             >
               <span>Xem tiếp</span>
@@ -684,10 +986,21 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
           ) : (
             <button
               onClick={handleSaveListing}
-              disabled={isUploading}
-              className={`text-white text-xs sm:text-sm font-black px-8 py-3.5 rounded-2xl transition-all shadow-xl flex items-center gap-1.5 ${isUploading ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 cursor-pointer'}`}
+              disabled={isUploading || isSuccess}
+              className={`text-white text-xs sm:text-sm font-black px-8 py-3.5 rounded-2xl transition-all shadow-xl flex items-center gap-1.5 ${
+                isSuccess
+                  ? 'bg-red-600 cursor-not-allowed'
+                  : isUploading
+                  ? 'bg-slate-400 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 cursor-pointer'
+              }`}
             >
-              {isUploading ? (
+              {isSuccess ? (
+                <>
+                  <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
+                  <span>{initialData ? 'ĐÃ CẬP NHẬT' : 'ĐÃ ĐĂNG'}</span>
+                </>
+              ) : isUploading ? (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold animate-spin">sync</span>
                   <span>{uploadStatus || 'ĐANG XỬ LÝ...'}</span>
@@ -695,7 +1008,7 @@ export default function CreateListingView({ onAddListing, onViewChange, initialD
               ) : (
                 <>
                   <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
-                  <span>LƯU & ĐĂNG BÀI</span>
+                  <span>{initialData ? 'CẬP NHẬT' : 'ĐĂNG BÀI'}</span>
                 </>
               )}
             </button>

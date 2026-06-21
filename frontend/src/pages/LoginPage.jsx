@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '../stores/authStore';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -17,11 +19,48 @@ const AppleIcon = () => (
     </svg>
 );
 
-const LoginPage = ({ onViewChange, onLoginSuccess }) => {
+const LoginPage = () => {
+    const navigate = useNavigate();
+    const login = useAuthStore((s) => s.login);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Xử lý callback từ Google OAuth (parse token + user info từ URL query params)
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        const googleError = params.get('error');
+
+        if (googleError) {
+            setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+            // Xóa query params khỏi URL
+            window.history.replaceState({}, '', '/login');
+            return;
+        }
+
+        if (token) {
+            const email = params.get('email') || '';
+            const name = params.get('name') || email.split('@')[0];
+            const avatar = params.get('avatar') || '';
+
+            // Lưu vào localStorage (giống hệt luồng login thường)
+            localStorage.setItem('accessToken', token);
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userName', name);
+            localStorage.setItem('userAvatar', avatar);
+
+            // Cập nhật Zustand store
+            login(email, name, avatar);
+
+            // Xóa query params khỏi URL (bảo mật: không để token lộ trên thanh địa chỉ)
+            window.history.replaceState({}, '', '/login');
+
+            // Chuyển hướng về trang profile
+            navigate('/profile');
+        }
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -52,13 +91,11 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
                 localStorage.setItem('accessToken', token);
                 localStorage.setItem('userEmail', userData.email);
                 localStorage.setItem('userName', userData.userName || userData.email.split('@')[0]);
+                localStorage.setItem('userAvatar', userData.avatar || '');
             }
             
-            if (onLoginSuccess) {
-                onLoginSuccess(userData.email, userData.userName || userData.email.split('@')[0]);
-            } else {
-                onViewChange('HOME');
-            }
+            login(userData.email, userData.userName || userData.email.split('@')[0], userData.avatar || '');
+            navigate('/profile');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -76,7 +113,7 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
 
             <div className="auth-card">
                 <div className="auth-header">
-                    <div className="notion-logo" onClick={() => onViewChange('HOME')} style={{ cursor: 'pointer' }}>
+                    <div className="notion-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                         <span>B</span>
                     </div>
                     <h1>Chào mừng quay trở lại</h1>
@@ -84,8 +121,10 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold">
-                        ⚠️ {error}
+                    <div className="mb-5 py-3 px-4 bg-red-50/80 text-red-700 border border-red-200/60 rounded-2xl text-sm font-medium flex items-center gap-3 shadow-sm shadow-red-100/50 animate-fade-in relative overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500"></div>
+                        <AlertCircle size={20} className="text-red-500 flex-shrink-0" />
+                        <span className="leading-snug">{error}</span>
                     </div>
                 )}
 
@@ -131,7 +170,7 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
                         ) : (
                             <>
                                 <span>Đăng nhập</span>
-                                <ArrowRight className="btn-icon-right" size={18} />
+                                
                             </>
                         )}
                     </button>
@@ -141,15 +180,20 @@ const LoginPage = ({ onViewChange, onLoginSuccess }) => {
                     </div>
 
                     <div className="social-login">
-                        <button type="button" onClick={() => { setEmail('dannguyen@dut.udn.vn'); setPassword('123456'); }} className="social-btn google-btn">
+                        <button type="button" onClick={() => {
+                            const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
+                                ? import.meta.env.VITE_API_URL
+                                : `http://${window.location.hostname}:3000/api`;
+                            window.location.href = `${backendUrl}/auth/google`;
+                        }} className="social-btn google-btn">
                             <GoogleIcon />
-                            <span>Tài khoản Test nhanh</span>
+                            <span>Đăng nhập bằng Google</span>
                         </button>
                     </div>
                 </form>
 
                 <div className="auth-footer">
-                    <p>Chưa có tài khoản? <button onClick={() => onViewChange('REGISTER')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng ký ngay</button></p>
+                    <p>Chưa có tài khoản? <button onClick={() => navigate('/register')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng ký ngay</button></p>
                 </div>
             </div>
         </div>

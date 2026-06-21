@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 
-export default function MapView({
-  listings,
-  onSelectListing,
-  onViewChange,
-  searchQuery,
-  setSearchQuery,
-  priceFilter,
-  setPriceFilter,
-  toggleSaved,
-  savedIds,
-}) {
+export default function MapView() {
+  const navigate = useNavigate();
+  const { listings, selectListing, fetchRooms } = useListingStore();
+  const { searchQuery, setSearchQuery, priceFilter, setPriceFilter, savedIds, toggleSaved } = useUiStore();
+
+  const onSelectListing = (id) => {
+    selectListing(id);
+    navigate(`/rooms/${id}`);
+  };
   const [selectedPin, setSelectedPin] = useState(null);
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [showMobileMap, setShowMobileMap] = useState(false);
@@ -36,54 +37,51 @@ export default function MapView({
     setLocalSearch(searchQuery);
   }, [searchQuery]);
 
-  const filteredListings = listings.filter((item) => {
-    // 1. Search Query filter (matches title, address, amenities, or price)
-    const searchLower = localSearch.toLowerCase().trim();
-    
-    // Create searchable price strings (e.g. 2500000 -> "2.5", "2.5tr", "2.5 triệu")
-    const priceInMillions = item.price / 1000000;
-    const priceStr1 = `${priceInMillions}tr`;
-    const priceStr2 = `${priceInMillions} tr`;
-    const priceStr3 = `${priceInMillions} triệu`;
-    const priceStr4 = item.price.toString();
+  // Debounced API call to fetch rooms based on searchQuery and priceFilter
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      fetchRooms({
+        search: searchQuery,
+        priceFilter: priceFilter,
+        limit: 100
+      });
+    }, 400);
 
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchLower) ||
-      item.address.toLowerCase().includes(searchLower) ||
-      item.amenities.some((a) => a.toLowerCase().includes(searchLower)) ||
-      (item.distanceText && item.distanceText.toLowerCase().includes(searchLower)) ||
-      priceStr1.includes(searchLower) ||
-      priceStr2.includes(searchLower) ||
-      priceStr3.includes(searchLower) ||
-      priceStr4.includes(searchLower);
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery, priceFilter, fetchRooms]);
 
-    // 2. Price filter
-    let matchesPrice = true;
-    if (priceFilter === 'under-1m') {
-      matchesPrice = item.price < 1000000;
-    } else if (priceFilter === '1m-2m') {
-      matchesPrice = item.price >= 1000000 && item.price <= 2000000;
-    } else if (priceFilter === '2m-3m') {
-      matchesPrice = item.price >= 2000000 && item.price <= 3000000;
-    } else if (priceFilter === 'above-3m') {
-      matchesPrice = item.price > 3000000;
-    }
-
-    return matchesSearch && matchesPrice;
-  });
+  const filteredListings = listings;
 
   // 1. Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Create Leaflet map centered at DUT: 16.075480, 108.149836
+    // Create Leaflet map centered at DUT: 16.07380, 108.14990
     const map = L.map(mapContainerRef.current, {
       zoomControl: false // Disable default zoom control to use our custom UI
-    }).setView([16.07548, 108.14983], 15);
+    }).setView([16.07380, 108.14990], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap'
     }).addTo(map);
+
+    // Custom school icon for DUT
+    const schoolHtml = `
+      <div class="flex flex-col items-center select-none cursor-default">
+        <div class="w-9 h-9 rounded-full bg-red-600 border-2 border-white shadow-lg flex items-center justify-center animate-bounce-slow" style="animation: bounceSlow 3s infinite;">
+          <span class="material-symbols-outlined text-white" style="font-size: 18px;">school</span>
+        </div>
+      </div>
+    `;
+
+    const schoolIcon = L.divIcon({
+      html: schoolHtml,
+      className: 'school-div-icon-main',
+      iconSize: [80, 45],
+      iconAnchor: [40, 45]
+    });
+
+    L.marker([16.07380, 108.14990], { icon: schoolIcon }).addTo(map);
 
     const markersLayer = L.layerGroup().addTo(map);
 
@@ -113,7 +111,7 @@ export default function MapView({
       if (!item.lat || !item.lng) return;
 
       const isSelected = selectedPin?.id === item.id;
-      const priceText = formatVND(item.price);
+      const priceText = formatPriceShort(item.price);
 
       // Custom div marker tag (Zillow/Airbnb style)
       const htmlContent = `
@@ -176,14 +174,24 @@ export default function MapView({
   };
 
   const handleLocateDUT = () => {
-    mapInstanceRef.current?.setView([16.07548, 108.14983], 15);
+    mapInstanceRef.current?.setView([16.07380, 108.14990], 15);
   };
 
   const formatVND = (num) => {
+    
+    return num.toLocaleString('vi-VN') + ' VNĐ';
+  };
+
+  const formatPriceShort = (num) => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1).replace('.0', '') + 'Tr';
     }
-    return num.toLocaleString('vi-VN');
+    return (num / 1000).toFixed(0) + 'K';
+  };
+
+  const formatAddressShort = (addr) => {
+    if (!addr) return '';
+    return addr.replace(/,?\s*(Thành phố Đà Nẵng|Đà Nẵng|TP Đà Nẵng|TP\. Đà Nẵng)/gi, '').trim();
   };
 
   return (
@@ -346,7 +354,7 @@ export default function MapView({
                       <div className="space-y-0.5">
                         <p className="text-[11px] text-on-surface-variant line-clamp-1 flex items-center gap-0.5">
                           <span className="material-symbols-outlined text-[13px] text-primary">location_on</span>
-                          {item.address}
+                          {formatAddressShort(item.address)}
                         </p>
                         {item.distanceText && (
                           <p className="text-[10px] text-slate-500 font-medium flex items-center gap-0.5">
@@ -415,7 +423,7 @@ export default function MapView({
                   </div>
                 </div>
                 <h4 className="text-xs font-bold text-on-surface truncate pr-2">{selectedPin.title}</h4>
-                <p className="text-[10px] text-on-surface-variant truncate">{selectedPin.address}</p>
+                <p className="text-[10px] text-on-surface-variant truncate">{formatAddressShort(selectedPin.address)}</p>
                 {selectedPin.distanceText && (
                   <p className="text-[9px] text-slate-500 truncate flex items-center gap-0.5 mt-0.5">
                     <span className="material-symbols-outlined text-[10px]">directions_walk</span>
@@ -426,7 +434,7 @@ export default function MapView({
 
               <div className="flex justify-between items-center pt-1.5 border-t border-slate-100">
                 <span className="text-xs font-black text-primary leading-none">
-                  {formatVND(selectedPin.price)}/th
+                  {formatVND(selectedPin.price)}/tháng
                 </span>
                 <button
                   onClick={() => onSelectListing(selectedPin.id)}
@@ -493,6 +501,13 @@ export default function MapView({
           <span>Bản đồ</span>
         </button>
       </div>
+
+      <style>{`
+        @keyframes bounceSlow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+      `}</style>
     </div>
   );
 }

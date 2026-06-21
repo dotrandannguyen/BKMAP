@@ -49,12 +49,14 @@ export const authService = {
     // Send verification email in background
     sendVerificationEmail(newUser.email, verifyToken).catch(console.error);
 
+    const isDev = !process.env.SMTP_USER;
+
     return {
       id: newUser.id,
       email: newUser.email,
       userName: newUser.userName,
       avatar: newUser.avatar,
-      // verifyToken KHÔNG trả về client — tránh bypass xác thực email
+      verifyToken: isDev ? verifyToken : undefined,
       message: 'Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.',
     };
   },
@@ -65,6 +67,11 @@ export const authService = {
 
     if (!user) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng.');
+    }
+
+    // Guard: User đăng ký bằng Google không có password
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Tài khoản này sử dụng đăng nhập Google. Vui lòng bấm nút "Đăng nhập bằng Google".');
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
@@ -171,6 +178,68 @@ export const authService = {
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired refresh token.');
     }
+  },
+
+  // GOOGLE LOGIN
+  async googleLogin(googleProfile) {
+    const { googleId, email, userName, avatar } = googleProfile;
+
+    if (!email) {
+      throw new ClientException(400, 'Không lấy được email từ tài khoản Google.');
+    }
+
+    let user;
+
+    // 1. Tìm user bằng googleId (đã liên kết trước đó)
+    user = await authRepository.findUserByGoogleId(googleId);
+
+    if (!user) {
+      // 2. Tìm user bằng email (tài khoản local đã tồn tại)
+      user = await authRepository.findUserByEmail(email);
+
+      if (user) {
+        // Liên kết googleId vào tài khoản local đã có
+        await authRepository.updateGoogleId(user.id, googleId);
+        // Cập nhật avatar từ Google nếu user chưa có avatar
+        if (!user.avatar && avatar) {
+          await authRepository.updateGoogleId(user.id, googleId);
+        }
+      } else {
+        // 3. Tạo tài khoản mới hoàn toàn
+        user = await authRepository.createGoogleUser({
+          email,
+          userName,
+          avatar,
+          googleId,
+        });
+      }
+    }
+
+    // Tạo JWT tokens giống hệt luồng login thường
+    const payload = { sub: user.id };
+
+    const accessToken = jwt.sign(payload, ACCESS_JWT_SECRET, {
+      expiresIn: ACCESS_TOKEN_EXPIRES,
+    });
+
+    const refreshToken = jwt.sign(payload, REFRESH_JWT_SECRET, {
+      expiresIn: REFRESH_TOKEN_EXPIRES,
+    });
+
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, SALT_ROUNDS);
+    await authRepository.updateRefreshToken(user.id, hashedRefreshToken);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        userName: user.userName,
+        avatar: user.avatar || avatar,
+        isVerified: user.isVerified,
+      },
+      accessToken,
+      refreshToken,
+    };
   },
 
   // LOGOUT

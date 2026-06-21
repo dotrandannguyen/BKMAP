@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -11,12 +14,117 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-export default function DetailView({ listing, onViewChange, toggleSaved, savedIds }) {
-  const [activeImage, setActiveImage] = useState(listing.images && listing.images.length > 0 ? listing.images[0] : '');
+export default function DetailView() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const listings = useListingStore((s) => s.listings);
+  const { savedIds, toggleSaved } = useUiStore();
 
+  const [localListing, setLocalListing] = useState(() => listings.find((item) => item.id === id) || null);
+  const [loading, setLoading] = useState(!localListing);
+  const [error, setError] = useState(null);
+  const [activeImage, setActiveImage] = useState('');
+  
   // Booking details alert states
   const [contactSuccess, setContactSuccess] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  useEffect(() => {
+    // Sync with store listings cache if loaded
+    const cached = listings.find((item) => item.id === id);
+    if (cached) {
+      setLocalListing(cached);
+      if (cached.images && cached.images.length > 0 && !activeImage) {
+        setActiveImage(cached.images[0]);
+      }
+    }
+
+    const fetchListingDetail = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+        const res = await fetch(`${apiUrl}/rooms/${id}`);
+        if (!res.ok) throw new Error('Không tìm thấy phòng trọ');
+        const json = await res.json();
+        const room = json.data;
+
+        // Map backend response schema to frontend representation
+        const mapped = {
+          id: room.id,
+          title: room.title,
+          type: room.type || 'Phòng trọ',
+          price: room.price,
+          priceUSD: Math.round(room.price / 24800),
+          distanceText: `Từ vị trí trọ hiện tại`,
+          distanceDUT: room.distanceToBk || 0.8,
+          address: room.address,
+          rating: 5.0,
+          images: room.images?.length > 0
+            ? room.images.map(img => img.imageUrl)
+            : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'],
+          host: {
+            name: room.owner?.userName || room.creator?.userName || (room.creator?.email ? room.creator.email.split('@')[0] : 'Chủ trọ'),
+            avatar: room.creator?.avatar || '',
+            phone: room.owner?.phoneNumber || 'Liên hệ qua ứng dụng'
+          },
+          amenities: room.features?.map(f => f.feature?.name || '').filter(Boolean) || [],
+          description: room.description || '',
+          status: room.status || 'AVAILABLE',
+          area: room.area,
+          lat: Number(room.latitude),
+          lng: Number(room.longitude),
+          ownerEmail: room.creator?.email || 'guest@example.com',
+          electricityPrice: room.electricityPrice,
+          waterPrice: room.waterPrice,
+          otherCosts: room.otherCosts,
+          createdAt: room.createdAt,
+          updatedAt: room.updatedAt,
+        };
+
+        setLocalListing(mapped);
+        if (mapped.images && mapped.images.length > 0 && !activeImage) {
+          setActiveImage(mapped.images[0]);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Lỗi tải chi tiết phòng:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchListingDetail();
+  }, [id, listings]);
+
+  if (loading && !localListing) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-32 flex flex-col items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-primary animate-spin mb-4"></div>
+        <p className="text-sm text-slate-500 font-semibold">Đang tải thông tin phòng trọ...</p>
+      </div>
+    );
+  }
+
+  if (error && !localListing) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-32 flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-4">
+          <span className="material-symbols-outlined text-3xl">warning</span>
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Đã xảy ra lỗi</h2>
+        <p className="text-sm text-slate-500 mb-6 max-w-md">{error}</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-6 py-2.5 rounded-xl bg-primary text-white font-bold shadow-md shadow-primary/20 hover:bg-sky-600 transition-all cursor-pointer"
+        >
+          Trở về trang chủ
+        </button>
+      </div>
+    );
+  }
+
+  if (!localListing) return null;
+
+  const listing = localListing;
 
   const handleCopyPhone = () => {
     const textToCopy = listing.host.phone || '0901234567';
@@ -62,7 +170,7 @@ export default function DetailView({ listing, onViewChange, toggleSaved, savedId
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 animate-fade-in pb-28">
       {/* Back button */}
       <button
-        onClick={() => onViewChange('BACK')}
+        onClick={() => navigate(-1)}
         className="mb-6 flex items-center gap-2 text-primary font-bold text-sm hover:underline cursor-pointer group"
       >
         <span className="material-symbols-outlined text-sm font-bold group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
@@ -155,22 +263,27 @@ export default function DetailView({ listing, onViewChange, toggleSaved, savedId
           {/* Host Profile Card */}
           <div className="glass-card p-6 rounded-3xl flex items-center justify-between border border-slate-200/50">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/20">
-                <img
-                  className="w-full h-full object-cover"
-                  alt={listing.host.name}
-                  src={listing.host.avatar}
-                  referrerPolicy="no-referrer"
-                />
-              </div>
+              {listing.host?.avatar ? (
+                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/20 bg-slate-100 flex-shrink-0">
+                  <img
+                    className="w-full h-full object-cover"
+                    alt={listing.host?.name || 'Người dùng'}
+                    src={listing.host.avatar}
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-full border-2 border-primary/20 bg-indigo-600 text-white flex items-center justify-center font-black text-lg uppercase shadow-sm flex-shrink-0">
+                  {listing.host?.name ? listing.host.name[0] : 'C'}
+                </div>
+              )}
               <div>
-                <span className="text-[10px] uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">Chủ nhà tiêu biểu</span>
-                <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host.name}</h3>
-                <p className="text-xs text-on-surface-variant font-medium">{listing.host.role}</p>
+                
+                <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host?.name || 'Người dùng'}</h3>
+                <p className="text-xs text-on-surface-variant font-medium">{listing.host?.role || 'Người dùng'}</p>
               </div>
             </div>
-
-            <div className="flex flex-col items-end text-right">
+             <div className="flex flex-col items-end text-right">
               <span className="text-xs font-semibold text-on-surface">Độ phản hồi</span>
               <span className="text-sm font-black text-emerald-600">Nhanh (99%)</span>
             </div>
@@ -214,14 +327,18 @@ export default function DetailView({ listing, onViewChange, toggleSaved, savedId
                 <span className="material-symbols-outlined text-primary font-bold bg-primary/10 p-1.5 rounded-full">electric_bolt</span>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-outline">Tiền điện</div>
-                  <div className="text-sm font-semibold text-on-surface">{listing.electricityPrice || 'Theo giá nhà nước'}</div>
+                  <div className="text-sm font-semibold text-on-surface">
+                    {listing.electricityPrice ? listing.electricityPrice : 'Trao đổi khi liên hệ'}
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-sky-500 font-bold bg-sky-50 p-1.5 rounded-full">water_drop</span>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-outline">Tiền nước</div>
-                  <div className="text-sm font-semibold text-on-surface">{listing.waterPrice || 'Miễn phí'}</div>
+                  <div className="text-sm font-semibold text-on-surface">
+                    {listing.waterPrice ? listing.waterPrice : 'Trao đổi khi liên hệ'}
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -299,12 +416,29 @@ export default function DetailView({ listing, onViewChange, toggleSaved, savedId
 
                 <div className="w-full h-64 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner z-0">
                   <MapContainer 
-                    center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07548, 108.14983]} 
+                    center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07380, 108.14990]} 
                     zoom={15} 
                     style={{ height: '100%', width: '100%' }}
                   >
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <Marker position={[16.07548, 108.14983]} opacity={0.5}>
+                    <Marker 
+                      position={[16.07380, 108.14990]} 
+                      icon={L.divIcon({
+                        html: `
+                          <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow-md flex items-center justify-center">
+                              <span class="material-symbols-outlined text-white" style="font-size: 16px;">school</span>
+                            </div>
+                            <div class="bg-red-600 text-white font-bold text-[8px] px-1 py-0.5 rounded shadow-sm border border-white whitespace-nowrap mt-0.5">
+                              ĐH BÁCH KHOA
+                            </div>
+                          </div>
+                        `,
+                        className: 'school-div-icon',
+                        iconSize: [70, 40],
+                        iconAnchor: [35, 20]
+                      })}
+                    >
                       <Popup>ĐH Bách Khoa Đà Nẵng</Popup>
                     </Marker>
                     {listing.lat && listing.lng ? (
@@ -334,8 +468,8 @@ export default function DetailView({ listing, onViewChange, toggleSaved, savedId
                 </div>
                 
                 <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 text-center space-y-1">
-                  <span className="text-[10px] text-primary uppercase font-extrabold tracking-widest">Khoảng cách đến DUT</span>
-                  <p className="text-xl font-black text-primary">
+                  <span className="text-[14px] text-primary uppercase font-extrabold tracking-widest">Khoảng cách đến DUT</span>
+                  <p className="text-[27px] font-black text-primary">
                     {listing.distanceDUT < 1 
                       ? `${Math.round(listing.distanceDUT * 1000)}m` 
                       : `${Number(listing.distanceDUT).toFixed(1)} km`}

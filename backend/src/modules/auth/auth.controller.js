@@ -59,7 +59,7 @@ export const authController = {
 			const safeMessage = error.message === 'Token Expired.' ? 'Link xác thực đã hết hạn.' : 'Token không hợp lệ hoặc đã được sử dụng.';
 			return res.status(400).send(`
 				<div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-					<h2 style="color: #dc3545;">Xác thực thất bại ❌</h2>
+					<h2 style="color: #dc3545;">Xác thực thất bại </h2>
 					<p>${safeMessage}</p>
 				</div>
 			`);
@@ -106,6 +106,44 @@ export const authController = {
 			return new HttpResponse(res).success({ message: 'Đăng xuất thành công.' });
 		} catch (error) {
 			next(error);
+		}
+	},
+
+	// GOOGLE OAUTH CALLBACK
+	async googleCallback(req, res) {
+		try {
+			const googleProfile = req.user; // Passport truyền profile vào req.user
+
+			if (!googleProfile) {
+				const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+				return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+			}
+
+			const data = await authService.googleLogin(googleProfile);
+			const { refreshToken, accessToken, user } = data;
+
+			// Set refreshToken vào HttpOnly Cookie (giống hệt luồng login thường)
+			res.cookie('refreshToken', refreshToken, {
+				httpOnly: true,
+				secure: process.env.NODE_ENV === 'production',
+				sameSite: 'lax', // Dùng 'lax' thay vì 'strict' vì đây là cross-site redirect từ Google
+				maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+			});
+
+			// Redirect về Frontend kèm token + user info trong query params
+			const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+			const params = new URLSearchParams({
+				token: accessToken,
+				email: user.email,
+				name: user.userName || '',
+				avatar: user.avatar || '',
+			});
+
+			return res.redirect(`${frontendUrl}/login?${params.toString()}`);
+		} catch (error) {
+			console.error('[Google OAuth] Callback error:', error.message);
+			const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+			return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
 		}
 	},
 };

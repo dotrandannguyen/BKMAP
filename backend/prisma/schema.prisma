@@ -20,13 +20,15 @@ enum RoomStatus {
 model User {
   id                 String    @id @default(uuid()) @db.Uuid
   email              String    @unique @db.VarChar(50)
-  passwordHash       String    @db.VarChar(255)
+  passwordHash       String?   @db.VarChar(255) // Nullable: user Google không có password
   userName           String?   @db.VarChar(100)
   avatar             String?   @db.Text
   isVerified         Boolean   @default(false)
   verifyToken        String?   @db.VarChar(255)
   tokenExpires       DateTime?
   hashedRefreshToken String?   @db.Text
+  googleId           String?   @unique @db.VarChar(255) // Google Subject ID
+  authProvider       String    @default("local") @db.VarChar(20) // "local" | "google"
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -60,13 +62,14 @@ model Room {
   // Thông tin cơ bản
   price            Int // Giá thuê (đơn vị: VNĐ)
   area             Decimal @db.Decimal(5, 2) // Diện tích m2
-  electricityPrice Int? // Giá điện
-  waterPrice       Int? // Giá nước
+  electricityPrice String? // Giá điện
+  waterPrice       String? // Giá nước
 
   // Phân loại
   status           RoomStatus @default(AVAILABLE)
   sharedOwner      Boolean    @default(false) // Ở chung chủ hay không
   curfew           String?    @db.VarChar(100) // Giờ giới nghiêm
+  otherCosts       String?    @db.VarChar(255) // Chi phí khác
   description      String?    @db.Text // Mô tả chi tiết
 
   // Khóa ngoại
