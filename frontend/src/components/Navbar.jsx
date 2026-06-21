@@ -41,7 +41,7 @@ export default function Navbar() {
                 location.pathname === '/map' ? 'text-primary' : 'text-slate-600'
               }`}
             >
-              Bản đồ & Bộ lọc
+              Bản đồ
             </Link>
             <Link
               to="/dashboard"
@@ -49,7 +49,7 @@ export default function Navbar() {
                 location.pathname === '/dashboard' ? 'text-primary' : 'text-slate-600'
               }`}
             >
-              Dành cho Chủ trọ
+              Kênh đăng tin
             </Link>
           </nav>
 

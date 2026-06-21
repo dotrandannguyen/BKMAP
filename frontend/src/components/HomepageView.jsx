@@ -6,7 +6,7 @@ import { useUiStore } from '../stores/uiStore';
 export default function HomepageView() {
   const navigate = useNavigate();
   const { listings, selectListing, resetData, fetchRooms } = useListingStore();
-  const { setSearchQuery, setPriceFilter, savedIds, toggleSaved } = useUiStore();
+  const { setSearchQuery, setPriceFilter, savedIds, toggleSaved, recentSearches, addSearchQuery } = useUiStore();
 
   React.useEffect(() => {
     fetchRooms({ limit: 10 });
@@ -17,9 +17,52 @@ export default function HomepageView() {
     navigate(`/rooms/${id}`);
   };
   const [localSearch, setLocalSearch] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = React.useRef(null);
   const [localPrice, setLocalPrice] = useState('Giá thuê: Mọi mức giá');
   const [emailSub, setEmailSub] = useState('');
   const [subStatus, setSubStatus] = useState(false);
+
+  // Suggestion calculation
+  const suggestedItems = React.useMemo(() => {
+    if (!localSearch.trim()) return [];
+    const term = localSearch.toLowerCase();
+    
+    const suggestionsSet = new Set();
+    
+    listings.forEach(l => {
+      // Match Amenities
+      if (l.amenities) {
+        l.amenities.forEach(a => {
+          if (a.toLowerCase().includes(term)) {
+            suggestionsSet.add(a);
+          }
+        });
+      }
+      
+      // Match Room Type
+      if (l.type && l.type.toLowerCase().includes(term)) {
+        suggestionsSet.add(l.type);
+      }
+      
+      // Match Title
+      if (l.title && l.title.toLowerCase().includes(term)) {
+         suggestionsSet.add(l.title);
+      }
+    });
+    
+    return Array.from(suggestionsSet).slice(0, 5);
+  }, [localSearch, listings]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getTimeAgo = (dateString) => {
     if (!dateString) return '';
@@ -48,6 +91,10 @@ export default function HomepageView() {
 
   const handleSearchSubmit = () => {
     setSearchQuery(localSearch);
+    if (localSearch.trim()) {
+      addSearchQuery(localSearch);
+    }
+    
     if (localPrice === 'Dưới 1Tr VNĐ') {
       setPriceFilter('under-1m');
     } else if (localPrice === '1Tr - 2Tr VNĐ') {
@@ -65,6 +112,7 @@ export default function HomepageView() {
 
   const handleChipClick = (keyword) => {
     setSearchQuery(keyword);
+    addSearchQuery(keyword);
     navigate('/map');
   };
 
@@ -90,7 +138,7 @@ export default function HomepageView() {
   return (
     <div className="animate-fade-in">
       {/* 1. Hero Section with Map mesh background */}
-      <section className="relative min-h-[340px] flex items-center justify-center overflow-hidden px-4 md:px-12 pt-16 pb-0 bg-[#f0f4ff]">
+      <section className="relative z-50 min-h-[340px] flex items-center justify-center px-4 md:px-12 pt-16 pb-0 bg-[#f0f4ff]">
         {/* Styled Aerial View Map Mockup Background as seen in layout 1 */}
         <div className="absolute inset-0 z-0 map-mesh">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-[#f8f9ff]/70 to-[#f8f9ff]"></div>
@@ -120,64 +168,102 @@ export default function HomepageView() {
           </div> */}
 
           {/* Glassmorphic Search Bar */}
-          <div className="glass-card w-full max-w-3xl p-1.5 rounded-2xl md:rounded-full flex flex-col md:flex-row gap-3 items-center shadow-2xl">
-            <div className="flex items-center flex-1 w-full px-4 gap-3 border-b md:border-b-0 md:border-r border-outline-variant/30 py-2.5 md:py-0">
-              <span className="material-symbols-outlined text-primary">location_on</span>
-              <input
-                className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-on-surface text-sm placeholder:text-outline"
-                placeholder="Gần DUT, chợ, hoặc Quận..."
-                type="text"
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
-              />
-            </div>
-            
-            {/* <div className="flex items-center flex-1 w-full px-4 gap-3 py-2.5 md:py-0">
-              <span className="material-symbols-outlined text-primary">payments</span>
-              <select
-                className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-on-surface text-sm appearance-none cursor-pointer"
-                value={localPrice}
-                onChange={(e) => setLocalPrice(e.target.value)}
+          <div ref={searchContainerRef} className="relative w-full max-w-3xl">
+            <div className="glass-card w-full p-1.5 rounded-2xl md:rounded-full flex flex-col md:flex-row gap-3 items-center shadow-2xl">
+              <div className="flex items-center flex-1 w-full px-4 gap-3 py-2.5 md:py-0">
+                <span className="material-symbols-outlined text-primary">location_on</span>
+                <input
+                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-on-surface text-sm placeholder:text-outline"
+                  placeholder="Gần DUT, chợ, hoặc Quận..."
+                  type="text"
+                  value={localSearch}
+                  onChange={(e) => {
+                    setLocalSearch(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
+                />
+              </div>
+              
+              <button
+                onClick={handleSearchSubmit}
+                className="w-full md:w-auto bg-primary text-white hover:bg-primary-container px-10 py-2.5 rounded-xl md:rounded-full text-sm font-semibold transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <option>Giá thuê: Mọi mức giá</option>
-                <option>Dưới 1Tr VNĐ</option>
-                <option>1Tr - 2Tr VNĐ</option>
-                <option>2Tr - 3Tr VNĐ</option>
-                <option>Trên 3Tr VNĐ</option>
-              </select>
-            </div> */}
+                <span className="material-symbols-outlined text-sm">search</span>
+                <span>Tìm kiếm</span>
+              </button>
+            </div>
 
-            <button
-              onClick={handleSearchSubmit}
-              className="w-full md:w-auto bg-primary text-white hover:bg-primary-container px-10 py-2.5 rounded-xl md:rounded-full text-sm font-semibold transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm">search</span>
-              <span>Tìm kiếm</span>
-            </button>
+            {/* Suggestions Dropdown */}
+            {showSuggestions && localSearch.trim() && (
+              <div className="absolute top-[110%] left-0 w-full bg-white border border-slate-200 shadow-xl rounded-xl z-50 animate-fade-in text-left">
+                {suggestedItems.length > 0 ? (
+                  <div className="py-2">
+                    {suggestedItems.map((item, idx) => (
+                      <div 
+                        key={idx}
+                        onClick={() => {
+                          setLocalSearch(item);
+                          setShowSuggestions(false);
+                          setTimeout(() => {
+                            // Use a tiny timeout to ensure state is set before submitting
+                            handleSearchSubmit();
+                          }, 50);
+                        }}
+                        className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex items-center gap-3 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+                        <p className="text-[15px] font-medium text-slate-800 line-clamp-1">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-4 py-4 text-center flex flex-col items-center">
+                    <span className="material-symbols-outlined text-slate-300 text-2xl mb-1">search_off</span>
+                    <p className="text-sm text-slate-500 font-medium">Không tìm thấy kết quả phù hợp</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Quick-link Chips */}
           <div className="flex flex-wrap justify-center items-center gap-3">
             <span className="text-xs md:text-sm text-on-surface-variant font-medium">Phổ biến:</span>
-            <button
-              onClick={() => handleChipClick('DUT')}
-              className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
-            >
-              Gần DUT
-            </button>
-            <button
-              onClick={() => handleChipClick('máy lạnh')}
-              className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
-            >
-              Có máy lạnh
-            </button>
-            <button
-              onClick={() => handleChipClick('tự do')}
-              className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
-            >
-              Giờ giấc tự do
-            </button>
+            {recentSearches && recentSearches.length > 0 ? (
+              recentSearches.map((searchQuery, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleChipClick(searchQuery)}
+                  className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  {idx === 0 && <span className="material-symbols-outlined text-[14px]">history</span>}
+                  {searchQuery}
+                </button>
+              ))
+            ) : (
+              <>
+                <button
+                  onClick={() => handleChipClick('DUT')}
+                  className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
+                >
+                  Gần DUT
+                </button>
+                <button
+                  onClick={() => handleChipClick('máy lạnh')}
+                  className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
+                >
+                  Có máy lạnh
+                </button>
+                <button
+                  onClick={() => handleChipClick('tự do')}
+                  className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
+                >
+                  Giờ giấc tự do
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -203,7 +289,7 @@ export default function HomepageView() {
               </div>
               {listings.length > 0 && (
                 <button 
-                  onClick={() => { setSearchQuery(''); navigate('/map'); }}
+                  onClick={() => { navigate('/all-listings'); }}
                   className="bg-primary/10 text-primary font-bold text-xs sm:text-sm px-5 py-2.5 rounded-full flex items-center gap-2 hover:bg-primary hover:text-white transition-all cursor-pointer whitespace-nowrap"
                 >
                   <span>Xem tất cả</span>
@@ -543,13 +629,13 @@ export default function HomepageView() {
         href="https://www.facebook.com/tuvansinhvien.dut" 
         target="_blank" 
         rel="noreferrer"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-white p-2 pr-4 rounded-full shadow-lg shadow-indigo-500/30 border border-indigo-100 hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/50 transition-all group animate-[bounce_3s_infinite]"
+        className="fixed bottom-[72px] md:bottom-6 right-3 md:right-6 z-50 flex items-center gap-2 md:gap-3 bg-white p-1.5 pr-3 md:p-2 md:pr-4 rounded-full shadow-lg shadow-indigo-500/30 border border-indigo-100 hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/50 transition-all group animate-[bounce_3s_infinite]"
         title="Truy cập Fanpage Tổ Tư Vấn Sinh Viên BKDN"
       >
-        <div className="relative w-10 h-10 shrink-0">
+        <div className="relative w-8 h-8 md:w-10 md:h-10 shrink-0">
           {/* Glowing pulse effect */}
           <span className="absolute inset-0 rounded-full bg-indigo-500 opacity-40 animate-ping"></span>
-          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-indigo-500 bg-indigo-50">
+          <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-indigo-500 bg-indigo-50">
             <img 
             src="https://graph.facebook.com/tuvansinhvien.dut/picture?type=large" 
             alt="TVSV BKDN Logo" 
@@ -563,8 +649,8 @@ export default function HomepageView() {
           </div>
         </div>
         <div className="flex flex-col">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Hỗ trợ bởi</span>
-          <span className="text-sm font-black text-indigo-700 leading-none group-hover:text-indigo-800"> Đội Tư vấn Sinh viên - BKĐN</span>
+          <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5 md:mb-1">Hỗ trợ bởi</span>
+          <span className="text-xs md:text-sm font-black text-indigo-700 leading-none group-hover:text-indigo-800"> Đội Tư vấn Sinh viên - BKĐN</span>
         </div>
       </a>
     </div>

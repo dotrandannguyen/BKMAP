@@ -21,6 +21,14 @@ const UserPage = () => {
   const userDisplayName = userName || userEmail.split('@')[0];
   const savedListings = listings.filter(l => savedIds.includes(l.id));
 
+  const [sortBy, setSortBy] = React.useState('newest');
+  
+  const sortedListings = [...savedListings].sort((a, b) => {
+    if (sortBy === 'price-asc') return a.price - b.price;
+    if (sortBy === 'price-desc') return b.price - a.price;
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
+
   const onSelectListing = (id) => {
     selectListing(id);
     navigate(`/rooms/${id}`);
@@ -89,14 +97,30 @@ const UserPage = () => {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         <div className="px-6 py-10 max-w-5xl mx-auto space-y-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-              <span className="bg-red-100 text-red-500 w-12 h-12 flex items-center justify-center rounded-2xl">
-                <Heart size={24} fill="currentColor" />
-              </span>
-              Nhà trọ yêu thích của tôi
-            </h1>
-            <p className="text-sm text-slate-500 font-medium mt-2">Danh sách những phòng trọ bạn đã "tym" để xem lại sau.</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                <span className="bg-red-100 text-red-500 w-12 h-12 flex items-center justify-center rounded-2xl">
+                  <Heart size={24} fill="currentColor" />
+                </span>
+                Nhà trọ yêu thích của tôi
+              </h1>
+              <p className="text-sm text-slate-500 font-medium mt-2">Danh sách những phòng trọ bạn đã "tym" để xem lại sau.</p>
+            </div>
+            {savedListings.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">Sắp xếp:</span>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                >
+                  <option value="newest">Mới nhất</option>
+                  <option value="price-asc">Giá thấp đến cao</option>
+                  <option value="price-desc">Giá cao đến thấp</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {savedListings.length === 0 ? (
@@ -115,7 +139,7 @@ const UserPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {savedListings.map(listing => (
+              {sortedListings.map(listing => (
                 <div 
                   key={listing.id} 
                   className="bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group flex flex-col"
