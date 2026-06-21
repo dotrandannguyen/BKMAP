@@ -102,14 +102,6 @@ export default function DashboardView({
             >
               Tất cả ({totalCount})
             </button>
-            <button
-              onClick={() => setActiveCategory('maintenance')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeCategory === 'maintenance' ? 'bg-white text-primary shadow-xs' : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              Đang bảo trì ({listings.filter(l => l.status === 'Bảo trì').length})
-            </button>
           </div>
 
           {/* Table container card */}
@@ -144,7 +136,6 @@ export default function DashboardView({
                     <tr className="bg-slate-50 border-b border-slate-100 text-[10px] md:text-xs font-bold text-outline uppercase tracking-wider">
                       <th className="px-6 py-4">Chỗ ở trọ</th>
                       <th className="px-6 py-4">Mức giá thuê</th>
-                      <th className="px-6 py-4">Trạng thái</th>
                       <th className="px-6 py-4 text-center">Thao tác</th>
                     </tr>
                   </thead>
@@ -182,21 +173,6 @@ export default function DashboardView({
                         </td>
 
 
-
-                        {/* Active/Maintenance Status col */}
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => onToggleStatus(item.id)}
-                            className={`px-3 py-1.5 rounded-full text-[11px] font-black cursor-pointer transition-colors ${
-                              item.status === 'Hoạt động'
-                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/50 hover:bg-emerald-100'
-                                : 'bg-red-50 text-red-800 border border-red-200/50 hover:bg-red-100'
-                            }`}
-                            title="Bấm để đổi trạng thái"
-                          >
-                            {item.status || 'Hoạt động'}
-                          </button>
-                        </td>
 
                         {/* Actions buttons */}
                         <td className="px-6 py-4 whitespace-nowrap text-center">

@@ -15,8 +15,13 @@ import RegisterPage from './pages/RegisterPage';
 import UserPage from './pages/UserPage';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('HOME');
+  const [currentView, setCurrentView] = useState(() => sessionStorage.getItem('currentView') || 'HOME');
   const [previousView, setPreviousView] = useState('HOME');
+
+  useEffect(() => {
+    sessionStorage.setItem('currentView', currentView);
+  }, [currentView]);
+
   const [listings, setListings] = useState([]);
   const [selectedListingId, setSelectedListingId] = useState('');
   const [editingListing, setEditingListing] = useState(null);
