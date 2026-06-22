@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useListingStore } from '../stores/listingStore';
+import bgComingSoon from '../assets/bg-coming-soon.jpg';
 
 export default function AllListingsView() {
   const navigate = useNavigate();
@@ -73,8 +74,14 @@ export default function AllListingsView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] pb-20 pt-20">
-      <div className="max-w-[1200px] mx-auto px-4 md:px-0 pt-6">
+    <div className="min-h-screen bg-[#f5f5f5] pb-20 pt-20 relative overflow-hidden">
+      {/* Faded Background Image */}
+      <div 
+        className="fixed inset-0 z-0 opacity-20 pointer-events-none bg-center bg-no-repeat bg-cover"
+        style={{ backgroundImage: `url(${bgComingSoon})` }}
+      />
+      
+      <div className="max-w-[1200px] mx-auto px-4 md:px-0 pt-6 relative z-10">
         
         {/* Header and Sorting Bar (Shopee Style) */}
         <div className="bg-white rounded-lg shadow-sm mb-4">

@@ -142,7 +142,7 @@ export default function HomepageView() {
         {/* Styled Aerial View Map Mockup Background as seen in layout 1 */}
         <div className="absolute inset-0 z-0 map-mesh">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-[#f8f9ff]/70 to-[#f8f9ff]"></div>
-          <div className="absolute w-[120%] h-[120%] -top-[10%] -left-[10%] opacity-25 pointer-events-none">
+          <div className="absolute w-[120%] h-[110%] -top-[10%] -left-[10%] opacity-25 pointer-events-none">
             <img
               className="w-full h-full object-cover"
               alt="Đại học Bách Khoa Đà Nẵng campus background"
@@ -245,19 +245,19 @@ export default function HomepageView() {
             ) : (
               <>
                 <button
-                  onClick={() => handleChipClick('DUT')}
+                  onClick={() => handleChipClick('Có điều hoà')}
                   className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
                 >
-                  Gần DUT
+                  Có điều hoà
                 </button>
                 <button
-                  onClick={() => handleChipClick('máy lạnh')}
+                  onClick={() => handleChipClick('Không chung chủ')}
                   className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
                 >
-                  Có máy lạnh
+                  Không chung chủ
                 </button>
                 <button
-                  onClick={() => handleChipClick('tự do')}
+                  onClick={() => handleChipClick('Giờ giấc tự do')}
                   className="bg-white hover:bg-primary/5 border border-outline-variant/40 px-4 py-1.5 rounded-full text-xs font-semibold text-primary transition-colors cursor-pointer"
                 >
                   Giờ giấc tự do
@@ -478,7 +478,10 @@ export default function HomepageView() {
           </div>
 
           {/* Feature 2 */}
-          <div className="relative bg-white/60 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center text-center space-y-6 group hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 overflow-hidden">
+          <div 
+            onClick={() => navigate('/map')}
+            className="relative bg-white/60 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center text-center space-y-6 group hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 overflow-hidden cursor-pointer"
+          >
             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl group-hover:bg-amber-400/20 transition-colors duration-500"></div>
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-400/10 rounded-full blur-2xl group-hover:bg-orange-400/20 transition-colors duration-500"></div>
             
@@ -520,7 +523,10 @@ export default function HomepageView() {
             <div className="text-3xl md:text-4xl font-extrabold text-sky-300">78,426+</div>
             <p className="text-[11px] md:text-xs font-semibold text-slate-300 uppercase tracking-widest">Lượt truy cập trong 4 năm hoạt động</p>
           </div>
-          <div className="space-y-1">
+          <div 
+            className="space-y-1 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => navigate('/all-listings')}
+          >
             <div className="text-3xl md:text-4xl font-extrabold text-sky-300">{listings.length > 0 ? listings.length : '0'}</div>
             <p className="text-[11px] md:text-xs font-semibold text-slate-300 uppercase tracking-widest">Tổng số trọ hiện có</p>
           </div>
