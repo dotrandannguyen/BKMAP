@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useListingStore } from '../stores/listingStore';
+import { useUiStore } from '../stores/uiStore';
 import bgComingSoon from '../assets/bg-coming-soon.jpg';
 
 export default function AllListingsView() {
   const navigate = useNavigate();
-  const { listings, fetchRooms } = useListingStore();
+  const { listings } = useListingStore();
+  const { savedIds, toggleSaved } = useUiStore();
   
   // State
   const [sortType, setSortType] = useState('newest'); // newest, price-asc, price-desc
@@ -25,15 +27,6 @@ export default function AllListingsView() {
       return `${parts[0]}, ${parts[1]}`;
     }
     return address;
-  };
-
-  // Mock toggleSaved since we just want navigation to DetailView
-  const [savedIds, setSavedIds] = useState(['room-1']);
-  const toggleSaved = (id, e) => {
-    e.stopPropagation();
-    setSavedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
   };
 
   // Fetch all listings initially (or rely on App.jsx fetching)
@@ -161,7 +154,11 @@ export default function AllListingsView() {
                   {/* Favorite Toggle button */}
                   <button
                     onClick={(e) => toggleSaved(item.id, e)}
-                    className="absolute top-2 right-2 bg-black/20 hover:bg-black/40 p-1.5 rounded-full text-white transition-colors cursor-pointer"
+                    className={`absolute top-2 right-2 p-1.5 rounded-full transition-colors cursor-pointer ${
+                      savedIds.includes(item.id)
+                        ? 'bg-white/90 text-red-500 shadow-sm'
+                        : 'bg-black/20 hover:bg-black/40 text-white'
+                    }`}
                   >
                     <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
                       favorite

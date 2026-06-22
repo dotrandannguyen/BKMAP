@@ -4,6 +4,7 @@ import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 // Store Imports
 import { useAuthStore } from './stores/authStore';
 import { useListingStore } from './stores/listingStore';
+import { useUiStore } from './stores/uiStore';
 
 // Component Imports
 import Navbar from './components/Navbar';
@@ -30,13 +31,19 @@ function RequireAuth({ children }) {
 
 export default function App() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const fetchRooms = useListingStore((s) => s.fetchRooms);
+  const loadSavedIds = useUiStore((s) => s.loadSavedIds);
 
   // Khởi tạo: khôi phục phiên đăng nhập + tải danh sách phòng
   useEffect(() => {
     restoreSession();
     fetchRooms();
   }, [restoreSession, fetchRooms]);
+
+  useEffect(() => {
+    loadSavedIds();
+  }, [isLoggedIn, loadSavedIds]);
 
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased text-[#0b1c30]">

@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import authRouter from './modules/auth/auth.router.js';
 import userRouter from './modules/user/users.router.js';
 import roomRouter from './modules/room/room.router.js';
+import favoriteRouter from './modules/favorite/favorite.router.js';
 import path from 'path';
 import { errorHandlerMiddleware } from './common/middleware/errorHandler.Middleware.js';
 import passport from './config/passport.js';
@@ -84,6 +85,7 @@ app.get('/api/geocode', async (req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
 app.use('/api/rooms', roomRouter);
+app.use('/api/favorites', favoriteRouter);
 
 // Phục vụ thư mục uploads dạng static
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

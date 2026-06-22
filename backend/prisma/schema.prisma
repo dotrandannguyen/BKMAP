@@ -34,6 +34,7 @@ model User {
 
   // Mối quan hệ
   roomsCreated       Room[]    @relation("UserToRoom")
+  favorites          UserFavorite[]
 }
 
 // 2. Bảng thông tin Chủ trọ
@@ -83,6 +84,19 @@ model Room {
   owner            Owner         @relation(fields: [ownerId], references: [id])
   images           RoomImage[]
   features         RoomFeature[] 
+  favoritedBy      UserFavorite[]
+}
+
+model UserFavorite {
+  userId    String   @db.Uuid
+  roomId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roomId])
+  @@index([roomId])
 }
 
 // 4. Bảng danh mục Tiện ích / Nội thất (Wifi, Điều hòa, Gác lửng...)

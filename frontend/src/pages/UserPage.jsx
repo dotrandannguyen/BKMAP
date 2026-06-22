@@ -14,12 +14,14 @@ import {
 
 const UserPage = () => {
   const navigate = useNavigate();
-  const { userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar } = useAuthStore();
+  const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar } = useAuthStore();
   const { listings, selectListing } = useListingStore();
-  const { savedIds } = useUiStore();
+  const { savedIds, favoriteRooms, toggleSaved } = useUiStore();
 
   const userDisplayName = userName || userEmail.split('@')[0];
-  const savedListings = listings.filter(l => savedIds.includes(l.id));
+  const savedListings = isLoggedIn
+    ? favoriteRooms
+    : listings.filter(l => savedIds.includes(l.id));
 
   const [sortBy, setSortBy] = React.useState('newest');
   
@@ -151,9 +153,15 @@ const UserPage = () => {
                       alt={listing.title} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-sm text-red-500">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSaved(listing.id);
+                      }}
+                      className="absolute top-3 right-3 bg-white/90 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-sm text-red-500 hover:scale-110 active:scale-95 transition-all duration-300 z-10 cursor-pointer flex items-center justify-center border-none"
+                    >
                       <Heart size={18} fill="currentColor" />
-                    </div>
+                    </button>
                     <div className="absolute bottom-3 left-3 flex gap-2">
                       <span className="bg-white/90 backdrop-blur-sm text-xs font-bold px-2.5 py-1 rounded-lg text-slate-800 shadow-sm">
                         {listing.type}

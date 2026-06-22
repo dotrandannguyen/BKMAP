@@ -357,7 +357,11 @@ export default function HomepageView() {
                   {/* Favorite Toggle button */}
                   <button
                     onClick={(e) => toggleSaved(item.id, e)}
-                    className="absolute top-3 right-3 bg-white/20 hover:bg-white/40 backdrop-blur-md p-2 rounded-full text-white transition-colors cursor-pointer"
+                    className={`absolute top-3 right-3 backdrop-blur-md p-2 rounded-full transition-colors cursor-pointer ${
+                      savedIds.includes(item.id) 
+                        ? 'bg-white/90 text-red-500 shadow-sm' 
+                        : 'bg-white/20 hover:bg-white/40 text-white'
+                    }`}
                   >
                     <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
                       favorite
