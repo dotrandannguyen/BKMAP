@@ -9,10 +9,20 @@ const getApiUrl = () => {
   return `http://${window.location.hostname}:3000/api`;
 };
 
+const savedEditingListing = localStorage.getItem('editingListing');
+let initialEditingListing = null;
+if (savedEditingListing && savedEditingListing !== 'undefined') {
+  try {
+    initialEditingListing = JSON.parse(savedEditingListing);
+  } catch (e) {
+    console.error('Failed to parse editingListing from localStorage', e);
+  }
+}
+
 export const useListingStore = create((set, get) => ({
   listings: [],
   selectedListingId: '',
-  editingListing: null,
+  editingListing: initialEditingListing,
 
   // Fetch phòng trọ từ Backend API
   fetchRooms: async (filters = {}) => {
@@ -161,6 +171,11 @@ export const useListingStore = create((set, get) => ({
 
   // Set phòng trọ cần chỉnh sửa
   setEditingListing: (listing) => {
+    if (listing) {
+      localStorage.setItem('editingListing', JSON.stringify(listing));
+    } else {
+      localStorage.removeItem('editingListing');
+    }
     set({ editingListing: listing });
   },
 

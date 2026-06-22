@@ -88,8 +88,17 @@ export default function MapView() {
     mapInstanceRef.current = map;
     markersLayerRef.current = markersLayer;
 
+    // Fix Leaflet grey tiles bug on resize/mobile view change
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    resizeObserver.observe(mapContainerRef.current);
+
     // Cleanup on unmount
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
       markersLayerRef.current = null;
@@ -399,7 +408,7 @@ export default function MapView() {
 
         {/* Interactive Floating Card for Selected Pin */}
         {selectedPin && (
-          <div className="absolute bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-80 bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-2xl z-[1000] border border-slate-100 flex gap-3 animate-slide-up pointer-events-auto">
+          <div className="absolute bottom-32 md:bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-80 bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-2xl z-[1000] border border-slate-100 flex gap-3 animate-slide-up pointer-events-auto">
             {/* Aspect Cover mini */}
             <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-slate-100">
               <img

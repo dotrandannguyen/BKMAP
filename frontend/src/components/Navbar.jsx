@@ -15,18 +15,20 @@ export default function Navbar() {
       <header className="sticky top-0 w-full z-[80] bg-white/75 backdrop-blur-xl border-b border-slate-200/60 shadow-xs transition-all">
         <div className="flex justify-between items-center px-6 md:px-12 h-16 w-full max-w-7xl mx-auto">
           {/* Logo Brand */}
-          <Link 
-            to="/"
-            className="flex items-center gap-2.5 cursor-pointer group active:scale-95 transition-transform"
-          >
-            <span className="material-symbols-outlined text-primary text-3xl font-extrabold select-none transition-transform group-hover:scale-110">map</span>
-            <div className="text-xl md:text-2xl font-black tracking-tight text-primary">
-              BK'S MAP
-            </div>
-          </Link>
+          <div className="flex-1 flex justify-start">
+            <Link 
+              to="/"
+              className="flex items-center gap-2.5 cursor-pointer group active:scale-95 transition-transform w-fit"
+            >
+              <span className="material-symbols-outlined text-primary text-3xl font-extrabold select-none transition-transform group-hover:scale-110">map</span>
+              <div className="text-xl md:text-2xl font-black tracking-tight text-primary">
+                BK'S MAP
+              </div>
+            </Link>
+          </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center justify-center gap-8 flex-none">
             <Link
               to="/"
               className={`font-semibold text-sm transition-colors cursor-pointer hover:text-primary ${
@@ -41,7 +43,7 @@ export default function Navbar() {
                 location.pathname === '/map' ? 'text-primary' : 'text-slate-600'
               }`}
             >
-              Bản đồ & Bộ lọc
+              Bản đồ
             </Link>
             <Link
               to="/dashboard"
@@ -49,12 +51,12 @@ export default function Navbar() {
                 location.pathname === '/dashboard' ? 'text-primary' : 'text-slate-600'
               }`}
             >
-              Dành cho Chủ trọ
+              Kênh đăng tin
             </Link>
           </nav>
 
           {/* Actions on Right */}
-          <div className="flex items-center gap-4">
+          <div className="flex-1 flex items-center justify-end gap-5">
             {/* Wishlist Indicators */}
             <Link 
               to="/profile"

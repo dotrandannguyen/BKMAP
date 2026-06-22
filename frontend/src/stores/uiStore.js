@@ -20,4 +20,16 @@ export const useUiStore = create((set, get) => ({
       set({ savedIds: [...savedIds, id] });
     }
   },
+
+  // Recent Searches
+  recentSearches: JSON.parse(localStorage.getItem('recentSearches') || '[]'),
+  
+  addSearchQuery: (query) => {
+    if (!query || !query.trim()) return;
+    const { recentSearches } = get();
+    const filtered = recentSearches.filter(q => q.toLowerCase() !== query.toLowerCase());
+    const updated = [query.trim(), ...filtered].slice(0, 5); // Keep last 5
+    localStorage.setItem('recentSearches', JSON.stringify(updated));
+    set({ recentSearches: updated });
+  },
 }));

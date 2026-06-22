@@ -32,6 +32,7 @@ export const validateRequestMiddleware = (schema) => {
 				const message = err.issues
 					.map((e) => `${e.path.join('.')} ${e.message}`)
 					.join('; ');
+					console.warn('[Zod Validation Error]', message, req.body);
 				// Ném lỗi ra để errorHandler bắt
 				return next(
 					new OptionalException(StatusCodes.UNPROCESSABLE_ENTITY, message),

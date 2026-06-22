@@ -12,6 +12,7 @@ import MapView from './components/MapView';
 import DetailView from './components/DetailView';
 import DashboardView from './components/DashboardView';
 import CreateListingView from './components/CreateListingView';
+import AllListingsView from './components/AllListingsView';
 
 // Page Imports
 import LoginPage from './pages/LoginPage';
@@ -44,6 +45,7 @@ export default function App() {
       <main className="flex-1 pb-16 md:pb-0">
         <Routes>
           <Route path="/" element={<HomepageView />} />
+          <Route path="/all-listings" element={<AllListingsView />} />
           <Route path="/map" element={<MapView />} />
           <Route path="/rooms/:id" element={<DetailView />} />
           <Route path="/dashboard" element={<DashboardView />} />

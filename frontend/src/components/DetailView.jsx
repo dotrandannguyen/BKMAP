@@ -25,8 +25,7 @@ export default function DetailView() {
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState('');
   
-  // Booking details alert states
-  const [contactSuccess, setContactSuccess] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
@@ -290,14 +289,16 @@ export default function DetailView() {
           </div>
 
           {/* Description Section */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h2 className="text-lg font-extrabold text-on-surface flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-base">description</span>
               Giới thiệu phòng trọ
             </h2>
-            <p className="text-sm text-on-surface-variant leading-relaxed text-justify">
-              {listing.description}
-            </p>
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/65">
+              <p className="text-sm font-semibold text-on-surface-variant leading-relaxed text-justify">
+                {listing.description}
+              </p>
+            </div>
           </div>
 
           {/* Amenities grid Checklist */}
@@ -482,30 +483,8 @@ export default function DetailView() {
 
               {/* CTA Action button lines */}
               <div className="space-y-2">
-
-                <button
-                  onClick={() => {
-                    setContactSuccess(true);
-                    setTimeout(() => setContactSuccess(false), 4550);
-                  }}
-                  className="w-full bg-white text-on-surface border border-outline-variant hover:bg-slate-50 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-sm">chat_bubble</span>
-                  <span>Nhắn tin với chủ trọ</span>
-                </button>
               </div>
             </div>
-
-            {/* Notifications feedback alerts */}
-            {contactSuccess && (
-              <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-200 text-emerald-950 text-xs font-semibold animate-slide-up flex gap-2.5 items-start">
-                <span className="material-symbols-outlined text-emerald-500 font-bold">chat</span>
-                <div>
-                  <p className="font-bold">Cửa sổ thoại bảo mật đã mở!</p>
-                  <p className="text-[100%] opacity-80 mt-0.5">Tin nhắn đã được gửi kèm đường dẫn sinh hoạt dự toán đến {listing.host.name} thành công.</p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
