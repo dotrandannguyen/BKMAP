@@ -98,9 +98,58 @@ export default function DetailView() {
 
   if (loading && !localListing) {
     return (
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-32 flex flex-col items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-4 border-slate-100 border-t-primary animate-spin mb-4"></div>
-        <p className="text-sm text-slate-500 font-semibold">Đang tải thông tin phòng trọ...</p>
+      <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 animate-fade-in pb-28 animate-pulse">
+        {/* Back button skeleton */}
+        <div className="h-5 bg-slate-200 rounded w-20 mb-6" />
+
+        {/* Title Header skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div className="space-y-3 w-full md:w-2/3">
+            <div className="h-4 bg-slate-200 rounded w-16" />
+            <div className="h-8 bg-slate-200 rounded w-3/4" />
+            <div className="h-4 bg-slate-200 rounded w-1/2" />
+          </div>
+          <div className="flex gap-3 w-full md:w-auto">
+            <div className="h-10 bg-slate-200 rounded-full w-24" />
+            <div className="h-10 bg-slate-200 rounded-full w-24" />
+          </div>
+        </div>
+
+        {/* Gallery skeleton */}
+        <div className="mb-10 max-w-2xl mx-auto space-y-3">
+          <div className="rounded-xl bg-slate-200 aspect-[4/3] w-full" />
+          <div className="flex gap-3">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-slate-200" />
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-slate-200" />
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-slate-200" />
+          </div>
+        </div>
+
+        {/* Content columns split */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Host card skeleton */}
+            <div className="p-6 rounded-3xl border border-slate-200/50 flex items-center justify-between">
+              <div className="flex items-center gap-4 w-full">
+                <div className="w-14 h-14 rounded-full bg-slate-200" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 bg-slate-200 rounded w-1/4" />
+                  <div className="h-3 bg-slate-200 rounded w-1/6" />
+                </div>
+              </div>
+            </div>
+            {/* Description skeleton */}
+            <div className="space-y-3">
+              <div className="h-6 bg-slate-200 rounded w-1/3" />
+              <div className="h-24 bg-slate-200 rounded-3xl" />
+            </div>
+          </div>
+          <div className="space-y-6">
+            {/* Sidebar widgets */}
+            <div className="h-32 bg-slate-200 rounded-3xl" />
+            <div className="h-64 bg-slate-200 rounded-3xl" />
+          </div>
+        </div>
       </div>
     );
   }

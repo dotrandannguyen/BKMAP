@@ -6,7 +6,7 @@ import bgComingSoon from '../assets/bg-coming-soon.jpg';
 
 export default function AllListingsView() {
   const navigate = useNavigate();
-  const { listings, fetchRooms } = useListingStore();
+  const { listings, fetchRooms, isLoading } = useListingStore();
   const { savedIds, toggleSaved } = useUiStore();
   
   // State
@@ -208,7 +208,29 @@ export default function AllListingsView() {
         </div>
 
         {/* Grid of Listings */}
-        {paginatedListings.length === 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <div key={idx} className="bg-white rounded-none overflow-hidden border border-slate-200/60 flex flex-col group relative shadow-sm animate-pulse">
+                {/* Cover Photo Skeleton */}
+                <div className="h-48 w-full bg-slate-200" />
+                {/* Content Skeleton */}
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="h-4 bg-slate-200 rounded w-3/4" />
+                    <div className="h-6 bg-slate-200 rounded w-1/2" />
+                    <div className="h-4 bg-slate-200 rounded w-5/6" />
+                    <div className="h-3 bg-slate-200 rounded w-2/3" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-6 bg-slate-200 rounded-md w-16" />
+                    <div className="h-6 bg-slate-200 rounded-md w-16" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : paginatedListings.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center border border-slate-200/60 shadow-sm">
             <span className="material-symbols-outlined text-5xl text-slate-300">search_off</span>
             <h3 className="text-sm font-bold text-slate-500 mt-4">Không tìm thấy phòng trọ nào</h3>
