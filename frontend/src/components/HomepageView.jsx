@@ -174,7 +174,7 @@ export default function HomepageView() {
                 <span className="material-symbols-outlined text-primary">location_on</span>
                 <input
                   className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-on-surface text-sm placeholder:text-outline"
-                  placeholder="Gần DUT, chợ, hoặc Quận..."
+                  placeholder="Tìm kiếm khu vực, tên đường, tên phòng trọ..."
                   type="text"
                   value={localSearch}
                   onChange={(e) => {

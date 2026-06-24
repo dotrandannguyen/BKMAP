@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useListingStore } from '../stores/listingStore';
 import { useUiStore } from '../stores/uiStore';
+import { toast } from 'react-toastify';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,6 +28,7 @@ export default function DetailView() {
   
   const [showPhone, setShowPhone] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
 
   useEffect(() => {
     // Sync with store listings cache if loaded
@@ -158,6 +160,37 @@ export default function DetailView() {
     }
   };
 
+  const handleShare = () => {
+    const linkToCopy = window.location.href;
+
+    const fallbackCopy = (text) => {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast.success('Đã sao chép liên kết chia sẻ!');
+      } catch (err) {
+        console.error('Fallback copy error:', err);
+        toast.error('Không thể sao chép liên kết.');
+      }
+      document.body.removeChild(textArea);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(linkToCopy)
+        .then(() => {
+          toast.success('Đã sao chép liên kết chia sẻ!');
+        })
+        .catch(() => fallbackCopy(linkToCopy));
+    } else {
+      fallbackCopy(linkToCopy);
+    }
+  };
+
 
   const formatVND = (num) => {
     return num.toLocaleString('vi-VN') + ' VNĐ';
@@ -207,7 +240,10 @@ export default function DetailView() {
             <span>{savedIds.includes(listing.id) ? 'Đã lưu' : 'Lưu tin'}</span>
           </button>
           
-          <button className="flex items-center gap-2 border border-outline-variant px-4 py-2.5 rounded-full text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer text-on-surface bg-white">
+          <button 
+            onClick={handleShare}
+            className="flex items-center gap-2 border border-outline-variant px-4 py-2.5 rounded-full text-xs font-bold hover:bg-slate-50 transition-colors cursor-pointer text-on-surface bg-white"
+          >
             <span className="material-symbols-outlined text-base">share</span>
             <span>Chia sẻ</span>
           </button>
@@ -281,10 +317,6 @@ export default function DetailView() {
                 <h3 className="text-base font-bold text-on-surface mt-0.5">{listing.host?.name || 'Người dùng'}</h3>
                 <p className="text-xs text-on-surface-variant font-medium">{listing.host?.role || 'Người dùng'}</p>
               </div>
-            </div>
-             <div className="flex flex-col items-end text-right">
-              <span className="text-xs font-semibold text-on-surface">Độ phản hồi</span>
-              <span className="text-sm font-black text-emerald-600">Nhanh (99%)</span>
             </div>
           </div>
 
@@ -415,57 +447,69 @@ export default function DetailView() {
                   <span>Vị trí trên bản đồ</span>
                 </div>
 
-                <div className="w-full h-64 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner z-0">
-                  <MapContainer 
-                    center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07380, 108.14990]} 
-                    zoom={15} 
-                    style={{ height: '100%', width: '100%' }}
-                  >
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <Marker 
-                      position={[16.07380, 108.14990]} 
-                      icon={L.divIcon({
-                        html: `
-                          <div class="flex flex-col items-center">
-                            <div class="w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow-md flex items-center justify-center">
-                              <span class="material-symbols-outlined text-white" style="font-size: 16px;">school</span>
-                            </div>
-                            <div class="bg-red-600 text-white font-bold text-[8px] px-1 py-0.5 rounded shadow-sm border border-white whitespace-nowrap mt-0.5">
-                              ĐH BÁCH KHOA
-                            </div>
-                          </div>
-                        `,
-                        className: 'school-div-icon',
-                        iconSize: [70, 40],
-                        iconAnchor: [35, 20]
-                      })}
+                <div 
+                  className="w-full h-64 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner z-0 group cursor-pointer"
+                  onClick={() => setIsMapPopupOpen(true)}
+                >
+                  {/* Overlay for clicking */}
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors z-[10] flex items-center justify-center">
+                    <span className="bg-white/95 hover:bg-white text-primary text-xs font-bold px-3 py-2 rounded-xl shadow-md border border-slate-200 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+                      <span className="material-symbols-outlined text-[16px] font-bold">fullscreen</span>
+                      Phóng to bản đồ
+                    </span>
+                  </div>
+                  <div className="w-full h-full pointer-events-none">
+                    <MapContainer 
+                      center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07380, 108.14990]} 
+                      zoom={15} 
+                      style={{ height: '100%', width: '100%' }}
                     >
-                      <Popup>ĐH Bách Khoa Đà Nẵng</Popup>
-                    </Marker>
-                    {listing.lat && listing.lng ? (
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       <Marker 
-                        position={[listing.lat, listing.lng]} 
+                        position={[16.07380, 108.14990]} 
                         icon={L.divIcon({
-                          className: 'bg-transparent border-none',
                           html: `
-                            <div class="relative flex justify-center items-center w-8 h-8">
-                              <span class="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping"></span>
-                              <span class="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-white shadow-sm"></span>
+                            <div class="flex flex-col items-center">
+                              <div class="w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow-md flex items-center justify-center">
+                                <span class="material-symbols-outlined text-white" style="font-size: 16px;">school</span>
+                              </div>
+                              <div class="bg-red-600 text-white font-bold text-[8px] px-1 py-0.5 rounded shadow-sm border border-white whitespace-nowrap mt-0.5">
+                                ĐH BÁCH KHOA
+                              </div>
                             </div>
                           `,
-                          iconSize: [32, 32],
-                          iconAnchor: [16, 16],
-                          popupAnchor: [0, -16]
+                          className: 'school-div-icon',
+                          iconSize: [70, 40],
+                          iconAnchor: [35, 20]
                         })}
                       >
-                        <Popup><strong className="text-red-600">Vị trí phòng trọ</strong></Popup>
+                        <Popup>ĐH Bách Khoa Đà Nẵng</Popup>
                       </Marker>
-                    ) : (
-                      <Marker position={[16.07348, 108.14783]}>
-                        <Popup>Vị trí phòng trọ (Mặc định)</Popup>
-                      </Marker>
-                    )}
-                  </MapContainer>
+                      {listing.lat && listing.lng ? (
+                        <Marker 
+                          position={[listing.lat, listing.lng]} 
+                          icon={L.divIcon({
+                            className: 'bg-transparent border-none',
+                            html: `
+                              <div class="relative flex justify-center items-center w-8 h-8">
+                                <span class="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping"></span>
+                                <span class="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-white shadow-sm"></span>
+                              </div>
+                            `,
+                            iconSize: [32, 32],
+                            iconAnchor: [16, 16],
+                            popupAnchor: [0, -16]
+                          })}
+                        >
+                          <Popup><strong className="text-red-600">Vị trí phòng trọ</strong></Popup>
+                        </Marker>
+                      ) : (
+                        <Marker position={[16.07348, 108.14783]}>
+                          <Popup>Vị trí phòng trọ (Mặc định)</Popup>
+                        </Marker>
+                      )}
+                    </MapContainer>
+                  </div>
                 </div>
                 
                 <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 text-center space-y-1">
@@ -488,6 +532,90 @@ export default function DetailView() {
           </div>
         </div>
       </div>
+
+      {/* Map Popup Modal */}
+      {isMapPopupOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fade-in cursor-default"
+          onClick={() => setIsMapPopupOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl overflow-hidden shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col relative border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between bg-white z-[10]">
+              <div className="space-y-0.5">
+                <h3 className="text-base md:text-lg font-black text-on-surface flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-xl">map</span>
+                  Vị trí trên bản đồ chi tiết
+                </h3>
+                <p className="text-xs md:text-sm text-outline font-medium line-clamp-1">{listing.address}</p>
+              </div>
+              <button 
+                onClick={() => setIsMapPopupOpen(false)}
+                className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors text-outline hover:text-on-surface cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            {/* Map Container */}
+            <div className="flex-1 w-full h-full relative z-0">
+              <MapContainer 
+                center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07380, 108.14990]} 
+                zoom={16} 
+                style={{ height: '100%', width: '100%' }}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <Marker 
+                  position={[16.07380, 108.14990]} 
+                  icon={L.divIcon({
+                    html: `
+                      <div class="flex flex-col items-center">
+                        <div class="w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow-md flex items-center justify-center">
+                          <span class="material-symbols-outlined text-white" style="font-size: 16px;">school</span>
+                        </div>
+                        <div class="bg-red-600 text-white font-bold text-[8px] px-1 py-0.5 rounded shadow-sm border border-white whitespace-nowrap mt-0.5">
+                          ĐH BÁCH KHOA
+                        </div>
+                      </div>
+                    `,
+                    className: 'school-div-icon',
+                    iconSize: [70, 40],
+                    iconAnchor: [35, 20]
+                  })}
+                >
+                  <Popup>ĐH Bách Khoa Đà Nẵng</Popup>
+                </Marker>
+                {listing.lat && listing.lng ? (
+                  <Marker 
+                    position={[listing.lat, listing.lng]} 
+                    icon={L.divIcon({
+                      className: 'bg-transparent border-none',
+                      html: `
+                        <div class="relative flex justify-center items-center w-8 h-8">
+                          <span class="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping"></span>
+                          <span class="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-white shadow-sm"></span>
+                        </div>
+                      `,
+                      iconSize: [32, 32],
+                      iconAnchor: [16, 16],
+                      popupAnchor: [0, -16]
+                    })}
+                  >
+                    <Popup><strong className="text-red-600">Vị trí phòng trọ</strong></Popup>
+                  </Marker>
+                ) : (
+                  <Marker position={[16.07348, 108.14783]}>
+                    <Popup>Vị trí phòng trọ (Mặc định)</Popup>
+                  </Marker>
+                )}
+              </MapContainer>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
