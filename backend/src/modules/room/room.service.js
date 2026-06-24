@@ -4,20 +4,29 @@ import { supabase } from '../../config/supabase.js';
 import sharp from 'sharp';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { processCleanup } from '../../workers/cleanup.worker.js';
+import { del as delFromCache, invalidate } from '../../common/services/cache.service.js';
+
+// Helper function for cache invalidation
+const invalidateRoomCaches = async (roomId) => {
+    if (roomId) {
+        await delFromCache(`room_detail:${roomId}`);
+    }
+    // Invalidate homepage cache
+    await invalidate('rooms:home:*');
+};
+
 
 export const roomService = {
 	async createRoom(dto, userId) {
 		try {
-			// Xử lý logic nghiệp vụ ở đây nếu có (ví dụ check data hợp lệ, format lại title...)
-			// Hiện tại đẩy thẳng xuống repository để thực thực thi transaction
 			const newRoom = await roomRepository.createRoom(dto, userId);
+			
+			// Invalidate Cache
+			await invalidateRoomCaches();
 
-			// Format lại kết quả trả về cho client (loại bỏ bớt cấu trúc lồng nhau nếu cần thiết)
 			return newRoom;
 		} catch (error) {
-			// Catch Prisma constraint errors or throw unexpected ones
 			if (error.code === 'P2003') {
-				// Foreign key constraint failed
 				throw new ClientException(400, 'Dữ liệu liên kết không hợp lệ (User, Owner hoặc Tiện ích không tồn tại).');
 			}
 			throw error;
@@ -25,12 +34,11 @@ export const roomService = {
 	},
 
 	async getRooms(query) {
-		// Tính toán pagination
+		// ... (rest of the function is unchanged)
 		const page = query.page || 1;
 		const limit = query.limit || 10;
 		const skip = (page - 1) * limit;
 
-		// Extract filters
 		const filters = {
 			minPrice: query.minPrice,
 			maxPrice: query.maxPrice,
@@ -72,21 +80,22 @@ export const roomService = {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
 
-		// 1. Kiểm tra phòng có tồn tại không
 		const room = await roomRepository.findById(id);
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
 
-		// 2. Authorization: Kiểm tra quyền sửa (Chỉ người tạo mới được sửa)
 		if (room.createdBy !== userId) {
 			throw new ClientException(403, 'Bạn không có quyền chỉnh sửa phòng trọ này.');
 		}
 
-		// 3. Thực hiện update
 		try {
 			const updatedRoom = await roomRepository.updateRoom(id, dto);
 			processCleanup().catch(console.error);
+
+            // Invalidate Cache
+            await invalidateRoomCaches(id);
+
 			return updatedRoom;
 		} catch (error) {
 			if (error.code === 'P2003') {
@@ -101,36 +110,31 @@ export const roomService = {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
 
-		// 1. Kiểm tra phòng có tồn tại không
 		const room = await roomRepository.findById(id);
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
 
-		// 2. Authorization: Kiểm tra quyền xóa
 		if (room.createdBy !== userId) {
 			throw new ClientException(403, 'Bạn không có quyền xóa phòng trọ này.');
 		}
-
-		// 3. Thực hiện xóa DB trước (Cascade sẽ xóa RoomImage)
-		// Repository will log the deleted images into OutboxFileDelete table
+		
 		await roomRepository.deleteRoom(id);
 
-		// Kích hoạt xử lý xóa file ngầm trên Supabase ngay lập tức
 		processCleanup().catch(console.error);
+
+        // Invalidate Cache
+        await invalidateRoomCaches(id);
 
 		return { message: 'Xóa phòng trọ thành công.' };
 	},
 
 	async uploadRoomImage(roomId, userId, file, body) {
+        // ... (validation logic is unchanged)
 		const displayOrder = body && body.displayOrder ? parseInt(body.displayOrder, 10) : 0;
-
-		// Kiểm tra id hợp lệ
 		if (!uuidValidate(roomId)) {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
-
-		// 1. Kiểm tra quyền sở hữu phòng
 		const room = await roomRepository.findById(roomId);
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
@@ -138,18 +142,14 @@ export const roomService = {
 		if (room.createdBy !== userId) {
 			throw new ClientException(403, 'Bạn không có quyền thêm ảnh cho phòng trọ này.');
 		}
-
-		// Kiểm tra số lượng ảnh tối đa (Ví dụ: 10 ảnh/phòng)
 		const currentImageCount = await roomRepository.countImagesByRoomId(roomId);
 		if (currentImageCount >= 10) {
 			throw new ClientException(400, 'Phòng trọ này đã đạt giới hạn tối đa 10 ảnh.');
 		}
-
 		if (!file || !file.buffer) {
 			throw new ClientException(400, 'Không tìm thấy file ảnh.');
 		}
-
-		// 2. Xử lý ảnh: Resize max 1200px, convert to WebP, quality 80
+        
 		const processedImageBuffer = await sharp(file.buffer)
 			.resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
 			.webp({ quality: 80 })
@@ -157,7 +157,6 @@ export const roomService = {
 
 		const fileName = `${roomId}/${uuidv4()}.webp`;
 
-		// 3. Upload lên Supabase
 		const { data, error } = await supabase.storage
 			.from('BKMAP-images')
 			.upload(`rooms/${fileName}`, processedImageBuffer, {
@@ -169,17 +168,20 @@ export const roomService = {
 			throw new Error(`Upload ảnh lên Supabase thất bại: ${error.message}`);
 		}
 
-		const storagePath = data.path; // Đường dẫn tương đối lưu trên storage
+		const storagePath = data.path;
 
-		// Lấy URL public
 		const { data: publicUrlData } = supabase.storage
 			.from('BKMAP-images')
 			.getPublicUrl(storagePath);
 
 		const imageUrl = publicUrlData.publicUrl;
 
-		// 4. Lưu database
-		return await roomRepository.addImageToRoom(roomId, imageUrl, displayOrder, storagePath);
+        const newImage = await roomRepository.addImageToRoom(roomId, imageUrl, displayOrder, storagePath);
+
+        // Invalidate Cache
+        await invalidateRoomCaches(roomId);
+
+        return newImage;
 	},
 
 	async deleteRoomImage(roomId, imageId, userId) {
@@ -187,7 +189,6 @@ export const roomService = {
 			throw new ClientException(400, 'ID không hợp lệ.');
 		}
 
-		// 1. Kiểm tra quyền sở hữu phòng
 		const room = await roomRepository.findById(roomId);
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
@@ -196,18 +197,16 @@ export const roomService = {
 			throw new ClientException(403, 'Bạn không có quyền xóa ảnh của phòng trọ này.');
 		}
 
-		// 2. Tìm ảnh cần xóa
 		const image = await roomRepository.findImageById(imageId);
 		if (!image || image.roomId !== roomId) {
 			throw new ClientException(404, 'Không tìm thấy ảnh.');
 		}
 
-		// 3. Xóa record trong Database trước để đảm bảo tính nhất quán
-		// Repository will log the deleted image into OutboxFileDelete table
 		await roomRepository.deleteImageById(imageId);
-
-		// Kích hoạt xử lý xóa file ngầm trên Supabase ngay lập tức
 		processCleanup().catch(console.error);
+
+        // Invalidate Cache
+        await invalidateRoomCaches(roomId);
 
 		return { message: 'Xóa ảnh thành công.' };
 	},
@@ -217,7 +216,6 @@ export const roomService = {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
 
-		// 1. Kiểm tra quyền sở hữu phòng
 		const room = await roomRepository.findById(roomId);
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
@@ -231,8 +229,11 @@ export const roomService = {
 			throw new ClientException(400, 'Danh sách ảnh không hợp lệ.');
 		}
 
-		// 2. Thực hiện update thứ tự ảnh
 		await roomRepository.updateImagesOrder(imagesData);
+
+        // Invalidate Cache
+        await invalidateRoomCaches(roomId);
+
 		return { message: 'Cập nhật thứ tự ảnh thành công.' };
 	},
 };

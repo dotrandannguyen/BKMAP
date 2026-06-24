@@ -1,10 +1,13 @@
 import express from 'express';
 import { roomController } from './room.controller.js';
 import { createRoomSchema } from './dto/requests/create-room.request.js';
-import { validateRequestMiddleware } from '../../common/middleware/index.js';
-import { authMiddleware } from '../../common/middleware/auth.middleware.js';
-import { uploadMiddleware } from '../../common/middleware/upload.middleware.js';
-
+import { 
+	validateRequestMiddleware,
+	authMiddleware,
+	uploadMiddleware,
+	cacheGuestRooms,
+	cacheRoomDetail
+} from '../../common/middleware/index.js';
 import { getRoomsSchema, updateRoomSchema } from './dto/requests/room.request.js';
 
 const router = express.Router();
@@ -12,12 +15,13 @@ const router = express.Router();
 // GET /rooms: Lấy danh sách (Public)
 router.get(
 	'/',
+	cacheGuestRooms,
 	validateRequestMiddleware(getRoomsSchema),
 	roomController.getRooms
 );
 
 // GET /rooms/:id: Lấy chi tiết (Public)
-router.get('/:id', roomController.getRoomById);
+router.get('/:id', cacheRoomDetail, roomController.getRoomById);
 
 // POST /rooms: Tạo mới (Cần đăng nhập)
 router.post(
