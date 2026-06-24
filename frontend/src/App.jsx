@@ -19,6 +19,7 @@ import AllListingsView from './components/AllListingsView';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import UserPage from './pages/UserPage';
+import AdminPage from './pages/AdminPage';
 
 // Route guard: chuyển hướng về /login nếu chưa đăng nhập
 function RequireAuth({ children }) {
@@ -26,6 +27,14 @@ function RequireAuth({ children }) {
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
+  return children;
+}
+
+// Route guard: chỉ ADMIN mới vào được
+function RequireAdmin({ children }) {
+  const { isLoggedIn, userRole } = useAuthStore();
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (userRole !== 'ADMIN') return <Navigate to="/" replace />;
   return children;
 }
 
@@ -63,8 +72,11 @@ export default function App() {
           } />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/profile" element={
-              <UserPage />
+          <Route path="/profile" element={<UserPage />} />
+          <Route path="/admin" element={
+            <RequireAdmin>
+              <AdminPage />
+            </RequireAdmin>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

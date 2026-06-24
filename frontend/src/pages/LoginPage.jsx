@@ -92,10 +92,26 @@ const LoginPage = () => {
                 localStorage.setItem('userEmail', userData.email);
                 localStorage.setItem('userName', userData.userName || userData.email.split('@')[0]);
                 localStorage.setItem('userAvatar', userData.avatar || '');
+
+                // Đọc role từ JWT payload
+                let role = 'USER';
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    role = payload.role || 'USER';
+                    localStorage.setItem('userRole', role);
+                } catch (_) { /* ignore */ }
+
+                login(userData.email, userData.userName || userData.email.split('@')[0], userData.avatar || '', role);
+
+                if (role === 'ADMIN') {
+                    navigate('/admin');
+                } else {
+                    navigate('/profile');
+                }
+            } else {
+                login(userData.email, userData.userName || userData.email.split('@')[0], userData.avatar || '');
+                navigate('/profile');
             }
-            
-            login(userData.email, userData.userName || userData.email.split('@')[0], userData.avatar || '');
-            navigate('/profile');
         } catch (err) {
             setError(err.message);
         } finally {

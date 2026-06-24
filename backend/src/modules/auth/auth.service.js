@@ -80,6 +80,11 @@ export const authService = {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng.');
     }
 
+    // Kiểm tra khóa tài khoản
+    if (user.isBanned) {
+      throw new UnauthorizedException('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+    }
+
     // NẾU MUỐN CHẶN LOGIN KHI CHƯA XÁC THỰC EMAIL THÌ MỞ ĐOẠN NÀY RA
     // if (!user.isVerified) {
     //   throw new UnauthorizedException('Tài khoản chưa được xác thực. Vui lòng kiểm tra email.');
@@ -88,6 +93,7 @@ export const authService = {
     // JWT payload
     const payload = {
       sub: user.id,
+      role: user.role,
     };
 
     const accessToken = jwt.sign(payload, ACCESS_JWT_SECRET, {
@@ -157,7 +163,7 @@ export const authService = {
       }
 
       // 4. Generate new tokens
-      const newPayload = { sub: user.id };
+      const newPayload = { sub: user.id, role: user.role };
       
       const newAccessToken = jwt.sign(newPayload, ACCESS_JWT_SECRET, {
         expiresIn: ACCESS_TOKEN_EXPIRES,
@@ -215,8 +221,13 @@ export const authService = {
       }
     }
 
+    // Kiểm tra khóa tài khoản (Google login)
+    if (user.isBanned) {
+      throw new UnauthorizedException('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+    }
+
     // Tạo JWT tokens giống hệt luồng login thường
-    const payload = { sub: user.id };
+    const payload = { sub: user.id, role: user.role };
 
     const accessToken = jwt.sign(payload, ACCESS_JWT_SECRET, {
       expiresIn: ACCESS_TOKEN_EXPIRES,

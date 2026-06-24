@@ -8,6 +8,11 @@ datasource db {
 }
 
 // --- ENUMS ---
+enum Role {
+  USER
+  ADMIN
+}
+
 enum RoomStatus {
   AVAILABLE      // Còn phòng
   ALMOST_FULL    // Sắp hết
@@ -29,6 +34,8 @@ model User {
   hashedRefreshToken String?   @db.Text
   googleId           String?   @unique @db.VarChar(255) // Google Subject ID
   authProvider       String    @default("local") @db.VarChar(20) // "local" | "google"
+  role               Role      @default(USER)            // Phân quyền
+  isBanned           Boolean   @default(false)           // Trạng thái khóa tài khoản
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -68,10 +75,11 @@ model Room {
 
   // Phân loại
   status           RoomStatus @default(AVAILABLE)
-  sharedOwner      Boolean    @default(false) // Ở chung chủ hay không
+  sharedOwner      Boolean    @default(false) // ở chung chủ hay không
   curfew           String?    @db.VarChar(100) // Giờ giới nghiêm
   otherCosts       String?    @db.VarChar(255) // Chi phí khác
   description      String?    @db.Text // Mô tả chi tiết
+  isHidden         Boolean    @default(false)  // Admin ẩn phòng
 
   // Khóa ngoại
   createdBy        String   @db.Uuid // ID người tạo bài (FK)

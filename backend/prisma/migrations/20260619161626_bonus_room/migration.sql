@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "Room" ALTER COLUMN "electricityPrice" SET DATA TYPE TEXT,
-ALTER COLUMN "waterPrice" SET DATA TYPE TEXT;
