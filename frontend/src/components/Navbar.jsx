@@ -5,7 +5,7 @@ import { useUiStore } from '../stores/uiStore';
 
 export default function Navbar() {
   const location = useLocation();
-  const { isLoggedIn, userEmail, userName, userAvatar } = useAuthStore();
+  const { isLoggedIn, userEmail, userName, userAvatar, userRole } = useAuthStore();
   const savedCount = useUiStore((s) => s.savedIds.length);
   const userDisplayName = isLoggedIn ? (userName || userEmail.split('@')[0]) : '';
 
@@ -61,6 +61,17 @@ export default function Navbar() {
             >
               Kênh đăng tin
             </Link>
+            {userRole === 'ADMIN' && (
+              <Link
+                to="/admin"
+                className={`font-bold text-base transition-colors cursor-pointer flex items-center gap-1 ${
+                  location.pathname.startsWith('/admin') ? 'text-primary' : 'text-slate-600 hover:text-primary'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Actions on Right */}
@@ -149,6 +160,17 @@ export default function Navbar() {
           <span className="material-symbols-outlined text-[22px]">favorite</span>
           <span className="text-[10px] font-semibold mt-0.5">Đã lưu</span>
         </Link>
+        {userRole === 'ADMIN' && (
+          <Link
+            to="/admin"
+            className={`flex flex-col items-center justify-center transition-all ${
+              location.pathname.startsWith('/admin') ? 'text-primary scale-105 font-bold' : 'text-slate-500'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
+            <span className="text-[10px] font-semibold mt-0.5">Admin</span>
+          </Link>
+        )}
       </div>
     </>
   );

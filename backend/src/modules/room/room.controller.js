@@ -39,7 +39,8 @@ export const roomController = {
 		try {
 			const { id } = req.params;
 			const userId = req.user.id;
-			const data = await roomService.updateRoom(id, userId, req.body);
+			const role = req.user.role;
+			const data = await roomService.updateRoom(id, userId, role, req.body);
 			return new HttpResponse(res).success({
 				message: 'Cập nhật phòng trọ thành công',
 				room: data,
@@ -53,7 +54,8 @@ export const roomController = {
 		try {
 			const { id } = req.params;
 			const userId = req.user.id;
-			const data = await roomService.deleteRoom(id, userId);
+			const role = req.user.role;
+			const data = await roomService.deleteRoom(id, userId, role);
 			return new HttpResponse(res).success(data);
 		} catch (error) {
 			next(error);
@@ -64,7 +66,8 @@ export const roomController = {
 		try {
 			const { id } = req.params;
 			const userId = req.user.id;
-			const data = await roomService.uploadRoomImage(id, userId, req.file, req.body);
+			const role = req.user.role;
+			const data = await roomService.uploadRoomImage(id, userId, role, req.file, req.body);
 			return new HttpResponse(res).success({
 				message: 'Tải ảnh lên thành công',
 				image: data,
@@ -78,7 +81,8 @@ export const roomController = {
 		try {
 			const { id, imageId } = req.params;
 			const userId = req.user.id;
-			const data = await roomService.deleteRoomImage(id, imageId, userId);
+			const role = req.user.role;
+			const data = await roomService.deleteRoomImage(id, imageId, userId, role);
 			return new HttpResponse(res).success(data);
 		} catch (error) {
 			next(error);
@@ -89,7 +93,8 @@ export const roomController = {
 		try {
 			const { id } = req.params;
 			const userId = req.user.id;
-			const data = await roomService.reorderImages(id, userId, req.body);
+			const role = req.user.role;
+			const data = await roomService.reorderImages(id, userId, role, req.body);
 			return new HttpResponse(res).success(data);
 		} catch (error) {
 			next(error);

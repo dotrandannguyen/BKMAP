@@ -109,7 +109,12 @@ export const roomRepository = {
 		});
 	},
 	async findAll(filters = {}, skip = 0, take = 10) {
-		const where = {};
+		const where = {
+			isHidden: false, // Mặc định: API public không trả phòng bị Admin ẩn
+			creator: {
+				isBanned: false, // Không trả về phòng của người dùng đã bị khóa
+			},
+		};
 
 		if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
 			where.price = {};
@@ -136,9 +141,7 @@ export const roomRepository = {
 		}
 
 		if (filters.ownerEmail) {
-			where.creator = {
-				email: filters.ownerEmail,
-			};
+			where.creator.email = filters.ownerEmail;
 		}
 
 		if (filters.search) {

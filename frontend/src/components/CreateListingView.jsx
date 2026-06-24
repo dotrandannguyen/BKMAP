@@ -50,11 +50,19 @@ function MapViewCenter({ position }) {
 
 export default function CreateListingView() {
   const navigate = useNavigate();
-  const { editingListing: initialData, addListing } = useListingStore();
+  const { editingListing: initialData, addListing, setEditingListing } = useListingStore();
   const userEmail = useAuthStore((s) => s.userEmail);
   const userName = useAuthStore((s) => s.userName);
+  const userRole = useAuthStore((s) => s.userRole);
   const onAddListing = (listing) => addListing(listing, userEmail);
   const [step, setStep] = useState(1);
+
+  // Dọn dẹp trạng thái chỉnh sửa khi rời khỏi trang
+  useEffect(() => {
+    return () => {
+      setEditingListing(null);
+    };
+  }, [setEditingListing]);
 
   // Cuộn lên đầu trang khi đổi bước (Step)
   useEffect(() => {
@@ -543,7 +551,7 @@ export default function CreateListingView() {
       
       setIsSuccess(true);
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(userRole === 'ADMIN' ? '/admin' : '/dashboard');
       }, 1500);
       
       
@@ -566,11 +574,12 @@ export default function CreateListingView() {
       {/* Back to dashboard */}
       <button
         onClick={() => {
+          const targetUrl = userRole === 'ADMIN' ? '/admin' : '/dashboard';
           if (isDirty) {
-            setNextUrl('/dashboard');
+            setNextUrl(targetUrl);
             setIsConfirmModalOpen(true);
           } else {
-            navigate('/dashboard');
+            navigate(targetUrl);
           }
         }}
         className="mb-6 flex items-center gap-2 text-primary font-bold text-sm hover:underline cursor-pointer group"

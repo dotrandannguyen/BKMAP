@@ -9,10 +9,10 @@ import { del as delFromCache, invalidate } from '../../common/services/cache.ser
 // Helper function for cache invalidation
 const invalidateRoomCaches = async (roomId) => {
     if (roomId) {
-        await delFromCache(`room_detail:${roomId}`);
+        await delFromCache(`room:detail:${roomId}`);
     }
     // Invalidate homepage cache
-    await invalidate('rooms:home:*');
+    await invalidate('rooms:list:*');
 };
 
 
@@ -75,7 +75,7 @@ export const roomService = {
 		return room;
 	},
 
-	async updateRoom(id, userId, dto) {
+	async updateRoom(id, userId, role, dto) {
 		if (!uuidValidate(id)) {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
@@ -85,7 +85,7 @@ export const roomService = {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
 
-		if (room.createdBy !== userId) {
+		if (room.createdBy !== userId && role !== 'ADMIN') {
 			throw new ClientException(403, 'Bạn không có quyền chỉnh sửa phòng trọ này.');
 		}
 
@@ -105,7 +105,7 @@ export const roomService = {
 		}
 	},
 
-	async deleteRoom(id, userId) {
+	async deleteRoom(id, userId, role) {
 		if (!uuidValidate(id)) {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
@@ -115,7 +115,7 @@ export const roomService = {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
 
-		if (room.createdBy !== userId) {
+		if (room.createdBy !== userId && role !== 'ADMIN') {
 			throw new ClientException(403, 'Bạn không có quyền xóa phòng trọ này.');
 		}
 		
@@ -129,7 +129,7 @@ export const roomService = {
 		return { message: 'Xóa phòng trọ thành công.' };
 	},
 
-	async uploadRoomImage(roomId, userId, file, body) {
+	async uploadRoomImage(roomId, userId, role, file, body) {
         // ... (validation logic is unchanged)
 		const displayOrder = body && body.displayOrder ? parseInt(body.displayOrder, 10) : 0;
 		if (!uuidValidate(roomId)) {
@@ -139,7 +139,7 @@ export const roomService = {
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
-		if (room.createdBy !== userId) {
+		if (room.createdBy !== userId && role !== 'ADMIN') {
 			throw new ClientException(403, 'Bạn không có quyền thêm ảnh cho phòng trọ này.');
 		}
 		const currentImageCount = await roomRepository.countImagesByRoomId(roomId);
@@ -184,7 +184,7 @@ export const roomService = {
         return newImage;
 	},
 
-	async deleteRoomImage(roomId, imageId, userId) {
+	async deleteRoomImage(roomId, imageId, userId, role) {
 		if (!uuidValidate(roomId) || !uuidValidate(imageId)) {
 			throw new ClientException(400, 'ID không hợp lệ.');
 		}
@@ -193,7 +193,7 @@ export const roomService = {
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
-		if (room.createdBy !== userId) {
+		if (room.createdBy !== userId && role !== 'ADMIN') {
 			throw new ClientException(403, 'Bạn không có quyền xóa ảnh của phòng trọ này.');
 		}
 
@@ -211,7 +211,7 @@ export const roomService = {
 		return { message: 'Xóa ảnh thành công.' };
 	},
 
-	async reorderImages(roomId, userId, payload) {
+	async reorderImages(roomId, userId, role, payload) {
 		if (!uuidValidate(roomId)) {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
@@ -220,7 +220,7 @@ export const roomService = {
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
-		if (room.createdBy !== userId) {
+		if (room.createdBy !== userId && role !== 'ADMIN') {
 			throw new ClientException(403, 'Bạn không có quyền sửa đổi phòng trọ này.');
 		}
 

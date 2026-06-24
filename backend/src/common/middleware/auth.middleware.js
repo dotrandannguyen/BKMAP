@@ -17,7 +17,7 @@ export const authMiddleware = (req, res, next) => {
 		const payload = jwt.verify(token, ACCESS_JWT_SECRET);
 
 		// Attach user info to request
-		req.user = { id: payload.sub };
+		req.user = { id: payload.sub, role: payload.role };
 
 		next();
 	} catch (error) {
