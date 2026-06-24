@@ -104,8 +104,27 @@ const UserPage = () => {
     navigate(`/rooms/${id}`);
   };
 
+  const getTimeAgo = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return 'Vừa xong';
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} giờ trước`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) return `${diffInDays} ngày trước`;
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) return `${diffInMonths} tháng trước`;
+    return `${Math.floor(diffInDays / 365)} năm trước`;
+  };
+
   const formatVND = (num) => {
-    return num.toLocaleString('vi-VN') + ' VNĐ';
+    if (!num) return '0';
+    return Number(num).toLocaleString('vi-VN') + ' VNĐ';
   };
 
   const formatAddressShort = (addr) => {
@@ -166,7 +185,7 @@ const UserPage = () => {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="px-6 py-10 max-w-5xl mx-auto space-y-8">
+        <div className="px-6 py-10 max-w-7xl mx-auto space-y-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
@@ -208,19 +227,38 @@ const UserPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
               {sortedListings.map(listing => (
                 <div 
                   key={listing.id} 
-                  className="bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group flex flex-col"
+                  className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group flex flex-col relative"
                   onClick={() => onSelectListing(listing.id)}
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                  {/* Cover Photo */}
+                  <div className="relative h-48 w-full overflow-hidden bg-slate-50">
                     <img 
                       src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'} 
                       alt={listing.title} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
                     />
+                    
+                    {/* Badges on Top */}
+                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[90%]">
+                      {listing.verified && (
+                        <span className="bg-white/95 backdrop-blur-md text-primary text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                          <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                          XÁC THỰC
+                        </span>
+                      )}
+                      {listing.tag && !listing.verified && (
+                        <span className="bg-secondary text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-sm">
+                          {listing.tag}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Unfavorite Button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -230,27 +268,76 @@ const UserPage = () => {
                     >
                       <Heart size={18} fill="currentColor" />
                     </button>
-                    <div className="absolute bottom-3 left-3 flex gap-2">
-                      <span className="bg-white/90 backdrop-blur-sm text-xs font-bold px-2.5 py-1 rounded-lg text-slate-800 shadow-sm">
-                        {listing.type}
+
+                    {/* Bottom gradient overlay with time ago and image count */}
+                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-3 pb-2.5 pointer-events-none select-none">
+                      <span className="text-white text-[12px] font-bold drop-shadow-md">
+                        {getTimeAgo(listing.updatedAt || listing.createdAt || new Date().toISOString())}
                       </span>
+                      {listing.images && listing.images.length > 0 && (
+                        <div className="flex items-center gap-1 text-white text-[12px] font-bold drop-shadow-md">
+                          <span>{listing.images.length}</span>
+                          <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="p-5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h3 className="font-bold text-slate-900 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                        {listing.title}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">location_on</span>
-                        <span className="line-clamp-1">{formatAddressShort(listing.address)}</span>
-                      </p>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-                      <div className="font-black text-primary">
-                        {formatVND(listing.price)}<span className="text-[10px] text-slate-500 font-semibold uppercase">/tháng</span>
+
+                  {/* Summary Metadata */}
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="space-y-1">
+                        <h4 className="text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
+                          {listing.title}
+                        </h4>
+                        
+                        <p className="text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
+                          {formatVND(listing.price)}
+                          <span className="text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
+                        </p>
+                        
+                        <p className="text-xs text-on-surface-variant font-medium flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
+                          <span className="line-clamp-2">{formatAddressShort(listing.address)}</span>
+                        </p>
+                        
+                        {listing.distanceText && (
+                          <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap mt-1">
+                            <span className="material-symbols-outlined text-[13px]">directions_walk</span>
+                            {listing.distanceText}
+                          </p>
+                        )}
                       </div>
-                      <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors">arrow_forward</span>
+
+                      {/* Host avatar */}
+                      {listing.host?.avatar ? (
+                        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
+                          <img
+                            alt={listing.host.name || 'Chủ trọ'}
+                            className="w-full h-full object-cover"
+                            src={listing.host.avatar}
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0">
+                          {listing.host?.name ? listing.host.name[0] : 'C'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Amenity tags */}
+                    <div className="flex flex-nowrap gap-1.5 pt-2 border-t border-outline-variant/15 overflow-hidden">
+                      {listing.amenities?.slice(0, 1).map((amenity, i) => (
+                        <span key={i} className="text-[10px] bg-slate-100 text-on-surface-variant px-2.5 py-1 rounded-md font-semibold font-sans whitespace-nowrap truncate max-w-[150px]">
+                          {amenity}
+                        </span>
+                      ))}
+                      {listing.amenities?.length > 1 && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-md font-bold font-sans whitespace-nowrap shrink-0">
+                          +{listing.amenities.length - 1} khác
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

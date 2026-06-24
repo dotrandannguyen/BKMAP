@@ -192,6 +192,24 @@ export default function DetailView() {
   };
 
 
+  const getTimeAgo = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return 'Vừa xong';
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} giờ trước`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) return `${diffInDays} ngày trước`;
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) return `${diffInMonths} tháng trước`;
+    return `${Math.floor(diffInDays / 365)} năm trước`;
+  };
+
   const formatVND = (num) => {
     return num.toLocaleString('vi-VN') + ' VNĐ';
   };
@@ -215,6 +233,10 @@ export default function DetailView() {
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="bg-slate-100 text-on-surface text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase">
               {listing.type}
+            </span>
+            <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px]">schedule</span>
+              Đăng {getTimeAgo(listing.updatedAt || listing.createdAt || new Date().toISOString())}
             </span>
           </div>
 

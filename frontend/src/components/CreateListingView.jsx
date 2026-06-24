@@ -657,7 +657,10 @@ export default function CreateListingView() {
                   placeholder="Ví dụ: 20"
                   type="number"
                   value={area}
-                  onChange={(e) => setArea(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setArea(val === '' ? '' : Number(val));
+                  }}
                 />
               </div>
 
