@@ -134,33 +134,27 @@ export default function AllListingsView() {
               Mới Nhất
             </button>
 
-            {/* Price Select Dropdown */}
-            <div className="relative group">
-              <button
-                className={`px-4 py-1.5 rounded-lg flex items-center justify-between min-w-[140px] text-xs transition-colors cursor-pointer border ${
-                  sortType.startsWith('price-') ? 'bg-white text-primary border-primary font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
-                }`}
-              >
-                <span>
-                  {sortType === 'price-asc' ? 'Giá: Thấp đến Cao' : sortType === 'price-desc' ? 'Giá: Cao đến Thấp' : 'Giá'}
-                </span>
-                <span className="material-symbols-outlined text-[16px] ml-1">keyboard_arrow_down</span>
-              </button>
-              <div className="absolute left-0 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-50">
-                <button
-                  onClick={() => { setSortType('price-asc'); setCurrentPage(1); }}
-                  className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 hover:text-primary"
-                >
-                  Giá: Thấp đến Cao
-                </button>
-                <button
-                  onClick={() => { setSortType('price-desc'); setCurrentPage(1); }}
-                  className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 hover:text-primary"
-                >
-                  Giá: Cao đến Thấp
-                </button>
-              </div>
-            </div>
+            {/* Price Ascending Button */}
+            <button
+              onClick={() => { setSortType('price-asc'); setCurrentPage(1); }}
+              className={`px-4 py-1.5 rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1.5 ${
+                sortType === 'price-asc' ? 'bg-primary text-white font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              }`}
+            >
+              <span>Giá</span>
+              <span className="material-symbols-outlined text-[14px] font-bold">arrow_upward</span>
+            </button>
+
+            {/* Price Descending Button */}
+            <button
+              onClick={() => { setSortType('price-desc'); setCurrentPage(1); }}
+              className={`px-4 py-1.5 rounded-lg transition-colors cursor-pointer text-xs flex items-center gap-1.5 ${
+                sortType === 'price-desc' ? 'bg-primary text-white font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              }`}
+            >
+              <span>Giá</span>
+              <span className="material-symbols-outlined text-[14px] font-bold">arrow_downward</span>
+            </button>
 
             {/* Filter Toggle Button inside Sort Bar */}
             <button
@@ -219,7 +213,7 @@ export default function AllListingsView() {
               <div
                 key={item.id}
                 onClick={() => navigate(`/rooms/${item.id}`)}
-                className="bg-white rounded-none overflow-hidden hover:scale-[1.01] hover:shadow-xl border border-slate-200/60 hover:border-primary/20 transition-all duration-300 cursor-pointer flex flex-col group relative shadow-sm"
+                className="bg-white rounded-3xl overflow-hidden hover:scale-[1.01] hover:shadow-xl border border-slate-200/60 hover:border-primary/20 transition-all duration-300 cursor-pointer flex flex-col group relative shadow-sm"
               >
                 {/* Cover Photo */}
                 <div className="relative h-48 w-full overflow-hidden bg-slate-50">
@@ -242,6 +236,19 @@ export default function AllListingsView() {
                       <span className="bg-secondary text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-sm">
                         {item.tag}
                       </span>
+                    )}
+                  </div>
+
+                  {/* Bottom gradient overlay with time ago and image count */}
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-3 pb-2.5 pointer-events-none select-none">
+                    <span className="text-white text-[12px] font-bold drop-shadow-md">
+                      {getTimeAgo(item.updatedAt || item.createdAt || new Date().toISOString())}
+                    </span>
+                    {item.images && item.images.length > 0 && (
+                      <div className="flex items-center gap-1 text-white text-[12px] font-bold drop-shadow-md">
+                        <span>{item.images.length}</span>
+                        <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
+                      </div>
                     )}
                   </div>
 
@@ -281,18 +288,12 @@ export default function AllListingsView() {
                         <span className="line-clamp-2">{formatAddressShort(item.address)}</span>
                       </p>
                       
-                      <div className="flex items-center gap-3 mt-1">
-                        {item.distanceText && (
-                          <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[13px]">directions_walk</span>
-                            {item.distanceText}
-                          </p>
-                        )}
-                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[13px]">schedule</span>
-                          {getTimeAgo(item.updatedAt || item.createdAt || new Date().toISOString())}
+                      {item.distanceText && (
+                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap mt-1">
+                          <span className="material-symbols-outlined text-[13px]">directions_walk</span>
+                          {item.distanceText}
                         </p>
-                      </div>
+                      )}
                     </div>
                     
                     {/* Host avatar */}
@@ -314,11 +315,16 @@ export default function AllListingsView() {
 
                   {/* Amenity tags */}
                   <div className="flex flex-wrap gap-2 pt-2 border-t border-outline-variant/15">
-                    {item.amenities?.slice(0, 3).map((amenity, i) => (
+                    {item.amenities?.slice(0, 2).map((amenity, i) => (
                       <span key={i} className="text-[10px] bg-slate-100 text-on-surface-variant px-2.5 py-1 rounded-md font-semibold font-sans">
                         {amenity}
                       </span>
                     ))}
+                    {item.amenities?.length > 2 && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-md font-bold font-sans">
+                        +{item.amenities.length - 2} khác
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -5,7 +5,7 @@ import { useUiStore } from '../stores/uiStore';
 
 export default function HomepageView() {
   const navigate = useNavigate();
-  const { listings, selectListing, resetData, fetchRooms } = useListingStore();
+  const { listings, totalRooms, selectListing, resetData, fetchRooms } = useListingStore();
   const { setSearchQuery, setPriceFilter, savedIds, toggleSaved, recentSearches, addSearchQuery } = useUiStore();
 
   React.useEffect(() => {
@@ -367,6 +367,19 @@ export default function HomepageView() {
                       favorite
                     </span>
                   </button>
+
+                  {/* Bottom gradient overlay with time ago and image count */}
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-3 pb-2.5 pointer-events-none select-none">
+                    <span className="text-white text-[12px] font-bold drop-shadow-md">
+                      {getTimeAgo(item.updatedAt || item.createdAt || new Date().toISOString())}
+                    </span>
+                    {item.images && item.images.length > 0 && (
+                      <div className="flex items-center gap-1 text-white text-[12px] font-bold drop-shadow-md">
+                        <span>{item.images.length}</span>
+                        <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Summary Metadata */}
@@ -384,18 +397,12 @@ export default function HomepageView() {
                         <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
                         <span className="line-clamp-2">{formatAddressShort(item.address)}</span>
                       </p>
-                      <div className="flex items-center gap-3 mt-1">
-                        {item.distanceText && (
-                          <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[13px]">directions_walk</span>
-                            {item.distanceText}
-                          </p>
-                        )}
-                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[13px]">schedule</span>
-                          {getTimeAgo(item.updatedAt || item.createdAt || new Date().toISOString())}
+                      {item.distanceText && (
+                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap mt-1">
+                          <span className="material-symbols-outlined text-[13px]">directions_walk</span>
+                          {item.distanceText}
                         </p>
-                      </div>
+                      )}
                     </div>
                     
                     {/* Host avatar */}
@@ -417,11 +424,16 @@ export default function HomepageView() {
 
                   {/* Amenity tags */}
                   <div className="flex flex-wrap gap-2 pt-2 border-t border-outline-variant/15">
-                    {item.amenities.slice(0, 3).map((amenity, i) => (
+                    {item.amenities.slice(0, 2).map((amenity, i) => (
                       <span key={i} className="text-[10px] bg-slate-100 text-on-surface-variant px-2.5 py-1 rounded-md font-semibold font-sans">
                         {amenity}
                       </span>
                     ))}
+                    {item.amenities?.length > 2 && (
+                      <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-md font-bold font-sans">
+                        +{item.amenities.length - 2} khác
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -531,7 +543,7 @@ export default function HomepageView() {
             className="space-y-1 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate('/all-listings')}
           >
-            <div className="text-3xl md:text-4xl font-extrabold text-sky-300">{listings.length > 0 ? listings.length : '0'}</div>
+            <div className="text-3xl md:text-4xl font-extrabold text-sky-300">{totalRooms > 0 ? totalRooms : '0'}</div>
             <p className="text-[11px] md:text-xs font-semibold text-slate-300 uppercase tracking-widest">Tổng số trọ hiện có</p>
           </div>
           <div className="space-y-1">
