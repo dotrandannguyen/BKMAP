@@ -141,13 +141,13 @@ export default function Navbar() {
           <span className="text-[10px] font-semibold mt-0.5">Chủ trọ</span>
         </Link>
         <Link
-          to={isLoggedIn ? '/profile' : '/login'}
+          to="/profile"
           className={`flex flex-col items-center justify-center transition-all ${
             location.pathname === '/profile' || location.pathname === '/login' ? 'text-primary scale-105 font-bold' : 'text-slate-500'
           }`}
         >
-          <span className="material-symbols-outlined text-[22px]">person</span>
-          <span className="text-[10px] font-semibold mt-0.5">{isLoggedIn ? 'Cá nhân' : 'Đăng nhập'}</span>
+          <span className="material-symbols-outlined text-[22px]">favorite</span>
+          <span className="text-[10px] font-semibold mt-0.5">Đã lưu</span>
         </Link>
       </div>
     </>

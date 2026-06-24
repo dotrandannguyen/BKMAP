@@ -262,9 +262,14 @@ export default function CreateListingView() {
     if (step === 1) {
       let hasError = false;
       const parsedPrice = Number(price);
-      if (price === '' || isNaN(parsedPrice) || parsedPrice <= 0) {
+      if (price === '' || isNaN(parsedPrice) || parsedPrice <= 0 || parsedPrice > 9000000000000000) {
         setPriceError(true);
         hasError = true;
+        if (parsedPrice > 9000000000000) {
+          toast.warning('Giá thuê quá lớn, vui lòng kiểm tra lại.');
+        } else if (price === '') {
+          toast.warning('Vui lòng nhập giá thuê.');
+        }
       } else {
         setPriceError(false);
       }
@@ -390,7 +395,7 @@ export default function CreateListingView() {
         electricityPrice: electricityPrice ? String(electricityPrice) : '',
         waterPrice: waterPrice ? String(waterPrice) : '',
         otherCosts: otherCosts.trim(),
-        distanceToBk: distanceDUT || 0.8,
+        distanceToBk: distanceDUT !== null ? Number(distanceDUT) : 0.8,
         address: address.trim() || 'Đà Nẵng',
         ownerName: hostName || userName || 'Người dùng BKMAP',
         ownerPhone: hostPhone,
@@ -421,7 +426,38 @@ export default function CreateListingView() {
       });
 
       if (!createRes.ok) {
-        const errData = await createRes.json();
+        const errData = await createRes.json().catch(() => ({}));
+        if (errData.errors) {
+           const fieldNames = {
+             title: 'Tiêu đề',
+             address: 'Địa chỉ',
+             latitude: 'Vĩ độ',
+             longitude: 'Kinh độ',
+             distanceToBk: 'Khoảng cách đến Bách Khoa',
+             price: 'Giá thuê',
+             area: 'Diện tích',
+             ownerName: 'Tên chủ trọ',
+             ownerPhone: 'Số điện thoại',
+             electricityPrice: 'Giá điện',
+             waterPrice: 'Giá nước',
+             imageUrls: 'Hình ảnh'
+           };
+           
+           const errorMessages = Object.entries(errData.errors)
+             .map(([key, msg]) => {
+                const fieldName = fieldNames[key] || key;
+                let userMsg = msg;
+                if (typeof msg === 'string') {
+                  const lowerMsg = msg.toLowerCase();
+                  if (lowerMsg.includes('expected number, received string')) userMsg = 'Phải là một số hợp lệ';
+                  else if (lowerMsg.includes('too big')) userMsg = 'Giá trị quá lớn, vui lòng kiểm tra lại';
+                  else if (lowerMsg.includes('invalid input')) userMsg = 'Dữ liệu không hợp lệ';
+                }
+                return `[${fieldName}]: ${userMsg}`;
+             })
+             .join('; ');
+           throw new Error(`Vui lòng kiểm tra lại thông tin: ${errorMessages}`);
+        }
         throw new Error(errData.message || 'Lỗi khi tạo phòng trên server');
       }
 
