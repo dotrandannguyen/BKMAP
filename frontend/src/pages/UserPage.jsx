@@ -9,7 +9,8 @@ import {
   ChevronDown,
   Settings,
   Trash2,
-  Heart
+  Heart,
+  X
 } from 'lucide-react';
 
 const UserPage = () => {
@@ -24,6 +25,30 @@ const UserPage = () => {
     : listings.filter(l => savedIds.includes(l.id));
 
   const [sortBy, setSortBy] = React.useState('newest');
+
+  // State for Change Password Modal
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [oldPassword, setOldPassword] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [error, setError] = React.useState(null);
+  const [success, setSuccess] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    // TODO: Implement password change logic
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+    console.log('Password change submitted with:', { oldPassword, newPassword });
+    // Simulate API call
+    setTimeout(() => {
+      setError('Chức năng này đang được phát triển hoặc có lỗi xảy ra.');
+      setIsLoading(false);
+    }, 1500);
+  };
+  
   
   const sortedListings = [...savedListings].sort((a, b) => {
     if (sortBy === 'price-asc') return a.price - b.price;
@@ -191,6 +216,66 @@ const UserPage = () => {
           )}
         </div>
       </main>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center font-sans antialiased">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md m-4 p-8 relative">
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Đổi mật khẩu</h2>
+            <p className="text-slate-500 text-sm mb-6">Để bảo mật, vui lòng không chia sẻ mật khẩu cho người khác.</p>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-slate-700" htmlFor="oldPassword">Mật khẩu cũ</label>
+                <input
+                  type="password"
+                  id="oldPassword"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border border-transparent focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-slate-700" htmlFor="newPassword">Mật khẩu mới</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border border-transparent focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-slate-700" htmlFor="confirmPassword">Xác nhận mật khẩu mới</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border border-transparent focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
+                />
+              </div>
+
+              {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+              {success && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">{success}</p>}
+
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-primary hover:bg-primary-container text-white px-6 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isLoading ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
