@@ -137,19 +137,25 @@ const UserPage = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-full hidden md:flex">
         {/* User section */}
-        <div className="px-5 py-4 flex items-center gap-3 cursor-pointer border-b border-slate-100 hover:bg-slate-50 transition-colors" onClick={() => navigate('/')}>
-          {userAvatar ? (
-            <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200">
-              <img src={userAvatar} alt={userDisplayName} className="w-full h-full object-cover" />
-            </div>
+        <div className="px-5 py-4 flex items-center gap-3 cursor-pointer border-b border-slate-100 hover:bg-slate-50 transition-colors" onClick={() => !isLoggedIn ? navigate('/login') : navigate('/')}>
+          {isLoggedIn ? (
+            userAvatar ? (
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200">
+                <img src={userAvatar} alt={userDisplayName} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase shadow-sm shadow-primary/20">
+                {userDisplayName[0]}
+              </div>
+            )
           ) : (
-            <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm uppercase shadow-sm shadow-primary/20">
-              {userDisplayName[0]}
+            <div className="w-9 h-9 bg-slate-200 text-slate-500 rounded-full flex items-center justify-center font-bold text-sm shadow-sm">
+              ?
             </div>
           )}
           <div className="flex-1 overflow-hidden">
-            <span className="block font-bold text-slate-800 truncate text-sm">{userDisplayName}</span>
-            <span className="block text-[10px] text-slate-500 truncate">{userEmail}</span>
+            <span className="block font-bold text-slate-800 truncate text-sm">{isLoggedIn ? userDisplayName : 'Khách truy cập'}</span>
+            <span className="block text-[10px] text-slate-500 truncate">{isLoggedIn ? userEmail : 'Bấm để đăng nhập'}</span>
           </div>
           <ChevronDown size={16} className="text-slate-400" />
         </div>
@@ -171,16 +177,25 @@ const UserPage = () => {
         </div>
 
         {/* Bottom nav */}
-        <div className="mt-auto p-3 border-t border-slate-100 space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => setIsModalOpen(true)}>
-            <Settings size={18} />
-            <span className="text-sm font-semibold">Cài đặt cá nhân</span>
+        {isLoggedIn ? (
+          <div className="mt-auto p-3 border-t border-slate-100 space-y-1">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => setIsModalOpen(true)}>
+              <Settings size={18} />
+              <span className="text-sm font-semibold">Cài đặt cá nhân</span>
+            </div>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 cursor-pointer transition-colors" onClick={() => { logout(); navigate('/login'); }}>
+              <Trash2 size={18} />
+              <span className="text-sm font-semibold">Đăng xuất tài khoản</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 cursor-pointer transition-colors" onClick={() => { logout(); navigate('/login'); }}>
-            <Trash2 size={18} />
-            <span className="text-sm font-semibold">Đăng xuất tài khoản</span>
+        ) : (
+          <div className="mt-auto p-3 border-t border-slate-100 space-y-1">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-primary hover:bg-primary/5 cursor-pointer transition-colors" onClick={() => navigate('/login')}>
+              <span className="material-symbols-outlined text-[18px]">login</span>
+              <span className="text-sm font-semibold">Đăng nhập ngay</span>
+            </div>
           </div>
-        </div>
+        )}
       </aside>
 
       {/* Main Content */}
