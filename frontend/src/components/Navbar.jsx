@@ -28,10 +28,10 @@ export default function Navbar() {
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center justify-center gap-8 flex-none">
+          <nav className="hidden md:flex items-center justify-center gap-14 flex-none">
             <Link
               to="/"
-              className={`font-semibold text-sm transition-colors cursor-pointer hover:text-primary ${
+              className={`font-semibold text-base transition-colors cursor-pointer hover:text-primary ${
                 location.pathname === '/' ? 'text-primary' : 'text-slate-600'
               }`}
             >
@@ -39,15 +39,23 @@ export default function Navbar() {
             </Link>
             <Link
               to="/map"
-              className={`font-semibold text-sm transition-colors cursor-pointer hover:text-primary flex items-center gap-1 ${
+              className={`font-semibold text-base transition-colors cursor-pointer hover:text-primary flex items-center gap-1 ${
                 location.pathname === '/map' ? 'text-primary' : 'text-slate-600'
               }`}
             >
               Bản đồ
             </Link>
             <Link
+              to="/all-listings"
+              className={`font-semibold text-base transition-colors cursor-pointer hover:text-primary ${
+                location.pathname === '/all-listings' ? 'text-primary' : 'text-slate-600'
+              }`}
+            >
+              Phòng trọ
+            </Link>
+            <Link
               to="/dashboard"
-              className={`font-semibold text-sm transition-colors cursor-pointer hover:text-primary ${
+              className={`font-semibold text-base transition-colors cursor-pointer hover:text-primary ${
                 location.pathname === '/dashboard' ? 'text-primary' : 'text-slate-600'
               }`}
             >
@@ -56,7 +64,7 @@ export default function Navbar() {
           </nav>
 
           {/* Actions on Right */}
-          <div className="flex-1 flex items-center justify-end gap-5">
+          <div className="flex-1 flex items-center justify-end gap-7">
             {/* Wishlist Indicators */}
             <Link 
               to="/profile"

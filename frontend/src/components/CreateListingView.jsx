@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -94,6 +94,68 @@ export default function CreateListingView() {
   // Default initial position to Bách Khoa if not editing existing lat/lng
   const [position, setPosition] = useState(initialData?.lat ? { lat: initialData.lat, lng: initialData.lng } : null);
   const [distanceDUT, setDistanceDUT] = useState(initialData?.distanceDUT || null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [nextUrl, setNextUrl] = useState(null);
+
+  // Compute isDirty dynamically
+  const isDirty = useMemo(() => {
+    if (isSuccess) return false;
+    if (initialData) {
+      return (
+        title !== (initialData.title || '') ||
+        type !== (initialData.type || 'Trọ') ||
+        price !== (initialData.price || '') ||
+        area !== (initialData.area || '') ||
+        description !== (initialData.description || '') ||
+        hostPhone !== (initialData.host?.phone || '') ||
+        electricityPrice !== (initialData.electricityPrice || '') ||
+        waterPrice !== (initialData.waterPrice || '') ||
+        otherCosts !== (initialData.otherCosts || '') ||
+        selectedFiles.length > 0
+      );
+    }
+    return (
+      title !== '' ||
+      price !== '' ||
+      area !== '' ||
+      description !== '' ||
+      hostPhone !== '' ||
+      electricityPrice !== '' ||
+      waterPrice !== '' ||
+      otherCosts !== '' ||
+      selectedFiles.length > 0 ||
+      imageUrls.length > 0 ||
+      position !== null
+    );
+  }, [title, type, price, area, description, hostPhone, electricityPrice, waterPrice, otherCosts, selectedFiles, imageUrls, position, initialData, isSuccess]);
+
+  // Hook to block route transitions and page unloads
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    const handleGlobalClick = (e) => {
+      const anchor = e.target.closest('a');
+      if (anchor && isDirty) {
+        e.preventDefault();
+        e.stopPropagation();
+        setNextUrl(anchor.getAttribute('href'));
+        setIsConfirmModalOpen(true);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('click', handleGlobalClick, true); // Capture phase
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('click', handleGlobalClick, true);
+    };
+  }, [isDirty]);
 
   // Haversine formula (used as a fallback)
   const calculateHaversine = (lat, lng) => {
@@ -394,7 +456,7 @@ export default function CreateListingView() {
           }
           
           uploadedCount++;
-          setUploadStatus(`Đang tải lên Supabase (${uploadedCount}/${selectedFiles.length})...`);
+          setUploadStatus(`Đang đăng (${uploadedCount}/${selectedFiles.length})...`);
         });
 
         // Đợi tất cả request chạy song song hoàn tất
@@ -467,7 +529,14 @@ export default function CreateListingView() {
       
       {/* Back to dashboard */}
       <button
-        onClick={() => navigate('/dashboard')}
+        onClick={() => {
+          if (isDirty) {
+            setNextUrl('/dashboard');
+            setIsConfirmModalOpen(true);
+          } else {
+            navigate('/dashboard');
+          }
+        }}
         className="mb-6 flex items-center gap-2 text-primary font-bold text-sm hover:underline cursor-pointer group"
       >
         <span className="material-symbols-outlined text-sm font-bold group-hover:-translate-x-0.5 transition-transform">arrow_back</span>
@@ -1034,6 +1103,41 @@ export default function CreateListingView() {
           )}
         </div>
       </div>
+
+      {/* Custom Confirmation Modal Popup */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 bg-black/45 backdrop-blur-xs z-[99999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-2xl max-w-sm w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-amber-500 mb-4">
+              <span className="material-symbols-outlined text-3xl">warning</span>
+              <h3 className="text-lg font-bold text-slate-800">Xác nhận hủy đăng tin</h3>
+            </div>
+            
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Thông tin đăng tin đang được nhập dở dang. Nếu rời đi bây giờ, toàn bộ dữ liệu đã nhập sẽ bị mất. Bạn có chắc chắn muốn hủy đăng tin không?
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsConfirmModalOpen(false)}
+                className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg uppercase transition-colors cursor-pointer"
+              >
+                Tiếp tục nhập
+              </button>
+              <button
+                onClick={() => {
+                  setIsSuccess(true); 
+                  setIsConfirmModalOpen(false);
+                  navigate(nextUrl || '/dashboard');
+                }}
+                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg uppercase transition-colors cursor-pointer shadow-sm"
+              >
+                Hủy đăng tin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
