@@ -146,7 +146,16 @@ const LoginPage = () => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="password">Mật khẩu</label>
+                        <div className="flex justify-between items-center mb-1">
+                            <label htmlFor="password" style={{ marginBottom: 0 }}>Mật khẩu</label>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/forgot-password')}
+                                className="text-xs text-primary font-semibold hover:underline bg-transparent border-none cursor-pointer p-0"
+                            >
+                                Quên mật khẩu?
+                            </button>
+                        </div>
                         <div className="input-wrapper">
                             <Lock className="input-icon" size={18} />
                             <input
