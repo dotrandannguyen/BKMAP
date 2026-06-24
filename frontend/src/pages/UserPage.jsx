@@ -10,12 +10,14 @@ import {
   Settings,
   Trash2,
   Heart,
-  X
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const UserPage = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar } = useAuthStore();
+  const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar, changePassword: changePasswordAction } = useAuthStore();
   const { listings, selectListing } = useListingStore();
   const { savedIds, favoriteRooms, toggleSaved } = useUiStore();
 
@@ -31,22 +33,63 @@ const UserPage = () => {
   const [oldPassword, setOldPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
-  const [error, setError] = React.useState(null);
+  const [errors, setErrors] = React.useState({});
   const [success, setSuccess] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [showOldPassword, setShowOldPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (isModalOpen) {
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setErrors({});
+      setSuccess(null);
+      setIsLoading(false);
+    }
+  }, [isModalOpen]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    // TODO: Implement password change logic
     setIsLoading(true);
-    setError(null);
+    setErrors({});
     setSuccess(null);
-    console.log('Password change submitted with:', { oldPassword, newPassword });
-    // Simulate API call
-    setTimeout(() => {
-      setError('Chức năng này đang được phát triển hoặc có lỗi xảy ra.');
+
+    // Frontend validation
+    let validationErrors = {};
+    if (newPassword !== confirmPassword) {
+      validationErrors.confirmPassword = 'Mật khẩu mới và xác nhận mật khẩu không khớp.';
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       setIsLoading(false);
-    }, 1500);
+      return;
+    }
+
+    try {
+      const data = await changePasswordAction({ oldPassword, newPassword, confirmPassword });
+      setSuccess(data.message || 'Đổi mật khẩu thành công!');
+      // Reset form
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      // Close modal after a delay, showing success message
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSuccess(null); // Clear success message after modal closes
+      }, 2000);
+    } catch (error) {
+      if (error.errors) {
+        setErrors(error.errors);
+      } else {
+        setErrors({ general: error.message || 'Chức năng này đang được phát triển hoặc có lỗi xảy ra.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   
@@ -110,7 +153,7 @@ const UserPage = () => {
 
         {/* Bottom nav */}
         <div className="mt-auto p-3 border-t border-slate-100 space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => setIsModalOpen(true)}>
             <Settings size={18} />
             <span className="text-sm font-semibold">Cài đặt cá nhân</span>
           </div>
@@ -233,36 +276,66 @@ const UserPage = () => {
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
                 <label className="text-sm font-semibold text-slate-700" htmlFor="oldPassword">Mật khẩu cũ</label>
-                <input
-                  type="password"
-                  id="oldPassword"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  className="mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border border-transparent focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                />
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? 'text' : 'password'}
+                    id="oldPassword"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className={`mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border ${errors.oldPassword ? 'border-red-500' : 'border-transparent'} focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.oldPassword && <p className="text-xs text-red-600 mt-1">{errors.oldPassword}</p>}
               </div>
               <div>
                 <label className="text-sm font-semibold text-slate-700" htmlFor="newPassword">Mật khẩu mới</label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border border-transparent focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    id="newPassword"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className={`mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border ${errors.newPassword ? 'border-red-500' : 'border-transparent'} focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.newPassword && <p className="text-xs text-red-600 mt-1">{errors.newPassword}</p>}
               </div>
               <div>
                 <label className="text-sm font-semibold text-slate-700" htmlFor="confirmPassword">Xác nhận mật khẩu mới</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border border-transparent focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={`mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border ${errors.confirmPassword ? 'border-red-500' : 'border-transparent'} focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>}
               </div>
 
-              {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>}
+              {errors.general && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{errors.general}</p>}
               {success && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">{success}</p>}
 
               <button 

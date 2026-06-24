@@ -146,4 +146,15 @@ export const authController = {
 			return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
 		}
 	},
+
+	async changePassword(req, res, next) {
+		try {
+			const userId = req.user?.id;
+			const { oldPassword, newPassword } = req.body;
+			const data = await authService.changePassword({ userId, oldPassword, newPassword });
+			return new HttpResponse(res).success(data);
+		} catch (error) {
+			next(error);
+		}
+	}
 };
