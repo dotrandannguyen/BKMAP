@@ -3,7 +3,7 @@
 import request from 'supertest';
 import express from 'express';
 import * as cacheMiddleware from '../cache.middleware.js';
-import redisClient from '../../../config/redis.js';
+import { redisClient, redisStatus } from '../../../config/redis.js';
 import * as cacheService from '../../services/cache.service.js';
 
 // Mock the redis client and the logger
@@ -17,12 +17,10 @@ jest.mock('../../utils/logger.js', () => ({
 // --- Test App Setup ---
 const app = express();
 
-// A dummy controller that sends a JSON response
 const dummyController = (req, res) => {
     res.status(200).json({ id: req.params.id || 'list', timestamp: Date.now() });
 };
 
-// Routes for testing
 app.get('/rooms', cacheMiddleware.cacheGuestRooms, dummyController);
 app.get('/rooms/:id', cacheMiddleware.cacheRoomDetail, dummyController);
 
@@ -30,14 +28,41 @@ app.get('/rooms/:id', cacheMiddleware.cacheRoomDetail, dummyController);
 describe('Cache Middleware', () => {
 
     beforeEach(() => {
-        redisClient.__clear();
+        if (redisClient.__clear) redisClient.__clear();
         jest.clearAllMocks();
+        // Assume Redis is ready for most tests
+        redisStatus.isReady = true;
         cacheService.cacheMetrics.hits = 0;
         cacheService.cacheMetrics.misses = 0;
     });
     
     const ENV = process.env.NODE_ENV || 'development';
     const CACHE_PREFIX = `cache:${ENV}:`;
+
+    describe('when Redis is not ready', () => {
+        beforeEach(() => {
+            redisStatus.isReady = false;
+        });
+
+        it('should bypass cacheGuestRooms and call next', async () => {
+            const response = await request(app).get('/rooms');
+            expect(response.status).toBe(200);
+            expect(cacheService.cacheMetrics.hits).toBe(0);
+            expect(cacheService.cacheMetrics.misses).toBe(0);
+            // Ensure nothing was cached
+            const store = redisClient.__getStore();
+            expect(store.size).toBe(0);
+        });
+
+        it('should bypass cacheRoomDetail and call next', async () => {
+            const response = await request(app).get('/rooms/123');
+            expect(response.status).toBe(200);
+            expect(cacheService.cacheMetrics.hits).toBe(0);
+            expect(cacheService.cacheMetrics.misses).toBe(0);
+            const store = redisClient.__getStore();
+            expect(store.size).toBe(0);
+        });
+    });
 
     describe('cacheGuestRooms', () => {
         const defaultQueryKey = 'rooms:list:page-1:limit-10';

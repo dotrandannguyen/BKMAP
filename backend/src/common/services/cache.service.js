@@ -1,4 +1,4 @@
-import redisClient from '../../config/redis.js';
+import { redisClient, redisStatus } from '../../config/redis.js';
 import logger from '../utils/logger.js';
 
 const ENV = process.env.NODE_ENV || 'development';
@@ -30,6 +30,9 @@ const _get = async (key) => {
  * @returns {Promise<any>}
  */
 export const get = async (key) => {
+  if (!redisStatus.isReady) {
+    return null;
+  }
   try {
     const value = await Promise.race([
       _get(key),
@@ -59,10 +62,12 @@ export const get = async (key) => {
  * @returns {Promise<void>}
  */
 export const set = async (key, value, ttlSeconds) => {
+  if (!redisStatus.isReady) {
+    return;
+  }
   try {
     const prefixedKey = `${CACHE_PREFIX}${key}`;
     const stringValue = JSON.stringify(value);
-    // Use 'NX' to avoid overwriting and 'EX' for TTL in one atomic operation.
     await redisClient.set(prefixedKey, stringValue, 'EX', ttlSeconds);
   } catch (error) {
     logger.error(`Error setting cache for key: ${key}`, error);
@@ -75,6 +80,9 @@ export const set = async (key, value, ttlSeconds) => {
  * @returns {Promise<void>}
  */
 export const del = async (key) => {
+  if (!redisStatus.isReady) {
+    return;
+  }
   try {
     await redisClient.del(`${CACHE_PREFIX}${key}`);
   } catch (error) {
@@ -88,6 +96,9 @@ export const del = async (key) => {
  * @returns {Promise<void>}
  */
 export const invalidate = (pattern) => {
+  if (!redisStatus.isReady) {
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
     try {
       const stream = redisClient.scanStream({

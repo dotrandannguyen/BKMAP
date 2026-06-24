@@ -1,4 +1,5 @@
 import * as cacheService from '../services/cache.service.js';
+import { redisStatus } from '../../config/redis.js';
 import logger from '../utils/logger.js';
 
 // --- TTL Configuration from Environment ---
@@ -13,7 +14,7 @@ const logCache = (level, message) => {
 };
 
 export const cacheGuestRooms = async (req, res, next) => {
-    if (req.headers.authorization) {
+    if (!redisStatus.isReady || req.headers.authorization) {
         return next();
     }
 
@@ -57,7 +58,7 @@ export const cacheGuestRooms = async (req, res, next) => {
 };
 
 export const cacheRoomDetail = async (req, res, next) => {
-    if (req.headers.authorization) {
+    if (!redisStatus.isReady || req.headers.authorization) {
         return next();
     }
 

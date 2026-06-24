@@ -1,6 +1,6 @@
 // backend/src/common/services/__tests__/cache.service.test.js
 
-import redisClient from '../../../config/redis.js';
+import { redisClient, redisStatus } from '../../../config/redis.js';
 import * as cacheService from '../cache.service.js';
 
 // Mock the redis client
@@ -18,8 +18,11 @@ describe('Cache Service', () => {
 
     beforeEach(() => {
         // Clear the mock store and reset mock function stats before each test
-        redisClient.__clear();
+        if (redisClient.__clear) redisClient.__clear();
         jest.clearAllMocks();
+        // For most tests, we assume Redis is ready.
+        redisStatus.isReady = true;
+
         // Reset metrics
         cacheService.cacheMetrics.hits = 0;
         cacheService.cacheMetrics.misses = 0;
@@ -28,6 +31,33 @@ describe('Cache Service', () => {
 
     const ENV = process.env.NODE_ENV || 'development';
     const CACHE_PREFIX = `cache:${ENV}:`;
+
+    describe('when Redis is not ready', () => {
+        beforeEach(() => {
+            redisStatus.isReady = false;
+        });
+
+        it('get() should return null', async () => {
+            const result = await cacheService.get('any-key');
+            expect(result).toBeNull();
+            expect(redisClient.get).not.toHaveBeenCalled();
+        });
+
+        it('set() should do nothing', async () => {
+            await cacheService.set('any-key', { a: 1 }, 100);
+            expect(redisClient.set).not.toHaveBeenCalled();
+        });
+
+        it('del() should do nothing', async () => {
+            await cacheService.del('any-key');
+            expect(redisClient.del).not.toHaveBeenCalled();
+        });
+
+        it('invalidate() should do nothing', async () => {
+            await cacheService.invalidate('any-pattern:*');
+            expect(redisClient.scanStream).not.toHaveBeenCalled();
+        });
+    });
 
     describe('get', () => {
         it('should return a parsed value if key exists', async () => {
