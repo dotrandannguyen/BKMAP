@@ -84,14 +84,4 @@ export const authRepository = {
 			data: { passwordHash: newPasswordHash },
 		});
 	},
-
-	async updateVerifyToken(userId, token, expiresAt) {
-		return await prisma.user.update({
-			where: { id: userId },
-			data: {
-				verifyToken: token,
-				tokenExpires: expiresAt,
-			},
-		});
-	},
 };

@@ -23,11 +23,9 @@ export const useListingStore = create((set, get) => ({
   listings: [],
   selectedListingId: '',
   editingListing: initialEditingListing,
-  isLoading: false,
 
   // Fetch phòng trọ từ Backend API
   fetchRooms: async (filters = {}) => {
-    set({ isLoading: true });
     try {
       const apiUrl = getApiUrl();
       const params = new URLSearchParams();
@@ -92,14 +90,14 @@ export const useListingStore = create((set, get) => ({
           createdAt: room.createdAt,
           updatedAt: room.updatedAt,
         }));
-        set({ listings: roomsFromApi, isLoading: false });
+        set({ listings: roomsFromApi });
       } else {
         console.warn('API /rooms thất bại, fallback LocalStorage');
-        set({ listings: loadListings(), isLoading: false });
+        set({ listings: loadListings() });
       }
     } catch (err) {
       console.error('Lỗi load phòng từ server:', err);
-      set({ listings: loadListings(), isLoading: false });
+      set({ listings: loadListings() });
     }
   },
 

@@ -20,16 +20,3 @@ export const verifyEmailSchema = {
 		token: z.string().min(1, 'Token không được để trống'),
 	}),
 };
-
-export const forgotPasswordSchema = {
-	body: z.object({
-		email: z.string().email('Email không hợp lệ'),
-	}),
-};
-
-export const resetPasswordSchema = {
-	body: z.object({
-		token: z.string().min(1, 'Mã xác nhận không được để trống'),
-		newPassword: z.string().min(6, 'Mật khẩu mới phải có ít nhất 6 ký tự'),
-	}),
-};

@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { authRepository } from './auth.repository.js';
-import { sendVerificationEmail, sendResetPasswordEmail } from '../../common/utils/email.util.js';
+import { sendVerificationEmail } from '../../common/utils/email.util.js';
 import {
   ClientException,
   UnauthorizedException,
@@ -272,49 +272,5 @@ export const authService = {
     await authRepository.updatePassword(userId, newPasswordHash);
 
     return { message: 'Đổi mật khẩu thành công.' };
-  },
-
-  // FORGOT PASSWORD
-  async forgotPassword(dto) {
-    const user = await authRepository.findUserByEmail(dto.email);
-    if (!user) {
-      // For security reasons, do not reveal that the email is not registered
-      return { message: 'Nếu email tồn tại trong hệ thống, hướng dẫn khôi phục mật khẩu đã được gửi.' };
-    }
-
-    if (user.authProvider === 'google') {
-      throw new ClientException(400, 'Tài khoản này đăng ký bằng Google. Vui lòng sử dụng Đăng nhập bằng Google.');
-    }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // Expire in 15 minutes
-
-    await authRepository.updateVerifyToken(user.id, resetToken, expiresAt);
-
-    // Send email
-    await sendResetPasswordEmail(user.email, resetToken);
-
-    return { message: 'Nếu email tồn tại trong hệ thống, hướng dẫn khôi phục mật khẩu đã được gửi.' };
-  },
-
-  // RESET PASSWORD
-  async resetPassword(dto) {
-    const user = await authRepository.findUserByVerifyToken(dto.token);
-
-    if (!user) {
-      throw new ClientException(400, 'Liên kết khôi phục mật khẩu không hợp lệ hoặc đã hết hạn.');
-    }
-
-    if (user.tokenExpires && user.tokenExpires < new Date()) {
-      throw new ClientException(400, 'Liên kết khôi phục mật khẩu đã hết hạn.');
-    }
-
-    const newPasswordHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
-
-    await authRepository.updatePassword(user.id, newPasswordHash);
-    await authRepository.updateVerifyToken(user.id, null, null); // Clear token
-
-    return { message: 'Đặt lại mật khẩu thành công.' };
   },
 };

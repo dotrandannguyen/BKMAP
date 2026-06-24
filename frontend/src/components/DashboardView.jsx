@@ -7,7 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 export default function DashboardView() {
   const navigate = useNavigate();
   const userEmail = useAuthStore((s) => s.userEmail);
-  const { listings: allListings, deleteListing, toggleStatus, selectListing, setEditingListing, resetData, clearAll, fetchRooms, isLoading } = useListingStore();
+  const { listings: allListings, deleteListing, toggleStatus, selectListing, setEditingListing, resetData, clearAll, fetchRooms } = useListingStore();
 
   useEffect(() => {
     if (userEmail) {
@@ -108,26 +108,7 @@ export default function DashboardView() {
 
           {/* Table container card */}
           <div className="bg-white rounded-[2.25rem] border border-slate-200/60 overflow-hidden shadow-xs">
-            {isLoading ? (
-              <div className="p-6 space-y-4">
-                {Array.from({ length: 3 }).map((_, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-3 animate-pulse border-b border-slate-100 last:border-0">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-12 h-12 rounded-xl bg-slate-200" />
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 bg-slate-200 rounded w-1/3" />
-                        <div className="h-3 bg-slate-200 rounded w-1/4" />
-                      </div>
-                    </div>
-                    <div className="h-4 bg-slate-200 rounded w-20" />
-                    <div className="flex gap-2 ml-4">
-                      <div className="w-8 h-8 rounded-lg bg-slate-200 animate-pulse" />
-                      <div className="w-8 h-8 rounded-lg bg-slate-200 animate-pulse" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : totalCount === 0 ? (
+            {totalCount === 0 ? (
               /* Global Empty State for Dashboard */
               <div className="py-20 px-6 text-center space-y-4">
                 <span className="material-symbols-outlined text-5xl text-slate-300">work_outline</span>
