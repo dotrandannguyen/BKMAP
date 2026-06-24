@@ -1,7 +1,12 @@
 import express from 'express';
 import { authController } from './auth.controller.js';
 
-import { registerSchema, loginSchema, verifyEmailSchema } from './dto/requests/auth.request.js';
+import {
+	registerSchema,
+	loginSchema,
+	verifyEmailSchema,
+} from './dto/requests/auth.request.js';
+import { changePasswordSchema } from './dto/requests/change-password.request.js';
 import { validateRequestMiddleware } from '../../common/middleware/index.js';
 import { authMiddleware } from '../../common/middleware/auth.middleware.js';
 import passport from '../../config/passport.js';
@@ -28,9 +33,17 @@ router.post('/refresh-token', authController.refreshToken);
 // authMiddleware đảm bảo req.user.id luôn tồn tại để xóa refreshToken trong DB
 router.post('/logout', authMiddleware, authController.logout);
 
+router.post(
+	'/change-password',
+	authMiddleware,
+	validateRequestMiddleware(changePasswordSchema),
+	authController.changePassword,
+);
+
 // --- GOOGLE OAUTH ---
 // Bước 1: Redirect user sang Google consent screen
-router.get('/google', passport.authenticate('google', { session: false, scope: ['profile', 'email'] }));
+router.get(
+	'/google', passport.authenticate('google', { session: false, scope: ['profile', 'email'] }));
 
 // Bước 2: Google redirect về đây sau khi user đồng ý
 router.get(

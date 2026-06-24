@@ -248,4 +248,29 @@ export const authService = {
     await authRepository.updateRefreshToken(userId, null);
     return { message: 'Đăng xuất thành công.' };
   },
+
+  // CHANGE PASSWORD
+  async changePassword(dto) {
+    const { userId, oldPassword, newPassword } = dto;
+    const user = await authRepository.findUserById(userId);
+
+    // User không tồn tại hoặc user đăng nhập bằng Google
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('Không thể đổi mật khẩu cho tài khoản này.');
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedException('Mật khẩu cũ không đúng.');
+    }
+
+    if (oldPassword === newPassword) {
+      throw new ClientException(400, 'Mật khẩu mới không được trùng với mật khẩu cũ.');
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await authRepository.updatePassword(userId, newPasswordHash);
+
+    return { message: 'Đổi mật khẩu thành công.' };
+  },
 };

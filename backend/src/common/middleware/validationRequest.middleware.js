@@ -29,13 +29,21 @@ export const validateRequestMiddleware = (schema) => {
 			next();
 		} catch (err) {
 			if (err instanceof ZodError) {
-				const message = err.issues
-					.map((e) => `${e.path.join('.')} ${e.message}`)
-					.join('; ');
-					console.warn('[Zod Validation Error]', message, req.body);
+				const errors = {};
+				err.issues.forEach((e) => {
+					const field = e.path.join('.');
+					if (!errors[field]) {
+						errors[field] = e.message;
+					}
+				});
+				console.warn('[Zod Validation Error]', errors, req.body);
 				// Ném lỗi ra để errorHandler bắt
 				return next(
-					new OptionalException(StatusCodes.UNPROCESSABLE_ENTITY, message),
+					new OptionalException(
+						StatusCodes.UNPROCESSABLE_ENTITY,
+						'Validation failed',
+						errors,
+					),
 				);
 			}
 

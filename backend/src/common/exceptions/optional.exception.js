@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 import { InternalServerException } from './internalServer.exception.js';
 
 export class OptionalException extends ClientException {
-  constructor(httpStatusCode, message) {
+  constructor(httpStatusCode, message, errors = null) {
     // nếu không có status code → lỗi hệ thống (5xx)
     if (!httpStatusCode) {
       throw new InternalServerException();
@@ -11,6 +11,6 @@ export class OptionalException extends ClientException {
 
     // gọi constructor của ClientException (4xx)
     super(httpStatusCode, message);
-
+    this.errors = errors;
   }
 }

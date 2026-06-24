@@ -9,12 +9,15 @@ import {
   ChevronDown,
   Settings,
   Trash2,
-  Heart
+  Heart,
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const UserPage = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar } = useAuthStore();
+  const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar, changePassword: changePasswordAction } = useAuthStore();
   const { listings, selectListing } = useListingStore();
   const { savedIds, favoriteRooms, toggleSaved } = useUiStore();
 
@@ -24,6 +27,71 @@ const UserPage = () => {
     : listings.filter(l => savedIds.includes(l.id));
 
   const [sortBy, setSortBy] = React.useState('newest');
+
+  // State for Change Password Modal
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [oldPassword, setOldPassword] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [errors, setErrors] = React.useState({});
+  const [success, setSuccess] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [showOldPassword, setShowOldPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (isModalOpen) {
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setErrors({});
+      setSuccess(null);
+      setIsLoading(false);
+    }
+  }, [isModalOpen]);
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrors({});
+    setSuccess(null);
+
+    // Frontend validation
+    let validationErrors = {};
+    if (newPassword !== confirmPassword) {
+      validationErrors.confirmPassword = 'Mật khẩu mới và xác nhận mật khẩu không khớp.';
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const data = await changePasswordAction({ oldPassword, newPassword, confirmPassword });
+      setSuccess(data.message || 'Đổi mật khẩu thành công!');
+      // Reset form
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      // Close modal after a delay, showing success message
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSuccess(null); // Clear success message after modal closes
+      }, 2000);
+    } catch (error) {
+      if (error.errors) {
+        setErrors(error.errors);
+      } else {
+        setErrors({ general: error.message || 'Chức năng này đang được phát triển hoặc có lỗi xảy ra.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   
   const sortedListings = [...savedListings].sort((a, b) => {
     if (sortBy === 'price-asc') return a.price - b.price;
@@ -85,7 +153,7 @@ const UserPage = () => {
 
         {/* Bottom nav */}
         <div className="mt-auto p-3 border-t border-slate-100 space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => setIsModalOpen(true)}>
             <Settings size={18} />
             <span className="text-sm font-semibold">Cài đặt cá nhân</span>
           </div>
@@ -191,6 +259,96 @@ const UserPage = () => {
           )}
         </div>
       </main>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center font-sans antialiased">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md m-4 p-8 relative">
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Đổi mật khẩu</h2>
+            <p className="text-slate-500 text-sm mb-6">Để bảo mật, vui lòng không chia sẻ mật khẩu cho người khác.</p>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-slate-700" htmlFor="oldPassword">Mật khẩu cũ</label>
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? 'text' : 'password'}
+                    id="oldPassword"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className={`mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border ${errors.oldPassword ? 'border-red-500' : 'border-transparent'} focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.oldPassword && <p className="text-xs text-red-600 mt-1">{errors.oldPassword}</p>}
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-slate-700" htmlFor="newPassword">Mật khẩu mới</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    id="newPassword"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className={`mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border ${errors.newPassword ? 'border-red-500' : 'border-transparent'} focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.newPassword && <p className="text-xs text-red-600 mt-1">{errors.newPassword}</p>}
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-slate-700" htmlFor="confirmPassword">Xác nhận mật khẩu mới</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    id="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={`mt-1 w-full px-4 py-2.5 bg-slate-100 rounded-lg border ${errors.confirmPassword ? 'border-red-500' : 'border-transparent'} focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>}
+              </div>
+
+              {errors.general && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{errors.general}</p>}
+              {success && <p className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">{success}</p>}
+
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-primary hover:bg-primary-container text-white px-6 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {isLoading ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
