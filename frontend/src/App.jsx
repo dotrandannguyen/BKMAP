@@ -63,7 +63,11 @@ export default function App() {
           } />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/profile" element={<UserPage />} />
+          <Route path="/profile" element={
+            <RequireAuth>
+              <UserPage />
+            </RequireAuth>
+          } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

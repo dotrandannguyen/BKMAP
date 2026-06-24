@@ -42,4 +42,32 @@ export const useAuthStore = create((set) => ({
       userAvatar: '',
     });
   },
+
+  changePassword: async ({ oldPassword, newPassword, confirmPassword }) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      throw new Error('Bạn chưa đăng nhập.');
+    }
+
+    const response = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ oldPassword, newPassword, confirmPassword }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (data.errors) {
+        // eslint-disable-next-line no-throw-literal
+        throw { message: data.message, errors: data.errors };
+      }
+      throw new Error(data.message || 'Đã có lỗi xảy ra.');
+    }
+
+    return data;
+  },
 }));

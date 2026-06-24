@@ -77,4 +77,11 @@ export const authRepository = {
 			},
 		});
 	},
+
+	async updatePassword(userId, newPasswordHash) {
+		return await prisma.user.update({
+			where: { id: userId },
+			data: { passwordHash: newPasswordHash },
+		});
+	},
 };

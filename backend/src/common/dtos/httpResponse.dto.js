@@ -25,6 +25,7 @@ export class HttpResponse {
         return this.res.status(exception.status).json({
             success: false,
             message: exception.message,
+            errors: exception.errors || undefined,
         });
     }
 }
