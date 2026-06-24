@@ -11,6 +11,7 @@ import path from 'path';
 import { errorHandlerMiddleware } from './common/middleware/errorHandler.Middleware.js';
 import passport from './config/passport.js';
 import './config/redis.js';
+import { cacheMetrics } from './common/services/cache.service.js';
 
 const app = express();
 
@@ -32,7 +33,6 @@ app.use(cors({
 }));
 
 // --- RATE LIMITING ---
-// Global: 200 req / 15 phút
 const globalLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	max: 200,
@@ -41,7 +41,6 @@ const globalLimiter = rateLimit({
 	message: { message: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' },
 });
 
-// Auth: Chặn brute-force
 const authLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	max: 10,
@@ -82,6 +81,15 @@ app.get('/api/geocode', async (req, res, next) => {
 		next(error);
 	}
 });
+
+// Monitoring endpoint for cache
+app.get('/api/cache/metrics', (req, res) => {
+    res.json({
+        ...cacheMetrics,
+        hitRate: cacheMetrics.getHitRate(),
+    });
+});
+
 
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
