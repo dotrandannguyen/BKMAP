@@ -10,6 +10,7 @@ import favoriteRouter from './modules/favorite/favorite.router.js';
 import path from 'path';
 import { errorHandlerMiddleware } from './common/middleware/errorHandler.Middleware.js';
 import passport from './config/passport.js';
+import './config/redis.js';
 
 const app = express();
 
