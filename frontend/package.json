@@ -24,6 +24,7 @@
     "react-router-dom": "^7.18.0",
     "react-toastify": "^11.1.0",
     "vite": "^6.2.3",
+    "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

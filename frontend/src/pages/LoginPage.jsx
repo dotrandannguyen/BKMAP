@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './LoginPage.css';
 import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { useUiStore } from '../stores/uiStore';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -26,6 +27,16 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Clear stuck local favorites on login page mount to ensure fresh state
+    useEffect(() => {
+        localStorage.removeItem('favoriteRoomIds');
+        try {
+            useUiStore.getState().loadSavedIds();
+        } catch (e) {
+            console.error('Failed to reset saved IDs on login page mount:', e);
+        }
+    }, []);
 
     // Xử lý callback từ Google OAuth (parse token + user info từ URL query params)
     useEffect(() => {

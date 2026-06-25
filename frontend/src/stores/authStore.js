@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useUiStore } from './uiStore.js';
 
 export const useAuthStore = create((set) => ({
   isLoggedIn: !!localStorage.getItem('accessToken'),
@@ -47,6 +48,7 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem('userName');
     localStorage.removeItem('userAvatar');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('favoriteRoomIds');
     set({
       isLoggedIn: false,
       userEmail: '',
@@ -54,6 +56,13 @@ export const useAuthStore = create((set) => ({
       userAvatar: '',
       userRole: 'USER',
     });
+    
+    // Reset favorites/bookmarks to guest local state
+    try {
+      useUiStore.getState().loadSavedIds();
+    } catch (e) {
+      console.error('Failed to reset saved IDs on logout:', e);
+    }
   },
 
   changePassword: async ({ oldPassword, newPassword, confirmPassword }) => {
