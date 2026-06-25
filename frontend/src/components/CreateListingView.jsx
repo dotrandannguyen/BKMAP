@@ -6,6 +6,43 @@ import L from 'leaflet';
 import { useListingStore } from '../stores/listingStore';
 import { useAuthStore } from '../stores/authStore';
 import { toast } from 'react-toastify';
+import { z } from 'zod';
+
+const step1Schema = z.object({
+  title: z.string().min(5, 'Tiêu đề tin phải từ 5 ký tự trở lên.').max(150, 'Tiêu đề không được vượt quá 150 ký tự.'),
+  price: z.preprocess(
+    (val) => (val === '' ? undefined : Number(val)),
+    z.number({ required_error: 'Vui lòng nhập giá thuê.' })
+      .positive('Giá thuê phải lớn hơn 0.')
+      .max(9000000000000000, 'Giá thuê quá lớn.')
+  ),
+  area: z.preprocess(
+    (val) => (val === '' ? undefined : Number(val)),
+    z.number()
+      .positive('Diện tích phải lớn hơn 0.')
+      .max(1000, 'Diện tích không hợp lệ.')
+      .optional()
+  ),
+  hostPhone: z.string()
+    .min(1, 'Vui lòng nhập số điện thoại.')
+    .regex(/^\d{10}$/, 'Số điện thoại không hợp lệ, phải gồm đúng 10 chữ số.'),
+  address: z.string().min(1, 'Vui lòng chọn hoặc nhập địa chỉ chi tiết.'),
+  position: z.object({
+    lat: z.number(),
+    lng: z.number()
+  }, { required_error: 'Vui lòng chọn vị trí phòng trọ trên bản đồ.' })
+});
+
+const step2Schema = z.object({
+  description: z.string().min(10, 'Giới thiệu tổng quan phải từ 10 ký tự trở lên để người thuê dễ hình dung.'),
+  electricityPrice: z.string().optional(),
+  waterPrice: z.string().optional(),
+  otherCosts: z.string().optional()
+});
+
+const step3Schema = z.object({
+  imagesCount: z.number().min(1, 'Vui lòng tải lên ít nhất 1 hình ảnh.')
+});
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -28,11 +65,14 @@ const schoolIcon = L.divIcon({
   iconAnchor: [14, 14]
 });
 
-function LocationPicker({ position, setPosition, calculateDistance }) {
+function LocationPicker({ position, setPosition, calculateDistance, onPositionChange }) {
   useMapEvents({
     click(e) {
       setPosition(e.latlng);
       calculateDistance(e.latlng.lat, e.latlng.lng);
+      if (onPositionChange) {
+        onPositionChange({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
     },
   });
   return position ? <Marker position={position} /> : null;
@@ -83,8 +123,38 @@ export default function CreateListingView() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
-  const [priceError, setPriceError] = useState(false);
-  const [phoneError, setPhoneError] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+
+  const validateSingleField = (name, val) => {
+    let schema;
+    if (step === 1) {
+      if (name in step1Schema.shape) {
+        schema = step1Schema.pick({ [name]: true });
+      }
+    } else if (step === 2) {
+      if (name in step2Schema.shape) {
+        schema = step2Schema.pick({ [name]: true });
+      }
+    } else if (step === 3) {
+      if (name === 'imagesCount') {
+        schema = step3Schema;
+      }
+    }
+    
+    if (!schema) return;
+    
+    const result = schema.safeParse({ [name]: val });
+    if (!result.success) {
+      const msg = result.error.issues[0]?.message || 'Không hợp lệ';
+      setValidationErrors(prev => ({ ...prev, [name]: msg }));
+    } else {
+      setValidationErrors(prev => {
+        const copy = { ...prev };
+        delete copy[name];
+        return copy;
+      });
+    }
+  };
 
   // Map Search States
   const [createSearchQuery, setCreateSearchQuery] = useState('');
@@ -259,53 +329,117 @@ export default function CreateListingView() {
     
     // Clear suggestions
     setCreateSearchSuggestions([]);
+
+    // Validate immediately
+    validateSingleField('position', newPos);
+    validateSingleField('address', cleanAddress);
   };
 
   const handleClearCreateSearch = () => {
     setCreateSearchQuery('');
     setCreateSearchSuggestions([]);
+    setIsSearchingCreate(false);
   };
 
-  const handleNextStep = () => {
-    if (step === 1) {
-      let hasError = false;
-      const parsedPrice = Number(price);
-      if (price === '' || isNaN(parsedPrice) || parsedPrice <= 0 || parsedPrice > 9000000000000000) {
-        setPriceError(true);
-        hasError = true;
-        if (parsedPrice > 9000000000000) {
-          toast.warning('Giá thuê quá lớn, vui lòng kiểm tra lại.');
-        } else if (price === '') {
-          toast.warning('Vui lòng nhập giá thuê.');
+  // Autocomplete search as user types with debounce
+  useEffect(() => {
+    if (!createSearchQuery.trim()) {
+      setCreateSearchSuggestions([]);
+      setIsSearchingCreate(false);
+      return;
+    }
+    setIsSearchingCreate(true);
+    const timer = setTimeout(() => {
+      const handleAutocompleteSearch = async () => {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+          const res = await fetch(`${apiUrl}/geocode?q=${encodeURIComponent(createSearchQuery)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setCreateSearchSuggestions(data);
+          }
+        } catch (error) {
+          console.error('Error autocomplete searching address:', error);
+        } finally {
+          setIsSearchingCreate(false);
         }
-      } else {
-        setPriceError(false);
+      };
+      handleAutocompleteSearch();
+    }, 450); // 450ms debounce
+
+    return () => clearTimeout(timer);
+  }, [createSearchQuery]);
+
+  // Clear images count validation error when images are uploaded/selected
+  useEffect(() => {
+    if (step === 3 && validationErrors.imagesCount) {
+      const totalImages = imageUrls.length + selectedFiles.length;
+      validateSingleField('imagesCount', totalImages);
+    }
+  }, [imageUrls.length, selectedFiles.length, step, validationErrors.imagesCount]);
+
+  const handleNextStep = () => {
+    setValidationErrors({});
+    if (step === 1) {
+      const result = step1Schema.safeParse({
+        title,
+        price,
+        area,
+        hostPhone,
+        address,
+        position: position || undefined
+      });
+      if (!result.success) {
+        const errorsMap = {};
+        result.error.issues.forEach(issue => {
+          errorsMap[issue.path[0]] = issue.message;
+        });
+        setValidationErrors(errorsMap);
+        
+        // Show first error as a toast warning
+        const firstErrorMsg = result.error.issues[0].message;
+        toast.warning(firstErrorMsg);
+        return;
       }
-      const phoneStr = String(hostPhone || '').trim();
-      if (!phoneStr) {
-        setPhoneError(true);
-        hasError = true;
-        toast.warning('Vui lòng nhập số điện thoại chủ trọ.');
-      } else if (!/^\d{10}$/.test(phoneStr)) {
-        setPhoneError(true);
-        hasError = true;
-        toast.warning('Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số.');
-      } else {
-        setPhoneError(false);
+    } else if (step === 2) {
+      const result = step2Schema.safeParse({
+        description,
+        electricityPrice,
+        waterPrice,
+        otherCosts
+      });
+      if (!result.success) {
+        const errorsMap = {};
+        result.error.issues.forEach(issue => {
+          errorsMap[issue.path[0]] = issue.message;
+        });
+        setValidationErrors(errorsMap);
+        
+        const firstErrorMsg = result.error.issues[0].message;
+        toast.warning(firstErrorMsg);
+        return;
       }
-      if (hasError) {
+    } else if (step === 3) {
+      const totalImages = imageUrls.length + selectedFiles.length;
+      const result = step3Schema.safeParse({
+        imagesCount: totalImages
+      });
+      if (!result.success) {
+        const errorsMap = {};
+        result.error.issues.forEach(issue => {
+          errorsMap[issue.path[0]] = issue.message;
+        });
+        setValidationErrors(errorsMap);
+        
+        const firstErrorMsg = result.error.issues[0].message;
+        toast.warning(firstErrorMsg);
         return;
       }
     }
     setStep(step + 1);
   };
 
-  // Sample image presets for zero-fuss rapid prototyping testing
-  const PHOTO_PRESETS = [
-    { name: 'Loft Gỗ', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYQcvZOxr8H-mD-jWJ9BMYndfkhO41GGefBPnH2rSCgdH5ebP23MNRl03vyxs_azv9iv78NZsG8Ucwq1jtHOrLy7l-PUgvDXZttSfKiV7gPhDvkmeUSnXhlSsReKML2GoxwB4DkYVxBQSzO7oLXc4plZVWq9wKni8O7MwEBakq8Yuz7AS-bO91rRsjqu6igm_L1GtLYHjO5IE-uXVqBymH8X4r819FvQK-p0ey6toDSwPYEkXRQOvXaSnYufNQVQMKJQXd5yrP-A0' },
-    { name: 'Studio Đèn Neon', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDT1RC32rcZR248naSILiFJ7LgQ_ado-KrzJOZ7Z-F6iW_FYx7RPkLJ_quKPr9G-V2PCACSEXFU8_suLW8YwTL1aV9bobMGvNBg9bwm6_ByMXHR-VQ6QAmF29gZoQepp2OsSKnzrBr88STLh87UNGKArs6m4qhPpRwgixu1eqjLFGdFD1YZ7oy97p-4TGyuCQR9IakwRPhEQZDlrjz-e3kJthftLjz0IbQkpO8XJtH2jgTL3LkPRM5sx4HxU8hmkNj87yEKDazx0DU' },
-    { name: 'Sân Vườn Nhiệt Đới', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCaP71CMqVvbt2qY3xe3zzrsRlLH73ECfuHKYlhMoyV9c1BCvIH3ymwjnTCX5Z6kve6WdMqjkJsps7sXQliK0I34PZKNe9X2qBax1PMvSzsDjAQgXhRXGQbIUZ63D0Xx0JF_8LOpenmBESO31IYQx8o4e4flXwp9rQVi5y_Xyoy_rnrgvhJbqzqwPWgLohhuEOUH6kJyzem6qD-b97TROTRFm-xpVJ1lMdZa06Cpb8FyA7Ld-1jNy9ot-_AuiuWspvJEpKMCgJ4WWQ' }
-  ];
+
 
   const AMENITY_OPTIONS = [
     'WiFi miễn phí',
@@ -638,16 +772,27 @@ export default function CreateListingView() {
             <h3 className="text-base font-extrabold text-on-surface border-b pb-2">Bước 1: Thông tin cơ bản</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs sm:text-sm">
-              <div className="space-y-1.5Col col-span-2">
-                <label className="font-bold text-on-surface-variant">Tiêu đề tin đăng phòng:</label>
+              <div className="space-y-1.5 col-span-2">
+                <label className={`font-bold transition-colors ${validationErrors.title ? 'text-red-600' : 'text-on-surface-variant'}`}>Tiêu đề tin đăng phòng:</label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface transition-all ${
+                    validationErrors.title
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
                   placeholder="Ví dụ: Studio Gỗ Cao Cấp Gần Sát Cổng Khảo Thí DUT"
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    validateSingleField('title', e.target.value);
+                  }}
+                  onBlur={(e) => validateSingleField('title', e.target.value)}
                 />
+                {validationErrors.title && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in mt-1">{validationErrors.title}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -663,13 +808,13 @@ export default function CreateListingView() {
               </div>
 
               <div className="space-y-1.5">
-                <label className={`font-bold transition-colors ${priceError ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                <label className={`font-bold transition-colors ${validationErrors.price ? 'text-red-600' : 'text-on-surface-variant'}`}>
                   Giá cho thuê tháng (VND):
                 </label>
                 <input
                   required
                   className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface font-black transition-all ${
-                    priceError
+                    validationErrors.price
                       ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
                       : 'border-slate-200 focus:ring-primary'
                   }`}
@@ -678,35 +823,40 @@ export default function CreateListingView() {
                   value={price ? Number(price).toLocaleString('vi-VN') : ''}
                   onChange={(e) => {
                     const rawVal = e.target.value.replace(/\D/g, '');
-                    if (rawVal === '') {
-                      setPrice('');
-                    } else {
-                      const numVal = Number(rawVal);
-                      setPrice(numVal);
-                      if (numVal > 0) {
-                        setPriceError(false);
-                      }
-                    }
+                    const numVal = rawVal === '' ? '' : Number(rawVal);
+                    setPrice(numVal);
+                    validateSingleField('price', numVal);
                   }}
+                  onBlur={() => validateSingleField('price', price)}
                 />
-                {priceError && (
-                  <p className="text-[10px] text-red-500 font-bold animate-fade-in">Vui lòng nhập giá thuê hợp lệ</p>
+                {validationErrors.price && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in mt-1">{validationErrors.price}</p>
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Diện tích sàn (m²):</label>
+                <label className={`font-bold transition-colors ${validationErrors.area ? 'text-red-600' : 'text-on-surface-variant'}`}>Diện tích sàn (m²):</label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface font-black"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface font-black transition-all ${
+                    validationErrors.area
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
                   placeholder="Ví dụ: 20"
                   type="number"
                   value={area}
                   onChange={(e) => {
                     const val = e.target.value;
-                    setArea(val === '' ? '' : Number(val));
+                    const numVal = val === '' ? '' : Number(val);
+                    setArea(numVal);
+                    validateSingleField('area', numVal);
                   }}
+                  onBlur={() => validateSingleField('area', area)}
                 />
+                {validationErrors.area && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in mt-1">{validationErrors.area}</p>
+                )}
               </div>
 
               {/* <div className="space-y-1.5">
@@ -722,13 +872,13 @@ export default function CreateListingView() {
               </div> */}
 
               <div className="space-y-1.5">
-                <label className={`font-bold transition-colors ${phoneError ? 'text-red-600' : 'text-on-surface-variant'}`}>
+                <label className={`font-bold transition-colors ${validationErrors.hostPhone ? 'text-red-600' : 'text-on-surface-variant'}`}>
                   Số điện thoại liên hệ chủ trọ:
                 </label>
                 <input
                   required
                   className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface font-black transition-all ${
-                    phoneError
+                    validationErrors.hostPhone
                       ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
                       : 'border-slate-200 focus:ring-primary'
                   }`}
@@ -738,13 +888,12 @@ export default function CreateListingView() {
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                     setHostPhone(val);
-                    if (/^\d{10}$/.test(val)) {
-                      setPhoneError(false);
-                    }
+                    validateSingleField('hostPhone', val);
                   }}
+                  onBlur={() => validateSingleField('hostPhone', hostPhone)}
                 />
-                {phoneError && (
-                  <p className="text-[10px] text-red-500 font-bold animate-fade-in">Vui lòng nhập đúng 10 chữ số điện thoại</p>
+                {validationErrors.hostPhone && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in mt-1">{validationErrors.hostPhone}</p>
                 )}
               </div>
 
@@ -819,15 +968,25 @@ export default function CreateListingView() {
                   )}
                 </div>
 
-                {/* Map picker frame */}
-                <div className="h-[300px] w-full rounded-xl overflow-hidden border border-slate-200 shadow-sm relative z-0">
+                 {/* Map picker frame */}
+                <div className={`h-[300px] w-full rounded-xl overflow-hidden border shadow-sm relative z-0 transition-all ${
+                  validationErrors.position ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200'
+                }`}>
                   <MapContainer center={[16.07380, 108.14990]} zoom={15} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Marker position={[16.07380, 108.14990]} icon={schoolIcon} /> {/* Bách Khoa marker */}
-                    <LocationPicker position={position} setPosition={setPosition} calculateDistance={calculateDistance} />
+                    <LocationPicker 
+                      position={position} 
+                      setPosition={setPosition} 
+                      calculateDistance={calculateDistance} 
+                      onPositionChange={(pos) => validateSingleField('position', pos)}
+                    />
                     <MapViewCenter position={position} />
                   </MapContainer>
                 </div>
+                {validationErrors.position && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in mt-1">{validationErrors.position}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -843,15 +1002,26 @@ export default function CreateListingView() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Địa chỉ chi tiết tại Đà Nẵng:</label>
+                <label className={`font-bold transition-colors ${validationErrors.address ? 'text-red-600' : 'text-on-surface-variant'}`}>Địa chỉ chi tiết tại Đà Nẵng:</label>
                 <input
                   required
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface transition-all ${
+                    validationErrors.address
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
                   placeholder="Ví dụ: 12 Nguyễn Lương Bằng, Hòa Khánh Bắc, Liên Chiểu"
                   type="text"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    validateSingleField('address', e.target.value);
+                  }}
+                  onBlur={(e) => validateSingleField('address', e.target.value)}
                 />
+                {validationErrors.address && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in mt-1">{validationErrors.address}</p>
+                )}
               </div>
             </div>
           </div>
@@ -897,14 +1067,25 @@ export default function CreateListingView() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant">Giới thiệu tổng quan phòng trọ:</label>
+                <label className={`font-bold transition-colors ${validationErrors.description ? 'text-red-600' : 'text-on-surface-variant'}`}>Giới thiệu tổng quan phòng trọ:</label>
                 <textarea
                   rows={4}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-primary text-on-surface leading-relaxed text-justify"
+                  className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:outline-none focus:ring-1 text-on-surface leading-relaxed text-justify transition-all ${
+                    validationErrors.description
+                      ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500'
+                      : 'border-slate-200 focus:ring-primary'
+                  }`}
                   placeholder="Nhập các điểm cộng thế mạnh của căn phòng (gần chợ, không chung chủ, giờ giấc tự quản, ban công ngắm sông...)"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    validateSingleField('description', e.target.value);
+                  }}
+                  onBlur={(e) => validateSingleField('description', e.target.value)}
                 />
+                {validationErrors.description && (
+                  <p className="text-[10px] text-red-500 font-bold animate-fade-in mt-1">{validationErrors.description}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -942,7 +1123,7 @@ export default function CreateListingView() {
             
             <div className="space-y-4 text-xs sm:text-sm">
               <div className="space-y-1.5">
-                <label className="font-bold text-on-surface-variant mb-2 block">Tải ảnh lên từ máy tính:</label>
+                <label className="font-bold text-on-surface-variant mb-2 block">Tải ảnh lên từ thiết bị:</label>
                 
                 <div 
                   className={`relative border-2 border-dashed rounded-3xl transition-colors flex flex-col items-center justify-center p-10 cursor-pointer group overflow-hidden ${
@@ -992,37 +1173,11 @@ export default function CreateListingView() {
                     ))}
                   </div>
                 )}
+                {validationErrors.imagesCount && (
+                  <p className="text-xs text-red-500 font-bold animate-fade-in mt-2 text-center bg-red-50 p-2.5 rounded-xl border border-red-100">{validationErrors.imagesCount}</p>
+                )}
               </div>
 
-              {/* Instant design presets */}
-              <div className="bg-indigo-50/50 p-5 rounded-3xl space-y-3 border border-indigo-100">
-                <p className="font-extrabold text-indigo-950 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">photo_library</span>
-                  Chọn ảnh mẫu phòng có sẵn:
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {PHOTO_PRESETS.map((preset) => (
-                    <div
-                       key={preset.name}
-                       onClick={() => setImageUrls(prev => prev.includes(preset.url) ? prev.filter(url => url !== preset.url) : [...prev, preset.url])}
-                       className={`rounded-2xl overflow-hidden cursor-pointer border-2 transition-all hover:scale-101 relative h-28 ${
-                         imageUrls.includes(preset.url) ? 'border-primary ring-2 ring-primary/25 scale-102' : 'border-transparent'
-                       }`}
-                    >
-                      <img
-                        className="w-full h-full object-cover"
-                        alt={preset.name}
-                        src={preset.url}
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute bottom-2 left-2 bg-on-surface/80 text-white font-bold text-[10px] px-2 py-0.5 rounded-full backdrop-blur-xs">
-                        {preset.name}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -1070,7 +1225,7 @@ export default function CreateListingView() {
                     <img
                       className="w-full h-full object-cover"
                       alt="Preview placeholder logo"
-                      src={imageUrls[0] || PHOTO_PRESETS[0].url}
+                      src={imageUrls[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'}
                       referrerPolicy="no-referrer"
                     />
                     <span className="absolute top-2 left-2 bg-slate-900/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-sm">

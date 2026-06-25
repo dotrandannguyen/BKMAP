@@ -12,7 +12,8 @@ import {
   Heart,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  Lock
 } from 'lucide-react';
 
 const UserPage = () => {
@@ -180,8 +181,8 @@ const UserPage = () => {
         {isLoggedIn ? (
           <div className="mt-auto p-3 border-t border-slate-100 space-y-1">
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => setIsModalOpen(true)}>
-              <Settings size={18} />
-              <span className="text-sm font-semibold">Cài đặt cá nhân</span>
+              <Lock size={18} />
+              <span className="text-sm font-semibold">Đổi mật khẩu</span>
             </div>
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 cursor-pointer transition-colors" onClick={() => { logout(); navigate('/login'); }}>
               <Trash2 size={18} />

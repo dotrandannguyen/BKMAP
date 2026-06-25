@@ -13,6 +13,7 @@ export default function AllListingsView() {
   const [sortType, setSortType] = useState('newest'); // newest, price-asc, price-desc
   const [streetFilter, setStreetFilter] = useState('');
   const [priceRange, setPriceRange] = useState('all'); // all, under1.5, 1.5-3, over3
+  const [distanceRange, setDistanceRange] = useState('all'); // all, under2, 2-4, 4-6, over6
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -82,6 +83,18 @@ export default function AllListingsView() {
       });
     }
 
+    // Apply distance filter
+    if (distanceRange !== 'all') {
+      sorted = sorted.filter(item => {
+        const dist = item.distanceDUT !== undefined ? Number(item.distanceDUT) : 999;
+        if (distanceRange === 'under2') return dist < 2;
+        if (distanceRange === '2-4') return dist >= 2 && dist <= 4;
+        if (distanceRange === '4-6') return dist >= 4 && dist <= 6;
+        if (distanceRange === 'over6') return dist > 6;
+        return true;
+      });
+    }
+
     if (sortType === 'newest') {
       sorted.sort((a, b) => {
         const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
@@ -92,9 +105,15 @@ export default function AllListingsView() {
       sorted.sort((a, b) => a.price - b.price);
     } else if (sortType === 'price-desc') {
       sorted.sort((a, b) => b.price - a.price);
+    } else if (sortType === 'distance') {
+      sorted.sort((a, b) => {
+        const distA = a.distanceDUT !== undefined ? Number(a.distanceDUT) : 999;
+        const distB = b.distanceDUT !== undefined ? Number(b.distanceDUT) : 999;
+        return distA - distB;
+      });
     }
     return sorted;
-  }, [listings, sortType, streetFilter, priceRange]);
+  }, [listings, sortType, streetFilter, priceRange, distanceRange]);
 
   // Pagination logic
   const totalPages = Math.max(1, Math.ceil(sortedListings.length / itemsPerPage));
@@ -156,18 +175,19 @@ export default function AllListingsView() {
               <span className="material-symbols-outlined text-[14px] font-bold">arrow_downward</span>
             </button>
 
+
             {/* Filter Toggle Button inside Sort Bar */}
             <button
               onClick={() => setIsFilterOpen(true)}
               className={`px-4 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors cursor-pointer border ${
-                streetFilter || priceRange !== 'all'
+                streetFilter || priceRange !== 'all' || distanceRange !== 'all'
                   ? 'bg-primary text-white border-primary font-medium shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">filter_alt</span>
               <span>Bộ lọc</span>
-              {(streetFilter || priceRange !== 'all') && (
+              {(streetFilter || priceRange !== 'all' || distanceRange !== 'all') && (
                 <span className="bg-white text-primary text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   !
                 </span>
@@ -389,7 +409,7 @@ export default function AllListingsView() {
 
       {/* Filter Modal Popup */}
       {isFilterOpen && (
-        <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
           {/* Modal Content */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-2xl max-w-sm w-full animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-5">
@@ -423,28 +443,65 @@ export default function AllListingsView() {
 
               {/* Price Filter */}
               <div>
-                <h4 className="text-[12px] font-bold text-slate-700 mb-3 uppercase tracking-wide">Khoảng Giá</h4>
-                <div className="space-y-2.5">
+                <h4 className="text-[11px] font-extrabold text-slate-500 mb-2.5 uppercase tracking-wide">Khoảng Giá</h4>
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: 'all', label: 'Tất cả mức giá' },
                     { id: 'under1', label: 'Dưới 1 triệu' },
                     { id: '1-2', label: 'Từ 1 - 2 triệu' },
                     { id: '2-3', label: 'Từ 2 - 3 triệu' },
                     { id: 'over3', label: 'Trên 3 triệu' },
-                  ].map((range) => (
-                    <label key={range.id} className="flex items-center gap-2.5 cursor-pointer group">
-                      <input 
-                        type="radio" 
-                        name="priceRange"
-                        checked={priceRange === range.id}
-                        onChange={() => { setPriceRange(range.id); setCurrentPage(1); }}
-                        className="w-[14px] h-[14px] accent-primary cursor-pointer"
-                      />
-                      <span className={`text-[13px] ${priceRange === range.id ? 'text-primary font-semibold' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                  ].map((range) => {
+                    const isSelected = priceRange === range.id;
+                    return (
+                      <button
+                        key={range.id}
+                        type="button"
+                        onClick={() => { setPriceRange(range.id); setCurrentPage(1); }}
+                        className={`px-3 py-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer text-center select-none ${
+                          range.id === 'all' ? 'col-span-2 py-2.5' : ''
+                        } ${
+                          isSelected
+                            ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
                         {range.label}
-                      </span>
-                    </label>
-                  ))}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Distance Filter */}
+              <div>
+                <h4 className="text-[11px] font-extrabold text-slate-500 mb-2.5 uppercase tracking-wide">Khoảng cách tới Bách Khoa</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'all', label: 'Tất cả khoảng cách' },
+                    { id: 'under2', label: 'Dưới 2 km' },
+                    { id: '2-4', label: 'Từ 2 - 4 km' },
+                    { id: '4-6', label: 'Từ 4 - 6 km' },
+                    { id: 'over6', label: 'Trên 6 km' },
+                  ].map((range) => {
+                    const isSelected = distanceRange === range.id;
+                    return (
+                      <button
+                        key={range.id}
+                        type="button"
+                        onClick={() => { setDistanceRange(range.id); setCurrentPage(1); }}
+                        className={`px-3 py-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer text-center select-none ${
+                          range.id === 'all' ? 'col-span-2 py-2.5' : ''
+                        } ${
+                          isSelected
+                            ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        {range.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -453,15 +510,16 @@ export default function AllListingsView() {
                   onClick={() => {
                     setStreetFilter('');
                     setPriceRange('all');
+                    setDistanceRange('all');
                     setCurrentPage(1);
                   }}
-                  className="flex-1 py-2 border border-slate-200 text-slate-600 text-[12px] font-bold rounded-lg uppercase hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 text-[12px] font-bold rounded-xl uppercase hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   Xóa bộ lọc
                 </button>
                 <button
                   onClick={() => setIsFilterOpen(false)}
-                  className="flex-1 py-2 bg-primary text-white text-[12px] font-bold rounded-lg uppercase hover:bg-primary-container transition-colors shadow-sm"
+                  className="flex-1 py-2.5 bg-primary text-white text-[12px] font-bold rounded-xl uppercase hover:bg-primary-container transition-colors shadow-sm cursor-pointer"
                 >
                   Áp dụng
                 </button>
