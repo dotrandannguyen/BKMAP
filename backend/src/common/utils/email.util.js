@@ -73,3 +73,45 @@ export const sendVerificationEmail = async (to, token) => {
 		throw new Error('Không thể gửi email xác thực.');
 	}
 };
+
+export const sendPasswordResetEmail = async (to, token) => {
+  const baseUrl = process.env.FRONTEND_URL || `http://localhost:5173`;
+  const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+
+  const mailOptions = {
+    from: `"BKMAP Support" <${process.env.SMTP_USER || 'no-reply@bkmap.com'}>`,
+    to,
+    subject: 'Yêu cầu đặt lại mật khẩu cho tài khoản BKMAP',
+    html: `
+			<h2>Yêu cầu đặt lại mật khẩu</h2>
+			<p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản BKMAP của bạn.</p>
+			<p>Vui lòng click vào đường dẫn dưới đây để tạo mật khẩu mới:</p>
+			<a href="${resetUrl}" style="padding: 10px 20px; background-color: #007bff; color: #fff; text-decoration: none; border-radius: 5px;">Đặt lại mật khẩu</a>
+			<p>Hoặc copy đường dẫn này dán vào trình duyệt:</p>
+			<p><a href="${resetUrl}">${resetUrl}</a></p>
+			<p>Link này sẽ hết hạn trong vòng 1 giờ.</p>
+			<p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+
+			<br />
+			<p>Trân trọng,</p>
+			<p>Đội ngũ BKMAP</p>
+		`,
+  };
+
+  try {
+    const mailTransporter = await initTransporter();
+    const info = await mailTransporter.sendMail(mailOptions);
+    console.log(`Password reset email sent to ${to}`);
+
+    if (!process.env.SMTP_USER) {
+      console.log('--- TEST EMAIL PREVIEW URL ---');
+      console.log(nodemailer.getTestMessageUrl(info));
+      console.log('------------------------------');
+    }
+  } catch (error) {
+    console.error('=================== EMAIL ERROR ===================');
+    console.error(error);
+    console.error('===================================================');
+    throw new Error('Không thể gửi email đặt lại mật khẩu.');
+  }
+};

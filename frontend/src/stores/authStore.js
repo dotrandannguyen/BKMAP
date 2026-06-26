@@ -65,6 +65,47 @@ export const useAuthStore = create((set) => ({
     }
   },
 
+  loading: false,
+  error: null,
+  message: null,
+
+  forgotPassword: async (email) => {
+    set({ loading: true, error: null, message: null });
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Yêu cầu thất bại.');
+      }
+      set({ loading: false, message: data.message });
+    } catch (error) {
+      set({ loading: false, error: error.message });
+    }
+  },
+
+  resetPassword: async (token, password, onSuccess) => {
+    set({ loading: true, error: null, message: null });
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Đặt lại mật khẩu thất bại.');
+      }
+      set({ loading: false, message: data.message });
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      set({ loading: false, error: error.message });
+    }
+  },
+
   changePassword: async ({ oldPassword, newPassword, confirmPassword }) => {
     const token = localStorage.getItem('accessToken');
     if (!token) {

@@ -156,5 +156,23 @@ export const authController = {
 		} catch (error) {
 			next(error);
 		}
-	}
+	},
+
+	async forgotPassword(req, res, next) {
+		try {
+			const data = await authService.forgotPassword(req.body);
+			return new HttpResponse(res).success(data);
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	async resetPassword(req, res, next) {
+		try {
+			const data = await authService.resetPassword(req.body);
+			return new HttpResponse(res).success(data);
+		} catch (error) {
+			next(error);
+		}
+	},
 };

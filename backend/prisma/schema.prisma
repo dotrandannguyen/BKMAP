@@ -31,6 +31,8 @@ model User {
   isVerified         Boolean   @default(false)
   verifyToken        String?   @db.VarChar(255)
   tokenExpires       DateTime?
+  passwordResetToken String?   @db.VarChar(255)
+  passwordResetExpires DateTime?
   hashedRefreshToken String?   @db.Text
   googleId           String?   @unique @db.VarChar(255) // Google Subject ID
   authProvider       String    @default("local") @db.VarChar(20) // "local" | "google"

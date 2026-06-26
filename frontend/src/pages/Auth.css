@@ -1,3 +1,5 @@
+@import './Theme.css';
+
 /* Auth Container with animated background */
 .auth-container {
     display: flex;
@@ -22,7 +24,7 @@
     position: absolute;
     border-radius: 50%;
     filter: blur(100px);
-    opacity: 0.4;
+    opacity: 0.2; /* Softened for light theme */
 }
 
 .bg-orb-1 {
@@ -63,36 +65,36 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border-radius: 24px;
     text-align: center;
     position: relative;
     z-index: 1;
     animation: fadeIn 0.5s ease-out;
     box-shadow:
-        0 4px 24px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        0 10px 25px -5px rgba(0, 0, 0, 0.05),
+        0 8px 10px -6px rgba(0, 0, 0, 0.05);
 }
 
 /* Logo */
 .notion-logo {
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, var(--text-primary) 0%, #a0a0a0 100%);
-    color: var(--bg-main);
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--accent-primary) 0%, #0056b3 100%);
+    color: white;
     font-size: 32px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
-    margin: 0 auto 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
+    margin: 0 auto 24px;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .notion-logo:hover {
-    transform: scale(1.05) rotate(-2deg);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0, 123, 255, 0.3);
 }
 
 /* Header */
@@ -100,15 +102,20 @@
     font-size: 28px;
     font-weight: 700;
     margin: 0 0 8px;
-    background: linear-gradient(135deg, var(--text-primary) 0%, #a0a0a0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-primary);
+}
+
+.auth-header h1.text-blue {
+    color: var(--accent-primary);
+}
+
+.auth-header h1.text-black {
+    color: #000;
 }
 
 .auth-subtitle {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 15px;
     margin: 0 0 32px;
 }
 
@@ -124,7 +131,7 @@
 .form-group label {
     display: block;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: 8px;
 }
@@ -147,9 +154,9 @@
 .input-wrapper input {
     width: 100%;
     padding: 12px 14px 12px 44px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
+    background: #ffffff;
+    border: 1.5px solid var(--border-subtle);
+    border-radius: 12px;
     color: var(--text-primary);
     font-size: 15px;
     outline: none;
@@ -157,14 +164,12 @@
 }
 
 .input-wrapper input:hover {
-    border-color: var(--border-focused);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: #cbd5e1;
 }
 
 .input-wrapper input:focus {
     border-color: var(--accent-primary);
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 0 3px var(--accent-glow);
+    box-shadow: 0 0 0 4px var(--accent-glow);
 }
 
 .input-wrapper:focus-within .input-icon {
@@ -175,14 +180,59 @@
     color: var(--text-tertiary);
 }
 
+.password-toggle {
+    position: absolute;
+    right: 14px;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+    color: var(--text-secondary);
+}
+
+/* Password Strength Indicator */
+.password-strength {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.strength-bars {
+    display: flex;
+    gap: 4px;
+}
+
+.strength-bar {
+    height: 4px;
+    flex: 1;
+    background: #e5e7eb;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.strength-text {
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+}
+
 /* Primary Button */
 .auth-btn {
     width: 100%;
-    padding: 12px 20px;
+    padding: 14px 20px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -192,15 +242,15 @@
 }
 
 .primary-btn {
-    background: linear-gradient(135deg, #2383e2 0%, #1a6bc4 100%);
+    background: var(--accent-primary);
     color: white;
-    box-shadow: 0 2px 8px rgba(35, 131, 226, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
 }
 
 .primary-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(35, 131, 226, 0.4);
-    background: linear-gradient(135deg, #1a6bc4 0%, #155da8 100%);
+    background: #006ae6;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.3);
 }
 
 .primary-btn:active:not(:disabled) {
@@ -212,29 +262,6 @@
     cursor: not-allowed;
 }
 
-.btn-icon-right {
-    transition: transform 0.2s ease;
-}
-
-.primary-btn:hover:not(:disabled) .btn-icon-right {
-    transform: translateX(4px);
-}
-
-/* Loading spinner */
-.spinning {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 /* Divider */
 .auth-divider {
     margin: 24px 0;
@@ -242,15 +269,16 @@
     align-items: center;
     color: var(--text-tertiary);
     font-size: 12px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 .auth-divider::before,
 .auth-divider::after {
     content: "";
     flex: 1;
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: 1.5px solid var(--border-subtle);
 }
 
 .auth-divider span {
@@ -267,41 +295,23 @@
 .social-btn {
     width: 100%;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-subtle);
+    background: #ffffff;
+    border: 1.5px solid var(--border-subtle);
     color: var(--text-primary);
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
-    display: grid;
-    grid-template-columns: 24px 1fr;
+    font-weight: 600;
+    display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
-    text-align: left;
     transition: all 0.2s ease;
 }
 
-.social-btn svg {
-    justify-self: center;
-}
-
 .social-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--border-focused);
-    transform: translateY(-1px);
-}
-
-/* Google button colors */
-.google-btn:hover {
-    border-color: #4285f4;
-    box-shadow: 0 0 0 1px rgba(66, 133, 244, 0.3);
-}
-
-/* Apple button colors */
-.apple-btn:hover {
-    border-color: #a0a0a0;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+    background: #f8fafc;
+    border-color: #cbd5e1;
 }
 
 /* Footer */
@@ -311,31 +321,45 @@
     color: var(--text-secondary);
 }
 
-.auth-link {
-    color: var(--accent-primary);
-    font-weight: 500;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    position: relative;
+.auth-footer p {
+    margin: 8px 0;
 }
 
-.auth-link::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 0;
-    height: 1px;
-    background: var(--accent-primary);
-    transition: width 0.2s ease;
+.auth-link {
+    color: var(--accent-primary);
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
 }
 
 .auth-link:hover {
-    color: #4da3ff;
+    color: #0056b3;
+    text-decoration: underline;
 }
 
-.auth-link:hover::after {
-    width: 100%;
+/* Terms and Conditions Text */
+.terms-text {
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+}
+
+.terms-link {
+    color: var(--text-secondary);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.terms-link:hover {
+    color: var(--accent-primary);
 }
 
 /* Responsive */
@@ -344,10 +368,5 @@
         width: 100%;
         margin: 16px;
         padding: 32px 24px;
-    }
-
-    .bg-orb-1,
-    .bg-orb-2 {
-        opacity: 0.2;
     }
 }
