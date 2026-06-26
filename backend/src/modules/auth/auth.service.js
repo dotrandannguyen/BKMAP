@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { authRepository } from './auth.repository.js';
-import { sendVerificationEmail } from '../../common/utils/email.util.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../../common/utils/email.util.js';
 import {
   ClientException,
   UnauthorizedException,
@@ -283,5 +283,61 @@ export const authService = {
     await authRepository.updatePassword(userId, newPasswordHash);
 
     return { message: 'Đổi mật khẩu thành công.' };
+  },
+
+  // FORGOT PASSWORD
+  async forgotPassword(dto) {
+    const user = await authRepository.findUserByEmail(dto.email);
+
+    if (!user) {
+      // Don't reveal that the user does not exist
+      return {
+        message:
+          'Nếu email của bạn tồn tại trong hệ thống, bạn sẽ nhận được một liên kết để đặt lại mật khẩu.',
+      };
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const passwordResetExpires = new Date();
+    passwordResetExpires.setHours(passwordResetExpires.getHours() + 1); // 1 hour valid
+
+    await authRepository.updatePasswordResetToken(
+      user.id,
+      resetToken,
+      passwordResetExpires
+    );
+
+    try {
+      await sendPasswordResetEmail(user.email, resetToken);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      // Even if email fails, we don't throw an error to the user
+    }
+
+    const isDev = !process.env.SMTP_USER;
+
+    return {
+      message:
+        'Yêu cầu đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra email của bạn.',
+      resetToken: isDev ? resetToken : undefined,
+    };
+  },
+
+  // RESET PASSWORD
+  async resetPassword(dto) {
+    const { token, password } = dto;
+
+    const user = await authRepository.findUserByPasswordResetToken(token);
+
+    if (!user) {
+      throw new ClientException(400, 'Token không hợp lệ hoặc đã hết hạn.');
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    await authRepository.resetPassword(user.id, passwordHash);
+
+    return {
+      message: 'Đặt lại mật khẩu thành công.',
+    };
   },
 };

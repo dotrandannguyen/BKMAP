@@ -1,0 +1,18 @@
+:root {
+  --bg-main: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #9ca3af;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --accent-primary: #007bff;
+  --accent-glow: rgba(0, 123, 255, 0.15);
+  --border-subtle: #e5e7eb;
+  --border-focused: #007bff;
+  --error-message-bg: #fee2e2;
+  --error-message-border: #ef4444;
+  --error-message-text: #b91c1c;
+  --success-message-bg: #dcfce7;
+  --success-message-border: #22c55e;
+  --success-message-text: #15803d;
+}

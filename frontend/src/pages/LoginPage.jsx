@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './LoginPage.css';
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import './Auth.css';
+import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
 
@@ -14,21 +14,15 @@ const GoogleIcon = () => (
     </svg>
 );
 
-const AppleIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
-    </svg>
-);
-
 const LoginPage = () => {
     const navigate = useNavigate();
     const login = useAuthStore((s) => s.login);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Clear stuck local favorites on login page mount to ensure fresh state
     useEffect(() => {
         localStorage.removeItem('favoriteRoomIds');
         try {
@@ -38,7 +32,6 @@ const LoginPage = () => {
         }
     }, []);
 
-    // Xử lý callback từ Google OAuth (parse token + user info từ URL query params)
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const token = params.get('token');
@@ -46,7 +39,6 @@ const LoginPage = () => {
 
         if (googleError) {
             setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
-            // Xóa query params khỏi URL
             window.history.replaceState({}, '', '/login');
             return;
         }
@@ -56,19 +48,13 @@ const LoginPage = () => {
             const name = params.get('name') || email.split('@')[0];
             const avatar = params.get('avatar') || '';
 
-            // Lưu vào localStorage (giống hệt luồng login thường)
             localStorage.setItem('accessToken', token);
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userName', name);
             localStorage.setItem('userAvatar', avatar);
 
-            // Cập nhật Zustand store
             login(email, name, avatar);
-
-            // Xóa query params khỏi URL (bảo mật: không để token lộ trên thanh địa chỉ)
             window.history.replaceState({}, '', '/login');
-
-            // Chuyển hướng về trang profile
             navigate('/profile');
         }
     }, []);
@@ -85,7 +71,7 @@ const LoginPage = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include', // Bắt buộc để trình duyệt nhận HttpOnly Cookie (refreshToken)
+                credentials: 'include',
                 body: JSON.stringify({ email, password }),
             });
 
@@ -104,7 +90,6 @@ const LoginPage = () => {
                 localStorage.setItem('userName', userData.userName || userData.email.split('@')[0]);
                 localStorage.setItem('userAvatar', userData.avatar || '');
 
-                // Đọc role từ JWT payload
                 let role = 'USER';
                 try {
                     const payload = JSON.parse(atob(token.split('.')[1]));
@@ -132,7 +117,6 @@ const LoginPage = () => {
 
     return (
         <div className="auth-container">
-            {/* Decorative background elements */}
             <div className="auth-bg-decoration">
                 <div className="bg-orb bg-orb-1"></div>
                 <div className="bg-orb bg-orb-2"></div>
@@ -143,7 +127,7 @@ const LoginPage = () => {
                     <div className="notion-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
                         <span>B</span>
                     </div>
-                    <h1>Chào mừng quay trở lại</h1>
+                    <h1 className="text-black">Chào mừng quay trở lại</h1>
                     <p className="auth-subtitle">Đăng nhập tài khoản BK'S MAP</p>
                 </div>
 
@@ -167,7 +151,6 @@ const LoginPage = () => {
                                 placeholder="Nhập địa chỉ email của bạn..."
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="focus-glow"
                             />
                         </div>
                     </div>
@@ -178,13 +161,20 @@ const LoginPage = () => {
                             <Lock className="input-icon" size={18} />
                             <input
                                 id="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 required
                                 placeholder="Nhập mật khẩu của bạn..."
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="focus-glow"
                             />
+                            <button
+                                type="button"
+                                className="password-toggle"
+                                onClick={() => setShowPassword(!showPassword)}
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
                     </div>
 
@@ -195,10 +185,7 @@ const LoginPage = () => {
                                 <span>Đang đăng nhập...</span>
                             </>
                         ) : (
-                            <>
-                                <span>Đăng nhập</span>
-                                
-                            </>
+                            <span>Đăng nhập</span>
                         )}
                     </button>
 
@@ -220,7 +207,8 @@ const LoginPage = () => {
                 </form>
 
                 <div className="auth-footer">
-                    <p>Chưa có tài khoản? <button onClick={() => navigate('/register')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng ký ngay</button></p>
+                    <p>Chưa có tài khoản? <button onClick={() => navigate('/register')} className="auth-link font-bold">Đăng ký ngay</button></p>
+                    <p><button onClick={() => navigate('/forgot-password')} className="auth-link">Quên mật khẩu?</button></p>
                 </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './RegisterPage.css';
-import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import './Auth.css';
+import { Mail, Lock, User, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -9,12 +9,6 @@ const GoogleIcon = () => (
         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-    </svg>
-);
-
-const AppleIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
     </svg>
 );
 
@@ -87,7 +81,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                 body: JSON.stringify({
                     email: formData.email,
                     password: formData.password,
-                    userName: formData.name, // Expected field in registerSchema is userName
+                    userName: formData.name,
                 }),
             });
 
@@ -104,7 +98,6 @@ const RegisterPage = ({ onRegisterSuccess }) => {
             } else {
                 setSuccessMsg('Đăng ký thành công! Hãy kiểm tra hòm thư email của bạn để xác thực tài khoản trước khi đăng nhập.');
                 
-                // Wait 3 seconds and redirect to login page
                 setTimeout(() => {
                     if (onRegisterSuccess) {
                         onRegisterSuccess();
@@ -122,23 +115,34 @@ const RegisterPage = ({ onRegisterSuccess }) => {
 
     const getPasswordStrength = (password) => {
         if (!password) return { level: 0, text: '', color: '' };
-        if (password.length < 6) return { level: 1, text: 'Quá ngắn', color: '#ef4444' };
-        if (password.length < 8) return { level: 2, text: 'Yếu', color: '#f59e0b' };
-        if (password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)) {
-            return { level: 4, text: 'Mạnh', color: '#22c55e' };
+        
+        const length = password.length;
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+        if (length < 6) {
+            return { level: 1, text: 'Mật khẩu quá ngắn', color: '#ef4444' };
         }
-        return { level: 3, text: 'Tốt', color: '#3b82f6' };
+        
+        if (length >= 10 && hasUpperCase && hasNumber && hasSpecial) {
+            return { level: 4, text: 'Mật khẩu rất mạnh', color: '#22c55e' };
+        }
+        
+        if (length >= 8 && (hasUpperCase || hasNumber || hasSpecial)) {
+            return { level: 3, text: 'Mật khẩu mạnh', color: '#3b82f6' };
+        }
+        
+        return { level: 2, text: 'Mật khẩu trung bình', color: '#f59e0b' };
     };
 
     const strength = getPasswordStrength(formData.password);
 
     return (
         <div className="auth-container">
-            {/* Decorative background elements */}
             <div className="auth-bg-decoration">
                 <div className="bg-orb bg-orb-1"></div>
                 <div className="bg-orb bg-orb-2"></div>
-                <div className="bg-orb bg-orb-3"></div>
             </div>
 
             <div className="auth-card">
@@ -179,7 +183,6 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                 )}
 
                 <form className="auth-form" onSubmit={handleSubmit}>
-                    {/* Name Field */}
                     <div className="form-group">
                         <label htmlFor="name">Họ và Tên</label>
                         <div className="input-wrapper">
@@ -196,7 +199,6 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                         </div>
                     </div>
 
-                    {/* Email Field */}
                     <div className="form-group">
                         <label htmlFor="email">Email sinh viên / Chủ nhà</label>
                         <div className="input-wrapper">
@@ -213,7 +215,6 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                         </div>
                     </div>
 
-                    {/* Password Field */}
                     <div className="form-group">
                         <label htmlFor="password">Mật khẩu</label>
                         <div className="input-wrapper">
@@ -237,15 +238,14 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                             </button>
                         </div>
 
-                        {/* Password Strength Indicator */}
                         {formData.password && (
                             <div className="password-strength">
                                 <div className="strength-bars">
                                     {[1, 2, 3, 4].map((level) => (
                                         <div
                                             key={level}
-                                            className={`strength-bar ${strength.level >= level ? 'active' : ''}`}
-                                            style={{ backgroundColor: strength.level >= level ? strength.color : undefined }}
+                                            className="strength-bar"
+                                            style={{ backgroundColor: strength.level >= level ? strength.color : '#e5e7eb' }}
                                         />
                                     ))}
                                 </div>
@@ -263,10 +263,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                                 <span>Đang đăng ký...</span>
                             </>
                         ) : (
-                            <>
-                                <span>Đăng ký</span>
-                                
-                            </>
+                            <span>Đăng ký</span>
                         )}
                     </button>
 
@@ -288,7 +285,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                 </form>
 
                 <div className="auth-footer">
-                    <p>Đã có tài khoản? <button onClick={() => navigate('/login')} className="auth-link hover:underline bg-transparent border-none cursor-pointer text-primary p-0 font-bold">Đăng nhập</button></p>
+                    <p>Đã có tài khoản? <button onClick={() => navigate('/login')} className="auth-link font-bold">Đăng nhập</button></p>
                 </div>
 
                 <p className="terms-text">
