@@ -4,7 +4,7 @@ import { roomService } from './room.service.js';
 export const roomController = {
 	async createRoom(req, res, next) {
 		try {
-			const userId = req.user.id; // Lấy ID người dùng từ auth.middleware
+			const userId = req.user.id;
 			const data = await roomService.createRoom(req.body, userId);
 
 			return new HttpResponse(res).created({
@@ -18,7 +18,8 @@ export const roomController = {
 
 	async getRooms(req, res, next) {
 		try {
-			const data = await roomService.getRooms(req.query);
+			// NÂNG CẤP: Truyền thêm req.user để phân quyền xem bài "của tôi" hoặc bài chưa duyệt
+			const data = await roomService.getRooms(req.query, req.user);
 			return new HttpResponse(res).success(data);
 		} catch (error) {
 			next(error);
@@ -28,7 +29,7 @@ export const roomController = {
 	async getRoomById(req, res, next) {
 		try {
 			const { id } = req.params;
-			const data = await roomService.getRoomById(id);
+			const data = await roomService.getRoomById(id, req.user);
 			return new HttpResponse(res).success(data);
 		} catch (error) {
 			next(error);

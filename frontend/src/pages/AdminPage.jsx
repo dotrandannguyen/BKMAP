@@ -19,6 +19,16 @@ import {
   UserCheck,
   UserX,
   X,
+  Building,
+  DollarSign,
+  Ruler,
+  Info,
+  Calendar,
+  User as UserIcon,
+  Tag,
+  MapPin,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 
 const API_URL =
@@ -47,40 +57,178 @@ function useAdminFetch() {
 }
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon, color }) {
+function StatCard({ label, value, icon, gradient, sub, badge }) {
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200/60 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
-        {icon}
+    <div className={`relative rounded-2xl p-5 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 ${gradient}`}>
+      {/* Background decoration */}
+      <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white/10" />
+      <div className="absolute -right-1 -bottom-8 w-16 h-16 rounded-full bg-white/10" />
+
+      <div className="relative flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+            {icon}
+          </div>
+          {badge && (
+            <span className="text-[10px] font-bold bg-white/25 text-white px-2 py-0.5 rounded-full">
+              {badge}
+            </span>
+          )}
+        </div>
+        <div>
+          <p className="text-3xl font-black text-white tracking-tight">{value ?? <span className="text-white/50">—</span>}</p>
+          <p className="text-xs text-white/80 font-semibold mt-0.5">{label}</p>
+          {sub && <p className="text-[10px] text-white/60 mt-1">{sub}</p>}
+        </div>
       </div>
-      <div>
-        <p className="text-2xl font-black text-slate-800">{value ?? '—'}</p>
-        <p className="text-xs text-slate-500 font-semibold mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+// ─── Approval Bar ─────────────────────────────────────────────────────────────
+function ApprovalBar({ approved, pending, rejected, total }) {
+  if (!total) return null;
+  const pct = (n) => Math.round((n / total) * 100);
+  const segments = [
+    { value: approved, color: 'bg-emerald-400', label: 'Đã duyệt', pct: pct(approved) },
+    { value: pending,  color: 'bg-amber-400',   label: 'Chờ duyệt', pct: pct(pending) },
+    { value: rejected, color: 'bg-rose-400',    label: 'Từ chối',   pct: pct(rejected) },
+  ];
+  return (
+    <div className="space-y-2">
+      <div className="flex h-3 rounded-full overflow-hidden gap-0.5 bg-slate-100">
+        {segments.map((s, i) => s.pct > 0 && (
+          <div
+            key={i}
+            className={`${s.color} transition-all duration-700 rounded-full`}
+            style={{ width: `${s.pct}%` }}
+            title={`${s.label}: ${s.value}`}
+          />
+        ))}
+      </div>
+      <div className="flex items-center gap-4">
+        {segments.map((s, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full ${s.color}`} />
+            <span className="text-[10px] font-semibold text-slate-500">{s.label}</span>
+            <span className="text-[10px] font-black text-slate-700">{s.pct}%</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 // ─── Dashboard Tab ────────────────────────────────────────────────────────────
-function DashboardTab({ apiFetch }) {
+function DashboardTab({ apiFetch, onSwitchTab }) {
   const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     apiFetch('/dashboard')
       .then((r) => setStats(r.data))
-      .catch((e) => toast.error(e.message));
+      .catch((e) => toast.error(e.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  return (
-    <div>
-      <h2 className="text-xl font-black text-slate-800 mb-6">Tổng quan hệ thống</h2>
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <StatCard label="Tổng người dùng" value={stats?.totalUsers} icon={<Users size={22} className="text-blue-600" />} color="bg-blue-50" />
-        <StatCard label="Tổng phòng trọ" value={stats?.totalRooms} icon={<Home size={22} className="text-indigo-600" />} color="bg-indigo-50" />
-        <StatCard label="Phòng đang hiển thị" value={stats?.activeRooms} icon={<Eye size={22} className="text-green-600" />} color="bg-green-50" />
-        <StatCard label="Phòng bị ẩn" value={stats?.hiddenRooms} icon={<EyeOff size={22} className="text-orange-600" />} color="bg-orange-50" />
-        <StatCard label="Tài khoản bị khóa" value={stats?.bannedUsers} icon={<Ban size={22} className="text-red-600" />} color="bg-red-50" />
+  const now = new Date();
+  const monthName = now.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-slate-400">Đang tải dữ liệu tổng quan...</p>
+        </div>
       </div>
+    );
+  }
+
+  const totalRooms = stats?.totalRooms || 0;
+  const pendingRooms = stats?.pendingRooms || 0;
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── Row 1: Header ─────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-black text-slate-800">Tổng quan hệ thống</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Cập nhật thực tế · {monthName}</p>
+        </div>
+        {pendingRooms > 0 && (
+          <button
+            onClick={() => onSwitchTab?.('rooms')}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-amber-200 transition-all active:scale-95"
+          >
+            <ShieldCheck size={14} />
+            Xử lý {pendingRooms} phòng chờ duyệt
+          </button>
+        )}
+      </div>
+
+      {/* ── Row 2: 4 gradient stat cards ──────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Tổng người dùng" value={stats?.totalUsers}
+          icon={<Users size={18} className="text-white" />}
+          gradient="bg-gradient-to-br from-blue-500 to-blue-700"
+          badge={stats?.newUsersThisMonth ? `+${stats.newUsersThisMonth} tháng này` : null} />
+        <StatCard label="Tổng phòng trọ" value={stats?.totalRooms}
+          icon={<Home size={18} className="text-white" />}
+          gradient="bg-gradient-to-br from-violet-500 to-violet-700"
+          badge={stats?.newRoomsThisMonth ? `+${stats.newRoomsThisMonth} tháng này` : null} />
+        <StatCard label="Tài khoản bị khóa" value={stats?.bannedUsers}
+          icon={<Ban size={18} className="text-white" />}
+          gradient="bg-gradient-to-br from-rose-500 to-rose-700"
+          sub={stats?.totalUsers ? `${Math.round(((stats?.bannedUsers||0)/stats.totalUsers)*100)}% users` : null} />
+        <StatCard label="Phòng bị ẩn" value={stats?.hiddenRooms}
+          icon={<EyeOff size={18} className="text-white" />}
+          gradient="bg-gradient-to-br from-slate-500 to-slate-700"
+          sub="Admin ẩn thủ công" />
+      </div>
+
+      {/* ── Row 3: Pending alert ──────────────────── */}
+      <div
+        onClick={() => onSwitchTab?.('rooms')}
+        className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer transition-all hover:shadow-md ${
+          pendingRooms > 0
+            ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 hover:border-amber-300'
+            : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            pendingRooms > 0 ? 'bg-amber-100' : 'bg-slate-100'
+          }`}>
+            <ShieldCheck size={24} className={pendingRooms > 0 ? 'text-amber-600' : 'text-slate-400'} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className={`text-3xl font-black leading-none ${pendingRooms > 0 ? 'text-amber-600' : 'text-slate-700'}`}>
+                {pendingRooms}
+              </p>
+              {pendingRooms > 0 && (
+                <span className="text-[10px] font-black bg-amber-200 text-amber-800 px-2 py-0.5 rounded-lg animate-pulse">
+                  Cần xử lý
+                </span>
+              )}
+            </div>
+            <p className="text-xs font-bold text-slate-500 mt-1">Phòng chờ phê duyệt</p>
+          </div>
+        </div>
+        {pendingRooms > 0 ? (
+          <p className="text-xs font-bold text-amber-600 flex items-center gap-1 sm:self-center self-start">
+            Nhấn để chuyển sang tab xét duyệt ngay <ChevronRight size={14} />
+          </p>
+        ) : (
+          <p className="text-xs font-bold text-slate-400 flex items-center gap-1 sm:self-center self-start">
+            Không có phòng chờ duyệt
+          </p>
+        )}
+      </div>
+
     </div>
   );
 }
@@ -240,6 +388,168 @@ function UserRoomsModal({ userId, userName, onClose, apiFetch }) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Room Detail Modal ─────────────────────────────────────────────────────────
+function RoomDetailModal({ roomId, onClose, apiFetch }) {
+  const [room, setRoom] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [activeImage, setActiveImage] = useState(null);
+
+  useEffect(() => {
+    if (!roomId) return;
+    setLoading(true);
+    apiFetch(`/rooms/${roomId}`)
+      .then((res) => {
+        const roomData = res.data;
+        setRoom(roomData);
+        if (roomData.images?.length > 0) {
+          setActiveImage(roomData.images[0].imageUrl);
+        }
+      })
+      .catch((e) => {
+        toast.error(e.message);
+        onClose();
+      })
+      .finally(() => setLoading(false));
+  }, [roomId, apiFetch, onClose]);
+
+  const InfoRow = ({ icon, label, value, children, className = '' }) => (
+    <div className={`flex items-start gap-3 ${className}`}>
+      <div className="text-slate-400 mt-1">{icon}</div>
+      <div className="flex-1">
+        <p className="text-xs text-slate-500 font-semibold">{label}</p>
+        {children || <p className="text-sm text-slate-800 font-bold">{value || 'Chưa cập nhật'}</p>}
+      </div>
+    </div>
+  );
+
+  const formatVND = (n) => (n ? Number(n).toLocaleString('vi-VN') + ' đ' : 'Chưa cập nhật');
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-slate-50 rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
+          <h3 className="text-lg font-bold text-slate-800 line-clamp-1">
+            Xem chi tiết phòng trọ
+          </h3>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition text-slate-500">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading && <div className="py-12 text-center text-slate-400 text-sm">Đang tải thông tin chi tiết...</div>}
+          {!loading && !room && <div className="py-12 text-center text-slate-400 text-sm">Không thể tải thông tin phòng.</div>}
+          
+          {room && (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Left Column - Content */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* Title & Address */}
+                <div>
+                   <h1 className="text-2xl font-black text-slate-800">{room.title}</h1>
+                   <p className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                     <MapPin size={14} /> {room.address}
+                   </p>
+                </div>
+
+                 {/* Image Gallery */}
+                <div className="space-y-2">
+                   {activeImage && (
+                     <div className="rounded-xl overflow-hidden shadow-sm relative bg-slate-100 aspect-video w-full border border-slate-200">
+                       <img className="w-full h-full object-cover" src={activeImage} alt="Main room view" referrerPolicy="no-referrer" />
+                     </div>
+                   )}
+                   {room.images?.length > 1 && (
+                     <div className="flex gap-2 overflow-x-auto pb-1">
+                       {room.images.map((img) => (
+                         <div
+                           key={img.id}
+                           onClick={() => setActiveImage(img.imageUrl)}
+                           className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden cursor-pointer bg-slate-100 border-2 transition-all ${
+                             activeImage === img.imageUrl ? 'border-primary' : 'border-transparent hover:border-slate-300'
+                           }`}
+                         >
+                           <img className="w-full h-full object-cover" src={img.imageUrl} alt={`Thumbnail ${img.id}`} referrerPolicy="no-referrer" />
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                </div>
+
+                {/* Description */}
+                <div className="bg-white p-5 rounded-xl border border-slate-200/60">
+                   <h4 className="font-bold text-slate-800 mb-3 text-base flex items-center gap-2"><Info size={16} />Mô tả chi tiết</h4>
+                   <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{room.description || 'Không có mô tả.'}</p>
+                </div>
+              </div>
+
+              {/* Right Column - Details */}
+              <div className="lg:col-span-2 space-y-5">
+                 <div className="bg-white p-5 rounded-xl border border-slate-200/60 space-y-4">
+                    <h4 className="font-bold text-slate-800 mb-2">Thông tin cơ bản</h4>
+                    <InfoRow icon={<DollarSign size={16} />} label="Giá thuê / tháng" value={formatVND(room.price)} />
+                    <InfoRow icon={<Ruler size={16} />} label="Diện tích" value={`${room.area} m²`} />
+                    <InfoRow icon={<Tag size={16} />} label="Tình trạng phòng">
+                       {(() => {
+                         const m = {
+                           AVAILABLE:   { t: 'Còn phòng trống', c: 'bg-green-100 text-green-700 border-green-200' },
+                           ALMOST_FULL: { t: 'Sắp hết chỗ',    c: 'bg-amber-100 text-amber-700 border-amber-200' },
+                           FULL:        { t: 'Đã hết chỗ',      c: 'bg-red-100 text-red-700 border-red-200' },
+                         };
+                         const s = m[room.status] ?? { t: room.status, c: 'bg-slate-100 text-slate-600 border-slate-200' };
+                         return <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${s.c}`}>{s.t}</span>;
+                       })()}
+                     </InfoRow>
+                    <InfoRow icon={<ShieldCheck size={16} />} label="Trạng thái kiểm duyệt">
+                       {(() => {
+                         const m = {
+                           PENDING_APPROVAL: { t: 'Đang chờ phê duyệt', c: 'bg-blue-100 text-blue-700 border-blue-200' },
+                           APPROVED:         { t: 'Đã được phê duyệt',   c: 'bg-green-100 text-green-700 border-green-200' },
+                           REJECTED:         { t: 'Bị từ chối',           c: 'bg-red-100 text-red-700 border-red-200' },
+                           ADMIN_HIDDEN:     { t: 'Bị Admin ẩn bài',      c: 'bg-orange-100 text-orange-700 border-orange-200' },
+                         };
+                         const a = m[room.approvalStatus] ?? { t: room.approvalStatus, c: 'bg-slate-100 text-slate-600 border-slate-200' };
+                         return <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${a.c}`}>{a.t}</span>;
+                       })()}
+                     </InfoRow>
+                    {room.rejectionReason && (
+                      <InfoRow icon={<Info size={16} />} label="Lý do từ chối">
+                        <p className="text-sm text-red-600 font-medium leading-relaxed mt-0.5">{room.rejectionReason}</p>
+                      </InfoRow>
+                    )}
+                 </div>
+
+                 <div className="bg-white p-5 rounded-xl border border-slate-200/60 space-y-4">
+                    <h4 className="font-bold text-slate-800 mb-2">Người đăng</h4>
+                    <InfoRow icon={<UserIcon size={16} />} label="Tên" value={room.creator?.userName || 'Không xác định'} />
+                     <InfoRow icon={<Calendar size={16} />} label="Email" value={room.creator?.email} />
+                    <InfoRow icon={<Calendar size={16} />} label="Ngày đăng" value={new Date(room.createdAt).toLocaleDateString('vi-VN')} />
+                 </div>
+                 
+                 <div className="bg-white p-5 rounded-xl border border-slate-200/60">
+                    <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><Sparkles size={16}/>Tiện ích</h4>
+                    {room.features?.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {room.features.map(f => (
+                          <span key={f.feature.id} className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-700 rounded-full">
+                            <Check size={14} className="text-green-600" />
+                            {f.feature.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                       <p className="text-sm text-slate-500">Không có tiện ích nổi bật.</p>
+                    )}
+                 </div>
+              </div>
             </div>
           )}
         </div>
@@ -417,12 +727,26 @@ function RoomsTab({ apiFetch }) {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState('PENDING_APPROVAL');
+  const [viewingRoomId, setViewingRoomId] = useState(null);
+  const [roomStats, setRoomStats] = useState(null);
+  const navigate = useNavigate();
+
+  // Load stats for summary bar
+  useEffect(() => {
+    apiFetch('/dashboard')
+      .then((r) => setRoomStats(r.data))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page, limit: 15 });
       if (search) params.set('search', search);
+      if (approvalStatus !== 'ALL') {
+        params.set('approvalStatus', approvalStatus);
+      }
       const r = await apiFetch(`/rooms?${params}`);
       setRooms(r.data?.data || []);
       setMeta(r.data?.meta || {});
@@ -431,11 +755,46 @@ function RoomsTab({ apiFetch }) {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, approvalStatus, apiFetch]);
 
   useEffect(() => { load(); }, [load]);
 
-  const handleHide = async (id, isHidden) => {
+  const handleApprove = async (id, title) => {
+    if (!window.confirm(`Phê duyệt phòng trọ "${title}"?`)) return;
+    try {
+      await apiFetch(`/rooms/${id}/approve`, { method: 'PATCH' });
+      toast.success('Đã phê duyệt phòng trọ.');
+      load(); // Tải lại danh sách
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleReject = async (id, title) => {
+    const reason = window.prompt(`Vui lòng nhập lý do từ chối phòng trọ "${title}":`);
+    if (!reason || reason.trim().length < 10) {
+      toast.warn('Lý do từ chối là bắt buộc và phải dài ít nhất 10 ký tự.');
+      return;
+    }
+    try {
+      await apiFetch(`/rooms/${id}/reject`, {
+        method: 'PATCH',
+        body: JSON.stringify({ rejectionReason: reason }),
+      });
+      toast.success('Đã từ chối phòng trọ.');
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleView = (id) => {
+    setViewingRoomId(id);
+  };
+
+
+  const handleHide = async (id, status) => {
+    const isHidden = status === 'ADMIN_HIDDEN';
     const action = isHidden ? 'restore' : 'hide';
     const label = isHidden ? 'Hiện lại phòng này?' : 'Ẩn phòng này khỏi danh sách?';
     if (!window.confirm(label)) return;
@@ -460,11 +819,106 @@ function RoomsTab({ apiFetch }) {
   };
 
   const formatVND = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
+  
+  const renderStatus = (room) => {
+    const statusTag = "px-2 py-1 text-xs font-bold rounded-full flex items-center gap-1 w-fit";
+    switch (room.approvalStatus) {
+      case 'APPROVED':
+        if (room.creator?.isBanned) return <span className={`${statusTag} bg-red-50 text-red-700`}><EyeOff size={12} /> User bị khóa</span>;
+        return <span className={`${statusTag} bg-green-50 text-green-600`}><ShieldCheck size={12} /> Đã duyệt</span>;
+      case 'PENDING_APPROVAL':
+        return <span className={`${statusTag} bg-blue-50 text-blue-600`}><ShieldCheck size={12} /> Chờ duyệt</span>;
+      case 'REJECTED':
+        return <span className={`${statusTag} bg-red-50 text-red-600`}><X size={12} /> Bị từ chối</span>;
+      case 'ADMIN_HIDDEN':
+        return <span className={`${statusTag} bg-orange-50 text-orange-600`}><EyeOff size={12} /> Ẩn (Admin)</span>;
+      default:
+        return null;
+    }
+  }
+
+  const renderActions = (room) => {
+    const btnSm = "px-3 py-1.5 text-xs font-bold rounded-lg transition";
+    const status = room.approvalStatus;
+
+    // Actions chung cho mọi trạng thái
+    const commonActions = (
+      <>
+        <button onClick={() => handleView(room.id)} title="Xem chi tiết" className={`${btnSm} bg-slate-100 text-slate-700 hover:bg-slate-200`}>Xem</button>
+        <button onClick={() => handleDelete(room.id, room.title)} title="Xóa vĩnh viễn" className={`${btnSm} bg-red-50 text-red-600 hover:bg-red-100`}>Xóa</button>
+      </>
+    );
+
+    if (status === 'PENDING_APPROVAL') {
+      return (
+        <>
+          <button onClick={() => handleApprove(room.id, room.title)} title="Duyệt nhanh" className={`${btnSm} bg-green-500 text-white hover:bg-green-600`}>Duyệt</button>
+          <button onClick={() => handleView(room.id)} title="Xem chi tiết" className={`${btnSm} bg-blue-50 text-blue-700 hover:bg-blue-100`}>Xem</button>
+          <button onClick={() => handleReject(room.id, room.title)} title="Từ chối" className={`${btnSm} bg-red-50 text-red-700 hover:bg-red-100`}>Từ chối</button>
+        </>
+      );
+    }
+    
+    if (status === 'APPROVED') {
+       return (
+          <>
+            <button onClick={() => handleView(room.id)} title="Xem chi tiết" className={`${btnSm} bg-slate-100 text-slate-700 hover:bg-slate-200`}>Xem</button>
+            <button onClick={() => handleHide(room.id, room.approvalStatus)} title="Ẩn"
+              className={`${btnSm} bg-orange-50 text-orange-700 hover:bg-orange-100`}>
+              Ẩn
+            </button>
+          </>
+        );
+    }
+
+    if (status === 'ADMIN_HIDDEN') {
+       return (
+          <>
+            <button onClick={() => handleView(room.id)} title="Xem chi tiết" className={`${btnSm} bg-slate-100 text-slate-700 hover:bg-slate-200`}>Xem</button>
+            <button onClick={() => handleHide(room.id, room.approvalStatus)} title="Hiện lại"
+              className={`${btnSm} bg-green-50 text-green-700 hover:bg-green-100`}>
+              Hiện lại
+            </button>
+          </>
+        );
+    }
+    
+    return commonActions;
+  };
+
+  const FILTER_STATUSES = [
+      { id: 'ALL', label: 'Tất cả' },
+      { id: 'PENDING_APPROVAL', label: 'Chờ duyệt' },
+      { id: 'APPROVED', label: 'Đã duyệt' },
+      { id: 'REJECTED', label: 'Bị từ chối' }
+  ];
+
+  // Stat summary items
+  const statItems = [
+    { id: 'ALL',              label: 'Tất cả',      count: roomStats?.totalRooms,       color: 'text-slate-700',   bg: 'bg-slate-100',   activeBg: 'bg-slate-700',   dot: 'bg-slate-500'  },
+    { id: 'PENDING_APPROVAL', label: 'Chờ duyệt',   count: roomStats?.pendingRooms,     color: 'text-amber-700',   bg: 'bg-amber-50',    activeBg: 'bg-amber-500',   dot: 'bg-amber-400'  },
+    { id: 'APPROVED',         label: 'Đã duyệt',    count: roomStats?.approvedRooms,    color: 'text-emerald-700', bg: 'bg-emerald-50',  activeBg: 'bg-emerald-600', dot: 'bg-emerald-400'},
+    { id: 'REJECTED',         label: 'Bị từ chối',  count: roomStats?.rejectedRooms,    color: 'text-rose-700',    bg: 'bg-rose-50',     activeBg: 'bg-rose-600',    dot: 'bg-rose-400'   },
+    { id: 'ADMIN_HIDDEN',     label: 'Ẩn (Admin)',  count: roomStats?.adminHiddenRooms, color: 'text-orange-700',  bg: 'bg-orange-50',   activeBg: 'bg-orange-500',  dot: 'bg-orange-400' },
+  ];
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
-        <h2 className="text-xl font-black text-slate-800">Quản lý phòng trọ</h2>
+    <div className="space-y-4">
+
+      {/* Header row */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div>
+          <h2 className="text-xl font-black text-slate-800">Quản lý phòng trọ</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Tổng <span className="font-bold text-slate-600">{roomStats?.totalRooms ?? '…'}</span> phòng
+            &nbsp;·&nbsp;
+            <span className="text-amber-600 font-bold">{roomStats?.pendingRooms ?? 0} chờ duyệt</span>
+            &nbsp;·&nbsp;
+            <span className="text-emerald-600 font-bold">{roomStats?.approvedRooms ?? 0} đã duyệt</span>
+            &nbsp;·&nbsp;
+            <span className="text-orange-600 font-bold">{roomStats?.adminHiddenRooms ?? 0} ẩn (admin)</span>
+          </p>
+        </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <input
             type="text"
@@ -481,6 +935,31 @@ function RoomsTab({ apiFetch }) {
             <Search size={16} />
           </button>
         </div>
+      </div>
+
+      {/* Stat summary cards + filter tabs — combined */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+        {statItems.map(item => {
+          const isActive = approvalStatus === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => { setApprovalStatus(item.id); setPage(1); }}
+              className={`w-full flex flex-col px-3 py-2 rounded-xl border transition-all text-left ${
+                isActive
+                  ? `${item.activeBg} text-white border-transparent shadow-md`
+                  : `bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm`
+              }`}
+            >
+              <p className={`text-sm font-black leading-none tabular-nums ${isActive ? 'text-white' : item.color}`}>
+                {item.count ?? '0'}
+              </p>
+              <p className={`text-[10px] font-bold mt-0.5 truncate ${isActive ? 'text-white/80' : 'text-slate-500'}`}>
+                {item.label}
+              </p>
+            </button>
+          );
+        })}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm">
@@ -526,40 +1005,14 @@ function RoomsTab({ apiFetch }) {
                       {formatVND(room.price)}
                     </td>
                     <td className="px-4 py-3">
-                      {room.isHidden ? (
-                        <span className="px-2 py-1 text-xs font-bold bg-orange-50 text-orange-600 rounded-full flex items-center gap-1 w-fit">
-                          <EyeOff size={12} /> Đang ẩn
-                        </span>
-                      ) : room.creator?.isBanned ? (
-                        <span className="px-2 py-1 text-xs font-bold bg-red-50 text-red-600 rounded-full flex items-center gap-1 w-fit">
-                          <EyeOff size={12} /> Bị ẩn (Khóa user)
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 text-xs font-bold bg-green-50 text-green-600 rounded-full flex items-center gap-1 w-fit">
-                          <Eye size={12} /> Hiển thị
-                        </span>
+                      {renderStatus(room)}
+                       {approvalStatus === 'REJECTED' && room.rejectionReason && (
+                        <p className="text-xs text-slate-400 mt-1 line-clamp-2" title={room.rejectionReason}>Lý do: {room.rejectionReason}</p>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleHide(room.id, room.isHidden || room.creator?.isBanned)}
-                          title={room.isHidden || room.creator?.isBanned ? 'Hiện lại' : 'Ẩn phòng'}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                            room.isHidden || room.creator?.isBanned
-                              ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                              : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
-                          }`}
-                        >
-                          {room.isHidden || room.creator?.isBanned ? 'Hiện lại' : 'Ẩn'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(room.id, room.title)}
-                          title="Xóa vĩnh viễn"
-                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                         {renderActions(room)}
                       </div>
                     </td>
                   </tr>
@@ -570,6 +1023,13 @@ function RoomsTab({ apiFetch }) {
         )}
       </div>
       <Pagination page={page} totalPages={meta.totalPages} onPage={setPage} />
+      {viewingRoomId && (
+        <RoomDetailModal
+          roomId={viewingRoomId}
+          apiFetch={apiFetch}
+          onClose={() => setViewingRoomId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -666,7 +1126,7 @@ export default function AdminPage() {
 
         {/* Main content */}
         <main className="flex-1 min-w-0 pb-20 md:pb-0">
-          {activeTab === 'dashboard' && <DashboardTab apiFetch={apiFetch} />}
+          {activeTab === 'dashboard' && <DashboardTab apiFetch={apiFetch} onSwitchTab={setActiveTab} />}
           {activeTab === 'users' && <UsersTab apiFetch={apiFetch} />}
           {activeTab === 'rooms' && <RoomsTab apiFetch={apiFetch} />}
         </main>
@@ -674,3 +1134,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
