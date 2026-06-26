@@ -126,9 +126,12 @@ export const roomService = {
 			// Nếu đã có revision cũ, payload mới sẽ ghi đè hoàn toàn (không tạo thêm bản mới).
 			await roomRepository.upsertRevision(id, userId, dto);
 
-			// Chuyển phòng gốc về PENDING_APPROVAL → ẩn khỏi danh sách công khai
-			// cho đến khi Admin duyệt và apply revision.
-			await roomRepository.updateApprovalStatus(id, 'PENDING_APPROVAL');
+			// Nếu phòng đã APPROVED, giữ nguyên trạng thái → phòng vẫn hiển thị
+			// public với dữ liệu cũ cho đến khi Admin approve revision.
+			// Chỉ chuyển về PENDING nếu bài chưa từng được duyệt.
+			if (room.approvalStatus !== 'APPROVED') {
+				await roomRepository.updateApprovalStatus(id, 'PENDING_APPROVAL');
+			}
 
 			// Invalidate Cache
 			await invalidateRoomCaches(id);
@@ -213,10 +216,7 @@ export const roomService = {
 
         const newImage = await roomRepository.addImageToRoom(roomId, imageUrl, displayOrder, storagePath);
 
-		// NÂNG CẤP: Khi thêm ảnh mới, reset trạng thái duyệt (nếu không phải admin)
-		if (role !== 'ADMIN') {
-			await roomRepository.updateApprovalStatus(roomId, 'PENDING_APPROVAL');
-		}
+		// Không reset approvalStatus khi upload ảnh để tránh ẩn phòng đã duyệt
 
         // Invalidate Cache
         await invalidateRoomCaches(roomId);
@@ -244,10 +244,7 @@ export const roomService = {
 
 		await roomRepository.deleteImageById(imageId);
 
-		// NÂNG CẤP: Khi xóa ảnh, reset trạng thái duyệt (nếu không phải admin)
-		if (role !== 'ADMIN') {
-			await roomRepository.updateApprovalStatus(roomId, 'PENDING_APPROVAL');
-		}
+		// Không reset approvalStatus khi xóa ảnh để tránh ẩn phòng đã duyệt
 
 		processCleanup().catch(console.error);
 

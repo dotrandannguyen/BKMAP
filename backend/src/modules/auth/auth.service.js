@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { authRepository } from './auth.repository.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../common/utils/email.util.js';
 import {
@@ -290,11 +290,7 @@ export const authService = {
     const user = await authRepository.findUserByEmail(dto.email);
 
     if (!user) {
-      // Don't reveal that the user does not exist
-      return {
-        message:
-          'Nếu email của bạn tồn tại trong hệ thống, bạn sẽ nhận được một liên kết để đặt lại mật khẩu.',
-      };
+      throw new ClientException(404, 'Email không tồn tại trong hệ thống.');
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');

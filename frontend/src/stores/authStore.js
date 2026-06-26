@@ -81,7 +81,7 @@ export const useAuthStore = create((set) => ({
       if (!response.ok) {
         throw new Error(data.message || 'Yêu cầu thất bại.');
       }
-      set({ loading: false, message: data.message });
+      set({ loading: false, message: data.message || data.data?.message });
     } catch (error) {
       set({ loading: false, error: error.message });
     }
@@ -99,7 +99,7 @@ export const useAuthStore = create((set) => ({
       if (!response.ok) {
         throw new Error(data.message || 'Đặt lại mật khẩu thất bại.');
       }
-      set({ loading: false, message: data.message });
+      set({ loading: false, message: data.message || data.data?.message });
       if (onSuccess) onSuccess();
     } catch (error) {
       set({ loading: false, error: error.message });

@@ -36,7 +36,7 @@ app.use(cors({
 // --- RATE LIMITING ---
 const globalLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
-	max: 200,
+	max: 1000,
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: { message: 'Quá nhiều yêu cầu, vui lòng thử lại sau.' },
@@ -44,7 +44,7 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
-	max: 10,
+	max: 50,
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: { message: 'Quá nhiều lần đăng nhập thất bại, vui lòng thử lại sau 15 phút.' },

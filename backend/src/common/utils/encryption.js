@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { InternalServerException } from '../exceptions/index.js';
 
 // Cấu hình trong .env:

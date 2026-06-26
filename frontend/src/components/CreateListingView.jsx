@@ -688,7 +688,10 @@ export default function CreateListingView() {
         otherCosts: createRoomPayload.otherCosts,
       };
 
-      onAddListing(newHouse);
+      // Chỉ thêm vào danh sách khi tạo mới, không thêm khi sửa (tránh trùng lặp)
+      if (!isEditing) {
+        onAddListing(newHouse);
+      }
       
       setIsSuccess(true);
 

@@ -150,7 +150,7 @@ export const adminRepository = {
 			where: { id },
 			data: {
 				approvalStatus: status,
-				rejectionReason: status === 'REJECTED' ? rejectionReason : null,
+				rejectionReason: rejectionReason || null,
 			},
 		});
 	},
