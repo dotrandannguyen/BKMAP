@@ -28,3 +28,19 @@ export const authMiddleware = (req, res, next) => {
 		}
 	}
 };
+
+// MỚI: Middleware tùy chọn - Nếu có token thì lấy user, nếu không thì vẫn cho qua (cho Guest)
+export const optionalAuth = (req, res, next) => {
+	try {
+		const authHeader = req.headers.authorization;
+		if (authHeader && authHeader.startsWith('Bearer ')) {
+			const token = authHeader.split(' ')[1];
+			const payload = jwt.verify(token, ACCESS_JWT_SECRET);
+			req.user = { id: payload.sub, role: payload.role };
+		}
+		next();
+	} catch (error) {
+		// Nếu token sai hoặc hết hạn cũng cho qua như Guest, hoặc có thể chọn xóa req.user
+		next();
+	}
+};

@@ -88,9 +88,16 @@ function MapViewCenter({ position }) {
   return null;
 }
 
+
+
+
 export default function CreateListingView() {
   const navigate = useNavigate();
-  const { editingListing: initialData, addListing, setEditingListing } = useListingStore();
+  const { 
+    editingListing: initialData, 
+    addListing, 
+    setEditingListing,
+  } = useListingStore();
   const userEmail = useAuthStore((s) => s.userEmail);
   const userName = useAuthStore((s) => s.userName);
   const userRole = useAuthStore((s) => s.userRole);
@@ -684,9 +691,19 @@ export default function CreateListingView() {
       onAddListing(newHouse);
       
       setIsSuccess(true);
+
+      if (isEditing) {
+        // Thông báo rõ ràng: bài đăng đang chờ Admin duyệt và tạm thời ẩn
+        toast.info('✏️ Yêu cầu chỉnh sửa đã được gửi! Bài đăng sẽ được ẩn cho đến khi Admin xem xét và phê duyệt.', {
+          autoClose: 5000,
+        });
+      } else {
+        toast.success('🎉 Đăng ký thành công! Bài đăng đang chờ Admin phê duyệt.');
+      }
+
       setTimeout(() => {
         navigate(userRole === 'ADMIN' ? '/admin' : '/dashboard');
-      }, 1500);
+      }, 2000);
       
       
     } catch (error) {
@@ -1345,3 +1362,4 @@ export default function CreateListingView() {
     </div>
   );
 }
+

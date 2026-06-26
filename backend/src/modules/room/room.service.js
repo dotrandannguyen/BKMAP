@@ -33,8 +33,7 @@ export const roomService = {
 		}
 	},
 
-	async getRooms(query) {
-		// ... (rest of the function is unchanged)
+	async getRooms(query, user = null) {
 		const page = query.page || 1;
 		const limit = query.limit || 10;
 		const skip = (page - 1) * limit;
@@ -49,7 +48,19 @@ export const roomService = {
 			ward: query.ward,
 			search: query.search,
 			ownerEmail: query.ownerEmail,
+			approvalStatus: query.approvalStatus,
 		};
+
+		// Nếu là Admin, có thể xem mọi trạng thái. 
+		// Nếu là User thường, chỉ có thể xem 'APPROVED' (mặc định trong repo) 
+		// hoặc xem chính bài của họ.
+		if (user) {
+			if (user.role === 'ADMIN') {
+				// Admin filter tự do
+			} else if (query.mine === 'true') {
+				filters.userId = user.id; // Repo sẽ bỏ qua filter approvalStatus nếu có userId
+			}
+		}
 
 		const { total, rooms } = await roomRepository.findAll(filters, skip, limit);
 
@@ -64,7 +75,7 @@ export const roomService = {
 		};
 	},
 
-	async getRoomById(id) {
+	async getRoomById(id, user = null) {
 		if (!uuidValidate(id)) {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		}
@@ -72,6 +83,15 @@ export const roomService = {
 		if (!room) {
 			throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		}
+
+		// Logic check quyền xem
+		if (room.approvalStatus !== 'APPROVED') {
+			// Nếu bài đăng không được duyệt, chỉ Admin hoặc chủ bài đăng mới được xem
+			if (!user || (user.role !== 'ADMIN' && room.createdBy !== user.id)) {
+				throw new ClientException(404, 'Không tìm thấy phòng trọ.');
+			}
+		}
+
 		return room;
 	},
 
@@ -89,21 +109,37 @@ export const roomService = {
 			throw new ClientException(403, 'Bạn không có quyền chỉnh sửa phòng trọ này.');
 		}
 
-		try {
-			const updatedRoom = await roomRepository.updateRoom(id, dto);
-			processCleanup().catch(console.error);
-
-            // Invalidate Cache
-            await invalidateRoomCaches(id);
-
-			return updatedRoom;
-		} catch (error) {
-			if (error.code === 'P2003') {
-				throw new ClientException(400, 'Dữ liệu liên kết không hợp lệ.');
+		// Nếu là Admin, cho phép sửa trực tiếp và xóa revision cũ (nếu có)
+		if (role === 'ADMIN') {
+			const updatedRoom = await roomRepository.updateRoom(id, dto, false);
+			// Nếu admin tự sửa trực tiếp thì xóa revision cũ đang chờ (nếu có)
+			if (room.revision) {
+				await roomRepository.deleteRevisionByRoomId(id);
 			}
-			throw error;
+			await invalidateRoomCaches(id);
+			return updatedRoom;
+		}
+
+		// Nếu là người dùng thường: tạo/đè bản nháp revision và ẩn phòng chờ duyệt
+		try {
+			// upsertRevision đảm bảo mỗi phòng chỉ có đúng 1 revision tại 1 thời điểm.
+			// Nếu đã có revision cũ, payload mới sẽ ghi đè hoàn toàn (không tạo thêm bản mới).
+			await roomRepository.upsertRevision(id, userId, dto);
+
+			// Chuyển phòng gốc về PENDING_APPROVAL → ẩn khỏi danh sách công khai
+			// cho đến khi Admin duyệt và apply revision.
+			await roomRepository.updateApprovalStatus(id, 'PENDING_APPROVAL');
+
+			// Invalidate Cache
+			await invalidateRoomCaches(id);
+
+			return await roomRepository.findById(id);
+		} catch (error) {
+			console.error('Error creating/updating revision:', error);
+			throw new ClientException(500, 'Lỗi khi gửi yêu cầu chỉnh sửa.');
 		}
 	},
+
 
 	async deleteRoom(id, userId, role) {
 		if (!uuidValidate(id)) {
@@ -130,7 +166,6 @@ export const roomService = {
 	},
 
 	async uploadRoomImage(roomId, userId, role, file, body) {
-        // ... (validation logic is unchanged)
 		const displayOrder = body && body.displayOrder ? parseInt(body.displayOrder, 10) : 0;
 		if (!uuidValidate(roomId)) {
 			throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
@@ -178,6 +213,11 @@ export const roomService = {
 
         const newImage = await roomRepository.addImageToRoom(roomId, imageUrl, displayOrder, storagePath);
 
+		// NÂNG CẤP: Khi thêm ảnh mới, reset trạng thái duyệt (nếu không phải admin)
+		if (role !== 'ADMIN') {
+			await roomRepository.updateApprovalStatus(roomId, 'PENDING_APPROVAL');
+		}
+
         // Invalidate Cache
         await invalidateRoomCaches(roomId);
 
@@ -203,6 +243,12 @@ export const roomService = {
 		}
 
 		await roomRepository.deleteImageById(imageId);
+
+		// NÂNG CẤP: Khi xóa ảnh, reset trạng thái duyệt (nếu không phải admin)
+		if (role !== 'ADMIN') {
+			await roomRepository.updateApprovalStatus(roomId, 'PENDING_APPROVAL');
+		}
+
 		processCleanup().catch(console.error);
 
         // Invalidate Cache

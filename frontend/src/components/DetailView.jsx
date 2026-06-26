@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useListingStore } from '../stores/listingStore';
+import { useAuthStore } from '../stores/authStore'; // Import useAuthStore
 import { useUiStore } from '../stores/uiStore';
 import { toast } from 'react-toastify';
+import { ShieldCheck, X } from 'lucide-react'; // Import ShieldCheck and X icons
+
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -15,11 +18,38 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// useAdminFetch hook (copied from AdminPage.jsx)
+const API_URL =
+  import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
+    ? import.meta.env.VITE_API_URL
+    : `http://${window.location.hostname}:3000/api`;
+
+function useAdminFetch() {
+  const token = localStorage.getItem('accessToken');
+  const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  return useCallback(
+    async (path, options = {}) => {
+      const res = await fetch(`${API_URL}/admin${path}`, {
+        ...options,
+        headers: { ...authHeader, ...(options.headers || {}) },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Lỗi không xác định');
+      return data;
+    },
+    [token]
+  );
+}
+
+
 export default function DetailView() {
   const navigate = useNavigate();
   const { id } = useParams();
   const listings = useListingStore((s) => s.listings);
   const { savedIds, toggleSaved } = useUiStore();
+  const { userRole } = useAuthStore(); // Get userRole from auth store
+  const apiFetch = useAdminFetch(); // Use admin fetch hook
 
   const [localListing, setLocalListing] = useState(() => listings.find((item) => item.id === id) || null);
   const [loading, setLoading] = useState(!localListing);
@@ -41,10 +71,18 @@ export default function DetailView() {
     }
 
     const fetchListingDetail = async () => {
+      const token = localStorage.getItem('accessToken'); // Get token for auth header
       try {
-        const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
-        const res = await fetch(`${apiUrl}/rooms/${id}`);
-        if (!res.ok) throw new Error('Không tìm thấy phòng trọ');
+        const res = await fetch(`${API_URL}/rooms/${id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}`}) // Include token if available
+          }
+        });
+        if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.message || 'Không tìm thấy phòng trọ');
+        }
         const json = await res.json();
         const room = json.data;
 
@@ -79,6 +117,8 @@ export default function DetailView() {
           otherCosts: room.otherCosts,
           createdAt: room.createdAt,
           updatedAt: room.updatedAt,
+          approvalStatus: room.approvalStatus, // IMPORTANT: Add approval status
+          rejectionReason: room.rejectionReason, // IMPORTANT: Add rejection reason
         };
 
         setLocalListing(mapped);
@@ -94,7 +134,38 @@ export default function DetailView() {
     };
 
     fetchListingDetail();
-  }, [id, listings]);
+  }, [id, listings, activeImage]); // Add activeImage to dependencies
+
+  // Admin approval/rejection handlers
+  const handleApprove = async () => {
+    if (!window.confirm(`Phê duyệt phòng trọ "${localListing.title}"?`)) return;
+    try {
+      await apiFetch(`/rooms/${localListing.id}/approve`, { method: 'PATCH' });
+      toast.success('Đã phê duyệt phòng trọ thành công.');
+      navigate('/admin'); // Navigate back to admin page after approval
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleReject = async () => {
+    const reason = window.prompt(`Vui lòng nhập lý do từ chối phòng trọ "${localListing.title}":`);
+    if (!reason || reason.trim().length < 10) {
+      toast.warn('Lý do từ chối là bắt buộc và phải dài ít nhất 10 ký tự.');
+      return;
+    }
+    try {
+      await apiFetch(`/rooms/${localListing.id}/reject`, {
+        method: 'PATCH',
+        body: JSON.stringify({ rejectionReason: reason }),
+      });
+      toast.success('Đã từ chối phòng trọ.');
+      navigate('/admin'); // Navigate back to admin page
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
 
   if (loading && !localListing) {
     return (
@@ -216,8 +287,33 @@ export default function DetailView() {
 
   const galleryImages = listing.images && listing.images.length > 0 ? listing.images : [];
 
+  const AdminApprovalSection = () => {
+    if (userRole !== 'ADMIN' || listing.approvalStatus !== 'PENDING_APPROVAL') {
+      return null;
+    }
+
+    return (
+      <div className="bg-yellow-50 border-2 border-dashed border-yellow-400 p-4 rounded-2xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className='flex items-center gap-3'>
+          <ShieldCheck className="text-yellow-600 w-8 h-8 flex-shrink-0" />
+          <div>
+            <h3 className="font-bold text-yellow-800">Phòng này đang chờ duyệt</h3>
+            <p className="text-xs text-yellow-700">Chỉ có quản trị viên mới thấy được thông báo này.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={handleApprove} className="px-4 py-2 text-xs font-bold rounded-lg bg-green-500 text-white hover:bg-green-600 transition">Duyệt bài</button>
+          <button onClick={handleReject} className="px-4 py-2 text-xs font-bold rounded-lg bg-red-500 text-white hover:bg-red-600 transition">Từ chối</button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-12 py-10 animate-fade-in pb-28">
+      {/* Admin Section */}
+      <AdminApprovalSection />
+      
       {/* Back button */}
       <button
         onClick={() => navigate(-1)}

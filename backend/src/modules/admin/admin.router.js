@@ -43,4 +43,10 @@ router.patch('/rooms/:id/restore', adminController.restoreRoom);
 // DELETE /admin/rooms/:id
 router.delete('/rooms/:id', adminController.deleteRoom);
 
+// PATCH /admin/rooms/:id/approve
+router.patch('/rooms/:id/approve', adminController.approveRoom);
+
+// PATCH /admin/rooms/:id/reject
+router.patch('/rooms/:id/reject', adminController.rejectRoom);
+
 export default router;

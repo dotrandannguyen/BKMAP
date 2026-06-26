@@ -85,7 +85,7 @@ export const adminRepository = {
 
 	// ============ ROOM ============
 
-	async findAllRooms({ search, creatorEmail, page = 1, limit = 20 }) {
+	async findAllRooms({ search, creatorEmail, approvalStatus, page = 1, limit = 20 }) {
 		const skip = (page - 1) * limit;
 		const where = {};
 
@@ -98,6 +98,10 @@ export const adminRepository = {
 				{ title: { contains: search, mode: 'insensitive' } },
 				{ address: { contains: search, mode: 'insensitive' } },
 			];
+		}
+
+		if (approvalStatus && ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'ADMIN_HIDDEN'].includes(approvalStatus)) {
+			where.approvalStatus = approvalStatus;
 		}
 
 		const [total, rooms] = await prisma.$transaction([
@@ -122,6 +126,7 @@ export const adminRepository = {
 				creator: { select: { id: true, userName: true, email: true, avatar: true, isBanned: true } },
 				images: { orderBy: { displayOrder: 'asc' } },
 				features: { include: { feature: true } },
+				revision: true, // Include revision để biết có yêu cầu chỉnh sửa đang chờ không
 			},
 		});
 	},
@@ -129,14 +134,24 @@ export const adminRepository = {
 	async hideRoom(id) {
 		return prisma.room.update({
 			where: { id },
-			data: { isHidden: true },
+			data: { approvalStatus: 'ADMIN_HIDDEN' },
 		});
 	},
 
 	async restoreRoom(id) {
 		return prisma.room.update({
 			where: { id },
-			data: { isHidden: false },
+			data: { approvalStatus: 'APPROVED' },
+		});
+	},
+
+	async updateRoomStatus(id, status, rejectionReason = null) {
+		return prisma.room.update({
+			where: { id },
+			data: {
+				approvalStatus: status,
+				rejectionReason: status === 'REJECTED' ? rejectionReason : null,
+			},
 		});
 	},
 
@@ -161,14 +176,44 @@ export const adminRepository = {
 	// ============ DASHBOARD ============
 
 	async getDashboardStats() {
-		const [totalUsers, totalRooms, activeRooms, hiddenRooms, bannedUsers] = await prisma.$transaction([
+		const now = new Date();
+		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+		const [
+			totalUsers,
+			totalRooms,
+			approvedRooms,
+			pendingRooms,
+			rejectedRooms,
+			adminHiddenRooms,
+			bannedUsers,
+			newUsersThisMonth,
+			newRoomsThisMonth,
+		] = await prisma.$transaction([
 			prisma.user.count(),
 			prisma.room.count(),
-			prisma.room.count({ where: { isHidden: false, creator: { isBanned: false } } }),
-			prisma.room.count({ where: { OR: [{ isHidden: true }, { creator: { isBanned: true } }] } }),
+			prisma.room.count({ where: { approvalStatus: 'APPROVED' } }),
+			prisma.room.count({ where: { approvalStatus: 'PENDING_APPROVAL' } }),
+			prisma.room.count({ where: { approvalStatus: 'REJECTED' } }),
+			prisma.room.count({ where: { approvalStatus: 'ADMIN_HIDDEN' } }),
 			prisma.user.count({ where: { isBanned: true } }),
+			prisma.user.count({ where: { createdAt: { gte: startOfMonth } } }),
+			prisma.room.count({ where: { createdAt: { gte: startOfMonth } } }),
 		]);
 
-		return { totalUsers, totalRooms, activeRooms, hiddenRooms, bannedUsers };
+		return {
+			totalUsers,
+			totalRooms,
+			approvedRooms,
+			pendingRooms,
+			rejectedRooms,
+			hiddenRooms: adminHiddenRooms,
+			adminHiddenRooms,
+			bannedUsers,
+			newUsersThisMonth,
+			newRoomsThisMonth,
+			// Legacy compat
+			activeRooms: approvedRooms,
+		};
 	},
 };

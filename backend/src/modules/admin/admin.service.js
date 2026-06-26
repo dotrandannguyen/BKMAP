@@ -1,8 +1,10 @@
 import { adminRepository } from './admin.repository.js';
+import { roomRepository } from '../room/room.repository.js';
 import { ClientException } from '../../common/exceptions/index.js';
 import { validate as uuidValidate } from 'uuid';
 import { processCleanup } from '../../workers/cleanup.worker.js';
 import { invalidate, del as delFromCache } from '../../common/services/cache.service.js';
+
 
 export const adminService = {
 	// ============ USER ============
@@ -67,9 +69,15 @@ export const adminService = {
 	async getRooms(query) {
 		const page = parseInt(query.page) || 1;
 		const limit = parseInt(query.limit) || 20;
-		const { search, creatorEmail } = query;
+		const { search, creatorEmail, approvalStatus } = query;
 
-		const { total, rooms } = await adminRepository.findAllRooms({ search, creatorEmail, page, limit });
+		const { total, rooms } = await adminRepository.findAllRooms({
+			search,
+			creatorEmail,
+			approvalStatus,
+			page,
+			limit,
+		});
 
 		return {
 			data: rooms,
@@ -88,7 +96,7 @@ export const adminService = {
 		if (!uuidValidate(id)) throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
 		const room = await adminRepository.findRoomById(id);
 		if (!room) throw new ClientException(404, 'Không tìm thấy phòng trọ.');
-		if (room.isHidden) throw new ClientException(400, 'Phòng trọ này đã bị ẩn rồi.');
+		if (room.approvalStatus === 'ADMIN_HIDDEN') throw new ClientException(400, 'Phòng trọ này đã bị ẩn rồi.');
 
 		const updated = await adminRepository.hideRoom(id);
 		// Invalidate cache
@@ -102,7 +110,7 @@ export const adminService = {
 		const room = await adminRepository.findRoomById(id);
 		if (!room) throw new ClientException(404, 'Không tìm thấy phòng trọ.');
 		if (room.creator?.isBanned) throw new ClientException(400, 'Tài khoản người đăng đã bị khóa. Vui lòng mở khóa người dùng trước khi hiện lại phòng.');
-		if (!room.isHidden) throw new ClientException(400, 'Phòng trọ này đang hiển thị, không cần khôi phục.');
+		if (room.approvalStatus !== 'ADMIN_HIDDEN') throw new ClientException(400, 'Phòng trọ này đang hiển thị hoặc không bị admin ẩn, không cần khôi phục.');
 
 		const updated = await adminRepository.restoreRoom(id);
 		await invalidate('rooms:list:*');
@@ -125,6 +133,88 @@ export const adminService = {
 
 		return { message: 'Xóa phòng trọ thành công.' };
 	},
+
+	async approveRoom(id) {
+		if (!uuidValidate(id)) throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
+		const room = await adminRepository.findRoomById(id);
+		if (!room) throw new ClientException(404, 'Không tìm thấy phòng trọ.');
+
+		// Kiểm tra xem đây là duyệt bài mới hay duyệt yêu cầu chỉnh sửa (revision)
+		const revision = room.revision || (await roomRepository.findRevisionByRoomId(id));
+
+		if (revision) {
+			// === LUỒNG B: Duyệt yêu cầu chỉnh sửa ===
+			// 1. Apply payload từ revision vào phòng gốc
+			await roomRepository.updateRoom(id, revision.payload, false);
+
+			// 2. Xóa revision sau khi đã apply — đảm bảo không còn revision cũ
+			await roomRepository.deleteRevisionByRoomId(id);
+
+			// 3. Đảm bảo phòng gốc ở trạng thái APPROVED (có thể đã APPROVED rồi)
+			const updated = await adminRepository.updateRoomStatus(id, 'APPROVED');
+
+			// 4. Invalidate cache
+			await delFromCache(`room:detail:${id}`);
+			await invalidate('rooms:list:*');
+
+			return updated;
+		} else {
+			// === LUỒNG A: Duyệt bài đăng mới ===
+			if (room.approvalStatus !== 'PENDING_APPROVAL') {
+				throw new ClientException(400, `Phòng trọ này không ở trạng thái chờ duyệt. Trạng thái hiện tại: ${room.approvalStatus}`);
+			}
+
+			const updated = await adminRepository.updateRoomStatus(id, 'APPROVED');
+
+			// Invalidate cache để cập nhật danh sách và chi tiết
+			await delFromCache(`room:detail:${id}`);
+			await invalidate('rooms:list:*');
+
+			return updated;
+		}
+	},
+
+	async rejectRoom(id, rejectionReason) {
+		if (!uuidValidate(id)) throw new ClientException(400, 'ID phòng trọ không hợp lệ.');
+		if (!rejectionReason || typeof rejectionReason !== 'string' || rejectionReason.trim().length < 10) {
+			throw new ClientException(400, 'Lý do từ chối là bắt buộc và phải dài ít nhất 10 ký tự.');
+		}
+
+		const room = await adminRepository.findRoomById(id);
+		if (!room) throw new ClientException(404, 'Không tìm thấy phòng trọ.');
+
+		// Kiểm tra xem đây là từ chối bài mới hay từ chối yêu cầu chỉnh sửa (revision)
+		const revision = room.revision || (await roomRepository.findRevisionByRoomId(id));
+
+		if (revision) {
+			// === LUỒNG B: Từ chối yêu cầu chỉnh sửa ===
+			// Phòng gốc vẫn APPROVED — chỉ cần xóa revision và không apply gì cả
+			await roomRepository.deleteRevisionByRoomId(id);
+
+			// Ghi lý do từ chối vào phòng gốc (trường rejectionReason)
+			const updated = await adminRepository.updateRoomStatus(id, 'APPROVED', rejectionReason.trim());
+
+			// Invalidate cache
+			await delFromCache(`room:detail:${id}`);
+			await invalidate('rooms:list:*');
+
+			return updated;
+		} else {
+			// === LUỒNG A: Từ chối bài đăng mới ===
+			if (room.approvalStatus !== 'PENDING_APPROVAL') {
+				throw new ClientException(400, `Phòng trọ này không ở trạng thái chờ duyệt. Trạng thái hiện tại: ${room.approvalStatus}`);
+			}
+
+			const updated = await adminRepository.updateRoomStatus(id, 'REJECTED', rejectionReason.trim());
+
+			// Invalidate cache
+			await delFromCache(`room:detail:${id}`);
+			await invalidate('rooms:list:*');
+
+			return updated;
+		}
+	},
+
 
 	// ============ DASHBOARD ============
 

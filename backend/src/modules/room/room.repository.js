@@ -38,6 +38,7 @@ export const roomRepository = {
 					description: data.description,
 					createdBy: userId,
 					ownerId: owner.id,
+					approvalStatus: 'PENDING_APPROVAL', // Mặc định khi tạo mới
 				},
 			});
 
@@ -93,7 +94,6 @@ export const roomRepository = {
 				}
 			}
 
-			// Trả về Room đã được lấy kèm các bảng liên kết
 			return await tx.room.findUnique({
 				where: { id: newRoom.id },
 				include: {
@@ -108,13 +108,20 @@ export const roomRepository = {
 			});
 		});
 	},
+
 	async findAll(filters = {}, skip = 0, take = 10) {
 		const where = {
-			isHidden: false, // Mặc định: API public không trả phòng bị Admin ẩn
 			creator: {
-				isBanned: false, // Không trả về phòng của người dùng đã bị khóa
+				isBanned: false,
 			},
 		};
+
+		// Mặc định chỉ lấy bài đã duyệt, trừ khi có filter cụ thể (cho Admin)
+		if (filters.approvalStatus) {
+			where.approvalStatus = filters.approvalStatus;
+		} else {
+			where.approvalStatus = 'APPROVED';
+		}
 
 		if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
 			where.price = {};
@@ -144,6 +151,12 @@ export const roomRepository = {
 			where.creator.email = filters.ownerEmail;
 		}
 
+		if (filters.userId) {
+			// Cho phép người dùng xem bài của chính mình bất kể trạng thái duyệt
+			where.createdBy = filters.userId;
+			delete where.approvalStatus; 
+		}
+
 		if (filters.search) {
 			const searchPattern = filters.search.trim();
 			if (searchPattern) {
@@ -151,22 +164,11 @@ export const roomRepository = {
 					{ title: { contains: searchPattern, mode: 'insensitive' } },
 					{ address: { contains: searchPattern, mode: 'insensitive' } },
 					{ description: { contains: searchPattern, mode: 'insensitive' } },
-					{
-						features: {
-							some: {
-								feature: {
-									name: { contains: searchPattern, mode: 'insensitive' }
-								}
-							}
-						}
-					}
 				];
 			}
 		}
 
-		// Tính tổng số lượng
 		const total = await prisma.room.count({ where });
-
 		const rooms = await prisma.room.findMany({
 			where,
 			skip,
@@ -174,15 +176,9 @@ export const roomRepository = {
 			orderBy: { createdAt: 'desc' },
 			include: {
 				owner: true,
-				images: {
-					orderBy: { displayOrder: 'asc' },
-				},
-				features: {
-					include: { feature: true },
-				},
-				creator: {
-					select: { id: true, userName: true, email: true, avatar: true },
-				},
+				images: { orderBy: { displayOrder: 'asc' } },
+				features: { include: { feature: true } },
+				creator: { select: { id: true, userName: true, email: true, avatar: true } },
 			},
 		});
 
@@ -194,42 +190,92 @@ export const roomRepository = {
 			where: { id },
 			include: {
 				owner: true,
-				creator: {
-					select: { id: true, userName: true, email: true, avatar: true },
-				},
-				images: {
-					orderBy: { displayOrder: 'asc' },
-				},
-				features: {
-					include: { feature: true },
-				},
+				creator: { select: { id: true, userName: true, email: true, avatar: true } },
+				images: { orderBy: { displayOrder: 'asc' } },
+				features: { include: { feature: true } },
+				revision: true,
 			},
 		});
 	},
 
-	async updateRoom(id, data) {
+	async findRevisionByRoomId(roomId) {
+		return await prisma.roomRevision.findUnique({
+			where: { roomId },
+		});
+	},
+
+	async upsertRevision(roomId, userId, payload) {
+		return await prisma.roomRevision.upsert({
+			where: { roomId },
+			create: {
+				roomId,
+				createdBy: userId,
+				payload,
+				status: 'PENDING_APPROVAL',
+			},
+			update: {
+				payload,
+				status: 'PENDING_APPROVAL',
+				rejectionReason: null,
+			},
+		});
+	},
+
+	async deleteRevisionById(id) {
+		return await prisma.roomRevision.delete({
+			where: { id },
+		});
+	},
+
+	async deleteRevisionByRoomId(roomId) {
+		return await prisma.roomRevision.delete({
+			where: { roomId },
+		});
+	},
+
+	async updateRoom(id, data, shouldResetApproval = false) {
 		return await prisma.$transaction(async (tx) => {
 			let ownerId = undefined;
 
-			// NẾU cập nhật thông tin chủ trọ
 			if (data.ownerPhone && data.ownerName) {
 				let owner = await tx.owner.findFirst({
 					where: { phoneNumber: data.ownerPhone },
 				});
-
 				if (!owner) {
 					owner = await tx.owner.create({
-						data: {
-							userName: data.ownerName,
-							phoneNumber: data.ownerPhone,
-						},
+						data: { userName: data.ownerName, phoneNumber: data.ownerPhone },
 					});
 				}
 				ownerId = owner.id;
 			}
 
-			// Cập nhật thông tin phòng
-			const updatedRoom = await tx.room.update({
+			// Cập nhật các tiện ích (features)
+			if (data.features && Array.isArray(data.features)) {
+				// 1. Xóa các RoomFeature cũ
+				await tx.roomFeature.deleteMany({
+					where: { roomId: id },
+				});
+
+				// 2. Thêm các RoomFeature mới
+				for (const featureName of data.features) {
+					let feature = await tx.feature.findUnique({
+						where: { name: featureName },
+					});
+					if (!feature) {
+						feature = await tx.feature.create({
+							data: { name: featureName },
+						});
+					}
+					await tx.roomFeature.create({
+						data: {
+							roomId: id,
+							featureId: feature.id,
+						},
+					});
+				}
+			}
+
+			return await tx.room.update({
 				where: { id },
 				data: {
 					title: data.title,
@@ -248,159 +294,46 @@ export const roomRepository = {
 					sharedOwner: data.sharedOwner,
 					curfew: data.curfew,
 					description: data.description,
-					...(ownerId && { ownerId }), // Chỉ update ownerId nếu có
+					...(ownerId && { ownerId }),
+					...(shouldResetApproval && { 
+						approvalStatus: 'PENDING_APPROVAL',
+						rejectionReason: null 
+					}),
 				},
 			});
-
-			// Xử lý cập nhật ảnh (Diff-based: chỉ xóa ảnh bị loại bỏ, giữ nguyên ảnh còn lại)
-			if (data.imageUrls) {
-				const oldImages = await tx.roomImage.findMany({ where: { roomId: id } });
-				const newUrlSet = new Set(data.imageUrls);
-				const oldUrlSet = new Set(oldImages.map((img) => img.imageUrl));
-
-				// Tìm ảnh cũ cần xóa (không nằm trong danh sách mới)
-				const imagesToDelete = oldImages.filter((img) => !newUrlSet.has(img.imageUrl));
-				const pathsToDelete = imagesToDelete.map((img) => img.storagePath).filter(Boolean);
-
-				if (imagesToDelete.length > 0) {
-					await tx.roomImage.deleteMany({
-						where: { id: { in: imagesToDelete.map((img) => img.id) } },
-					});
-
-					if (pathsToDelete.length > 0) {
-						await tx.outboxFileDelete.createMany({
-							data: pathsToDelete.map((path) => ({ storagePath: path, status: 'PENDING' })),
-						});
-					}
-				}
-
-				// Cập nhật displayOrder cho ảnh được giữ lại theo thứ tự mới
-				for (let i = 0; i < data.imageUrls.length; i++) {
-					const url = data.imageUrls[i];
-					if (oldUrlSet.has(url)) {
-						const existingImg = oldImages.find((img) => img.imageUrl === url);
-						if (existingImg && existingImg.displayOrder !== i) {
-							await tx.roomImage.update({
-								where: { id: existingImg.id },
-								data: { displayOrder: i },
-							});
-						}
-					} else {
-						// Ảnh hoàn toàn mới (URL chưa tồn tại) — tạo record mới
-						await tx.roomImage.create({
-							data: { roomId: id, imageUrl: url, displayOrder: i },
-						});
-					}
-				}
-			}
-
-			// Xử lý cập nhật Tiện ích (Xóa hết liên kết cũ, thêm liên kết mới)
-			if (data.featureIds) {
-				await tx.roomFeature.deleteMany({ where: { roomId: id } });
-				if (data.featureIds.length > 0) {
-					const featureRecords = data.featureIds.map((featureId) => ({
-						roomId: id,
-						featureId: featureId,
-					}));
-					await tx.roomFeature.createMany({ data: featureRecords });
-				}
-			}
-
-			// Cập nhật tiện ích từ mảng tên
-			if (data.features) {
-				// Nếu không gửi featureIds cùng lúc, chúng ta xóa liên kết cũ và liên kết các tiện ích mới bằng tên
-				if (!data.featureIds) {
-					await tx.roomFeature.deleteMany({ where: { roomId: id } });
-				}
-				for (const featureName of data.features) {
-					let feature = await tx.feature.findUnique({
-						where: { name: featureName },
-					});
-					if (!feature) {
-						feature = await tx.feature.create({
-							data: { name: featureName },
-						});
-					}
-					await tx.roomFeature.upsert({
-						where: {
-							roomId_featureId: {
-								roomId: id,
-								featureId: feature.id,
-							},
-						},
-						update: {},
-						create: {
-							roomId: id,
-							featureId: feature.id,
-						},
-					});
-				}
-			}
-
-			return updatedRoom; // Hoặc query lại include
 		});
 	},
 
-	async deleteRoom(id) {
-		return await prisma.$transaction(async (tx) => {
-			const roomImages = await tx.roomImage.findMany({ where: { roomId: id } });
-			const paths = roomImages.map((img) => img.storagePath).filter(Boolean);
-
-			// Do đã config onDelete: Cascade trong schema, việc xóa Room sẽ tự động xóa RoomImage và RoomFeature liên quan
-			const deletedRoom = await tx.room.delete({
-				where: { id },
-			});
-
-			if (paths.length > 0) {
-				await tx.outboxFileDelete.createMany({
-					data: paths.map((path) => ({ storagePath: path, status: 'PENDING' })),
-				});
-			}
-
-			return deletedRoom;
-		});
-	},
-
-
-	async addImageToRoom(roomId, imageUrl, displayOrder, storagePath) {
-		return await prisma.roomImage.create({
-			data: {
-				roomId,
-				imageUrl,
-				displayOrder,
-				storagePath,
+	async updateApprovalStatus(id, status, reason = null) {
+		return await prisma.room.update({
+			where: { id },
+			data: { 
+				approvalStatus: status,
+				rejectionReason: reason 
 			},
 		});
 	},
 
-	async countImagesByRoomId(roomId) {
-		return await prisma.roomImage.count({
-			where: { roomId },
+	async deleteRoom(id) {
+		return await prisma.room.delete({ where: { id } });
+	},
+
+	async addImageToRoom(roomId, imageUrl, displayOrder, storagePath) {
+		return await prisma.roomImage.create({
+			data: { roomId, imageUrl, displayOrder, storagePath },
 		});
+	},
+
+	async countImagesByRoomId(roomId) {
+		return await prisma.roomImage.count({ where: { roomId } });
 	},
 
 	async findImageById(imageId) {
-		return await prisma.roomImage.findUnique({
-			where: { id: imageId },
-		});
+		return await prisma.roomImage.findUnique({ where: { id: imageId } });
 	},
 
 	async deleteImageById(imageId) {
-		return await prisma.$transaction(async (tx) => {
-			const image = await tx.roomImage.findUnique({ where: { id: imageId } });
-
-			const deletedImage = await tx.roomImage.delete({
-				where: { id: imageId },
-			});
-
-			if (image && image.storagePath) {
-				await tx.outboxFileDelete.create({
-					data: { storagePath: image.storagePath, status: 'PENDING' },
-				});
-			}
-
-			return deletedImage;
-		});
+		return await prisma.roomImage.delete({ where: { id: imageId } });
 	},
 
 	async updateImagesOrder(imagesData) {
@@ -413,5 +346,4 @@ export const roomRepository = {
 			)
 		);
 	},
-
 };

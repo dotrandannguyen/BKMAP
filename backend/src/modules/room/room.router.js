@@ -4,6 +4,7 @@ import { createRoomSchema } from './dto/requests/create-room.request.js';
 import { 
 	validateRequestMiddleware,
 	authMiddleware,
+	optionalAuth,
 	uploadMiddleware,
 	cacheGuestRooms,
 	cacheRoomDetail
@@ -12,16 +13,18 @@ import { getRoomsSchema, updateRoomSchema } from './dto/requests/room.request.js
 
 const router = express.Router();
 
-// GET /rooms: Lấy danh sách (Public)
+// GET /rooms: Lấy danh sách
+// Sử dụng optionalAuth để biết ai đang gọi (Admin/Chủ bài đăng/Khách)
 router.get(
 	'/',
+	optionalAuth,
 	cacheGuestRooms,
 	validateRequestMiddleware(getRoomsSchema),
 	roomController.getRooms
 );
 
-// GET /rooms/:id: Lấy chi tiết (Public)
-router.get('/:id', cacheRoomDetail, roomController.getRoomById);
+// GET /rooms/:id: Lấy chi tiết (Public, có check quyền)
+router.get('/:id', optionalAuth, cacheRoomDetail, roomController.getRoomById);
 
 // POST /rooms: Tạo mới (Cần đăng nhập)
 router.post(
@@ -32,6 +35,7 @@ router.post(
 );
 
 // PATCH /rooms/:id: Cập nhật (Cần đăng nhập & Là người tạo)
+// Người dùng thường sẽ tạo revision, Admin sửa trực tiếp
 router.patch(
 	'/:id',
 	authMiddleware,

@@ -96,6 +96,25 @@ export const adminController = {
 		}
 	},
 
+	async approveRoom(req, res, next) {
+		try {
+			const data = await adminService.approveRoom(req.params.id);
+			return new HttpResponse(res).success({ message: 'Đã phê duyệt phòng trọ thành công.', room: data });
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	async rejectRoom(req, res, next) {
+		try {
+			const { rejectionReason } = req.body;
+			const data = await adminService.rejectRoom(req.params.id, rejectionReason);
+			return new HttpResponse(res).success({ message: 'Đã từ chối phòng trọ.', room: data });
+		} catch (error) {
+			next(error);
+		}
+	},
+
 	// ============ DASHBOARD ============
 
 	async getDashboard(req, res, next) {

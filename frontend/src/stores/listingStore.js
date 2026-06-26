@@ -19,8 +19,42 @@ if (savedEditingListing && savedEditingListing !== 'undefined') {
   }
 }
 
+const mapRoomData = room => ({
+  id: room.id,
+  title: room.title,
+  type: room.type || 'Phòng trọ',
+  price: room.price,
+  priceUSD: Math.round(room.price / 24800),
+  distanceText: `Cách ĐHBK ${room.distanceToBk || 0.8}km`,
+  distanceDUT: room.distanceToBk || 0.8,
+  address: room.address,
+  rating: 5.0,
+  images: room.images?.length > 0
+    ? room.images.map(img => img.imageUrl)
+    : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'],
+  host: {
+    name: room.owner?.userName || room.creator?.userName || (room.creator?.email ? room.creator.email.split('@')[0] : 'Chủ trọ'),
+    avatar: room.creator?.avatar || '',
+    phone: room.owner?.phoneNumber || 'Liên hệ qua ứng dụng'
+  },
+  amenities: room.features?.map(f => f.feature?.name || '').filter(Boolean) || [],
+  description: room.description || '',
+  status: room.status || 'AVAILABLE',
+  area: room.area,
+  lat: Number(room.latitude),
+  lng: Number(room.longitude),
+  ownerEmail: room.creator?.email || 'guest@example.com',
+  electricityPrice: room.electricityPrice,
+  waterPrice: room.waterPrice,
+  otherCosts: room.otherCosts,
+  createdAt: room.createdAt,
+  updatedAt: room.updatedAt,
+});
+
+
 export const useListingStore = create((set, get) => ({
   listings: [],
+  userListings: [],
   totalRooms: 0,
   selectedListingId: '',
   editingListing: initialEditingListing,
@@ -64,37 +98,7 @@ export const useListingStore = create((set, get) => ({
         const raw = json.data?.data || json.data || [];
         const total = json.data?.meta?.total !== undefined ? json.data.meta.total : (raw.length || 0);
         console.log(`[ListingStore] Extracted total: ${total}, raw length: ${raw.length}`);
-        const roomsFromApi = raw.map(room => ({
-          id: room.id,
-          title: room.title,
-          type: room.type || 'Phòng trọ',
-          price: room.price,
-          priceUSD: Math.round(room.price / 24800),
-          distanceText: `Cách ĐHBK ${room.distanceToBk || 0.8}km`,
-          distanceDUT: room.distanceToBk || 0.8,
-          address: room.address,
-          rating: 5.0,
-          images: room.images?.length > 0
-            ? room.images.map(img => img.imageUrl)
-            : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'],
-          host: {
-            name: room.owner?.userName || room.creator?.userName || (room.creator?.email ? room.creator.email.split('@')[0] : 'Chủ trọ'),
-            avatar: room.creator?.avatar || '',
-            phone: room.owner?.phoneNumber || 'Liên hệ qua ứng dụng'
-          },
-          amenities: room.features?.map(f => f.feature?.name || '').filter(Boolean) || [],
-          description: room.description || '',
-          status: room.status || 'AVAILABLE',
-          area: room.area,
-          lat: Number(room.latitude),
-          lng: Number(room.longitude),
-          ownerEmail: room.creator?.email || 'guest@example.com',
-          electricityPrice: room.electricityPrice,
-          waterPrice: room.waterPrice,
-          otherCosts: room.otherCosts,
-          createdAt: room.createdAt,
-          updatedAt: room.updatedAt,
-        }));
+        const roomsFromApi = raw.map(mapRoomData);
         set({ listings: roomsFromApi, totalRooms: total });
       } else {
         console.warn('API /rooms thất bại, fallback LocalStorage');
@@ -108,6 +112,30 @@ export const useListingStore = create((set, get) => ({
     }
   },
 
+  fetchUserListings: async (userEmail) => {
+    if (!userEmail) {
+      set({ userListings: [] });
+      return;
+    }
+    try {
+      const apiUrl = getApiUrl();
+      const params = new URLSearchParams({ ownerEmail: userEmail, limit: 100 });
+      const res = await fetch(`${apiUrl}/rooms?${params.toString()}`);
+      if (res.ok) {
+        const json = await res.json();
+        const raw = json.data?.data || json.data || [];
+        const userRooms = raw.map(mapRoomData);
+        set({ userListings: userRooms });
+      } else {
+        console.warn(`[ListingStore] Failed to fetch listings for user: ${userEmail}`);
+        set({ userListings: [] });
+      }
+    } catch (err) {
+      console.error(`[ListingStore] Error fetching user listings:`, err);
+      set({ userListings: [] });
+    }
+  },
+
   // Thêm hoặc cập nhật listing
   addListing: (newListing, userEmail) => {
     if (!newListing.lat || !newListing.lng) {
@@ -117,7 +145,7 @@ export const useListingStore = create((set, get) => ({
     const now = new Date().toISOString();
     newListing.updatedAt = now;
 
-    const { listings } = get();
+    const { listings, userListings } = get();
     const existingIndex = listings.findIndex(l => l.id === newListing.id);
     let updated;
     if (existingIndex >= 0) {
@@ -128,7 +156,17 @@ export const useListingStore = create((set, get) => ({
       newListing.ownerEmail = userEmail || 'guest@example.com';
       updated = [newListing, ...listings];
     }
-    set({ listings: updated });
+
+    const existingUserIndex = userListings.findIndex(l => l.id === newListing.id);
+    let updatedUserListings;
+    if (existingUserIndex >= 0) {
+      updatedUserListings = [...userListings];
+      updatedUserListings[existingUserIndex] = newListing;
+    } else {
+       updatedUserListings = [newListing, ...userListings];
+    }
+
+    set({ listings: updated, userListings: updatedUserListings });
     saveListings(updated);
   },
 
@@ -150,10 +188,11 @@ export const useListingStore = create((set, get) => ({
       throw new Error(errData.message || 'Lỗi từ server khi xóa phòng');
     }
 
-    const { listings, selectedListingId } = get();
+    const { listings, selectedListingId, userListings } = get();
     const updated = listings.filter(item => item.id !== id);
+    const updatedUserListings = userListings.filter(item => item.id !== id);
     const newSelectedId = selectedListingId === id ? (updated[0]?.id || '') : selectedListingId;
-    set({ listings: updated, selectedListingId: newSelectedId });
+    set({ listings: updated, selectedListingId: newSelectedId, userListings: updatedUserListings });
     saveListings(updated);
   },
 
@@ -189,14 +228,14 @@ export const useListingStore = create((set, get) => ({
   // Xóa sạch dữ liệu
   clearAll: () => {
     const empty = clearListings();
-    set({ listings: empty, selectedListingId: '' });
+    set({ listings: empty, selectedListingId: '', userListings: [] });
     toast.success('🗑️ Đã xóa sạch dữ liệu trọ trong LocalStorage.');
   },
 
   // Reset dữ liệu mẫu
   resetData: () => {
     const baseline = resetToBaseline();
-    set({ listings: baseline, selectedListingId: 'loft-skyline' });
+    set({ listings: baseline, selectedListingId: 'loft-skyline', userListings: [] });
     toast.success('🔄 Đã khôi phục dữ liệu phòng trọ mẫu thành công.');
   },
 }));
