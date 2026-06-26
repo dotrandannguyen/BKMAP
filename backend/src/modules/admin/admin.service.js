@@ -160,8 +160,8 @@ export const adminService = {
 			return updated;
 		} else {
 			// === LUỒNG A: Duyệt bài đăng mới ===
-			if (room.approvalStatus !== 'PENDING_APPROVAL') {
-				throw new ClientException(400, `Phòng trọ này không ở trạng thái chờ duyệt. Trạng thái hiện tại: ${room.approvalStatus}`);
+			if (room.approvalStatus !== 'PENDING_APPROVAL' && room.approvalStatus !== 'REJECTED') {
+				throw new ClientException(400, `Phòng trọ này không ở trạng thái chờ duyệt hoặc từ chối. Trạng thái hiện tại: ${room.approvalStatus}`);
 			}
 
 			const updated = await adminRepository.updateRoomStatus(id, 'APPROVED');

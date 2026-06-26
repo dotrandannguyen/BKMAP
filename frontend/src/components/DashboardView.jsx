@@ -7,12 +7,12 @@ import { useAuthStore } from '../stores/authStore';
 // Badge hiển thị trạng thái phê duyệt (approvalStatus từ backend)
 const ApprovalBadge = ({ approvalStatus }) => {
   const map = {
-    APPROVED:         { text: '✅ Đang hiển thị',   className: 'bg-green-100 text-green-800' },
-    PENDING_APPROVAL: { text: '⏳ Chờ Admin duyệt', className: 'bg-amber-100 text-amber-800 animate-pulse' },
-    REJECTED:         { text: '❌ Bị từ chối',       className: 'bg-red-100 text-red-700' },
-    ADMIN_HIDDEN:     { text: '🚫 Bị Admin ẩn',     className: 'bg-rose-100 text-rose-800' },
+    APPROVED:         { text: 'Đang hiển thị',   className: 'bg-green-100 text-green-800' },
+    PENDING_APPROVAL: { text: 'Chờ Admin duyệt', className: 'bg-amber-100 text-amber-800 animate-pulse' },
+    REJECTED:         { text: 'Bị từ chối',       className: 'bg-red-100 text-red-700' },
+    ADMIN_HIDDEN:     { text: 'Bị Admin ẩn',     className: 'bg-rose-100 text-rose-800' },
   };
-  const { text, className } = map[approvalStatus] || { text: '❓ Không rõ', className: 'bg-gray-100 text-gray-600' };
+  const { text, className } = map[approvalStatus] || { text: 'Không rõ', className: 'bg-gray-100 text-gray-600' };
   return (
     <span className={`px-2.5 py-1 text-[10px] sm:text-xs font-bold rounded-full whitespace-nowrap ${className}`}>
       {text}
@@ -69,6 +69,10 @@ export default function DashboardView() {
   const onEditListing = (room) => {
     if (room.approvalStatus === 'PENDING_APPROVAL') {
       toast.warning('⏳ Bài đăng này đang chờ Admin duyệt. Vui lòng đợi kết quả trước khi chỉnh sửa tiếp.');
+      return;
+    }
+    if (room.approvalStatus === 'REJECTED') {
+      toast.error('❌ Bài đăng này đã bị từ chối và không thể chỉnh sửa nữa.');
       return;
     }
     // Map raw room data sang format của editingListing store
@@ -253,9 +257,19 @@ export default function DashboardView() {
                           {/* Edit */}
                           <button
                             onClick={() => onEditListing(room)}
-                            disabled={isPending}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors font-bold ${isPending ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 cursor-pointer'}`}
-                            title={isPending ? 'Đang chờ duyệt, không thể sửa' : 'Sửa tin này'}
+                            disabled={isPending || room.approvalStatus === 'REJECTED'}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors font-bold ${
+                              isPending || room.approvalStatus === 'REJECTED'
+                                ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                                : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 cursor-pointer'
+                            }`}
+                            title={
+                              isPending
+                                ? 'Đang chờ duyệt, không thể sửa'
+                                : room.approvalStatus === 'REJECTED'
+                                ? 'Bài đăng đã bị từ chối, không thể sửa'
+                                : 'Sửa tin này'
+                            }
                           >
                             <span className="material-symbols-outlined text-sm">edit</span>
                           </button>

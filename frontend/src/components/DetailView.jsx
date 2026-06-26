@@ -7,8 +7,7 @@ import { useListingStore } from '../stores/listingStore';
 import { useAuthStore } from '../stores/authStore'; // Import useAuthStore
 import { useUiStore } from '../stores/uiStore';
 import { toast } from 'react-toastify';
-import { ShieldCheck, X } from 'lucide-react'; // Import ShieldCheck and X icons
-
+import { ShieldCheck, X, AlertTriangle, Info } from 'lucide-react';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -137,33 +136,129 @@ export default function DetailView() {
   }, [id, listings, activeImage]); // Add activeImage to dependencies
 
   // Admin approval/rejection handlers
-  const handleApprove = async () => {
-    if (!window.confirm(`Phê duyệt phòng trọ "${localListing.title}"?`)) return;
-    try {
-      await apiFetch(`/rooms/${localListing.id}/approve`, { method: 'PATCH' });
-      toast.success('Đã phê duyệt phòng trọ thành công.');
-      navigate('/admin'); // Navigate back to admin page after approval
-    } catch (e) {
-      toast.error(e.message);
-    }
+  const confirmAction = (message, onConfirm) => {
+    let toastId = null;
+    toastId = toast.warn(
+      <div className="flex flex-col gap-3 p-1">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle size={20} className="text-rose-600" />
+          </div>
+          <div>
+            <h4 className="text-base font-bold text-slate-800">Xác nhận</h4>
+            <p className="text-sm text-slate-600 mt-1">{message}</p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-2">
+          <button
+            onClick={() => toast.dismiss(toastId)}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-all"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            onClick={() => {
+              toast.dismiss(toastId);
+              onConfirm();
+            }}
+            className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-rose-500/20 active:scale-95"
+          >
+            Đồng ý
+          </button>
+        </div>
+      </div>,
+      {
+        position: "top-center",
+        autoClose: false,
+        closeOnClick: false,
+        draggable: false,
+        icon: false,
+        theme: "light",
+        className: "!rounded-2xl !p-4 !shadow-xl border border-slate-100",
+      }
+    );
   };
 
-  const handleReject = async () => {
-    const reason = window.prompt(`Vui lòng nhập lý do từ chối phòng trọ "${localListing.title}":`);
-    if (!reason || reason.trim().length < 10) {
-      toast.warn('Lý do từ chối là bắt buộc và phải dài ít nhất 10 ký tự.');
-      return;
-    }
-    try {
-      await apiFetch(`/rooms/${localListing.id}/reject`, {
-        method: 'PATCH',
-        body: JSON.stringify({ rejectionReason: reason }),
-      });
-      toast.success('Đã từ chối phòng trọ.');
-      navigate('/admin'); // Navigate back to admin page
-    } catch (e) {
-      toast.error(e.message);
-    }
+  const promptAction = (message, onConfirm) => {
+    const uniqueInputId = `prompt-${Math.random().toString(36).slice(2, 9)}`;
+    let toastId = null;
+    toastId = toast.warn(
+      <div className="flex flex-col gap-3 p-1">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <Info size={20} className="text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-base font-bold text-slate-800">Yêu cầu thông tin</h4>
+            <p className="text-sm text-slate-600 mt-1 mb-3">{message}</p>
+            <textarea
+              id={uniqueInputId}
+              placeholder="Nhập nội dung ở đây..."
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none h-20 transition-all"
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-1">
+          <button
+            onClick={() => toast.dismiss(toastId)}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-all"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            onClick={() => {
+              const val = document.getElementById(uniqueInputId)?.value;
+              toast.dismiss(toastId);
+              onConfirm(val);
+            }}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-blue-500/20 active:scale-95"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>,
+      {
+        position: "top-center",
+        autoClose: false,
+        closeOnClick: false,
+        draggable: false,
+        icon: false,
+        theme: "light",
+        className: "!rounded-2xl !p-4 !shadow-xl border border-slate-100",
+      }
+    );
+  };
+
+  const handleApprove = () => {
+    confirmAction(`Phê duyệt phòng trọ "${localListing.title}"?`, async () => {
+      try {
+        await apiFetch(`/rooms/${localListing.id}/approve`, { method: 'PATCH' });
+        toast.success('Đã phê duyệt phòng trọ thành công.');
+        navigate('/admin'); // Navigate back to admin page after approval
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
+  };
+
+  const handleReject = () => {
+    promptAction(`Vui lòng nhập lý do từ chối phòng trọ "${localListing.title}":`, async (reason) => {
+      if (!reason || reason.trim().length < 10) {
+        toast.warn('Lý do từ chối là bắt buộc và phải dài ít nhất 10 ký tự.');
+        return;
+      }
+      try {
+        await apiFetch(`/rooms/${localListing.id}/reject`, {
+          method: 'PATCH',
+          body: JSON.stringify({ rejectionReason: reason }),
+        });
+        toast.success('Đã từ chối phòng trọ.');
+        navigate('/admin'); // Navigate back to admin page
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
 

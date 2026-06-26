@@ -51,15 +51,16 @@ export const roomService = {
 			approvalStatus: query.approvalStatus,
 		};
 
-		// Nếu là Admin, có thể xem mọi trạng thái. 
-		// Nếu là User thường, chỉ có thể xem 'APPROVED' (mặc định trong repo) 
-		// hoặc xem chính bài của họ.
 		if (user) {
-			if (user.role === 'ADMIN') {
-				// Admin filter tự do
-			} else if (query.mine === 'true') {
+			if (query.mine === 'true') {
 				filters.userId = user.id; // Repo sẽ bỏ qua filter approvalStatus nếu có userId
 			}
+		}
+		
+		// Security: Chỉ Admin mới được phép lọc bài theo email người tạo và trạng thái duyệt
+		if (!user || user.role !== 'ADMIN') {
+			delete filters.ownerEmail;
+			delete filters.approvalStatus;
 		}
 
 		const { total, rooms } = await roomRepository.findAll(filters, skip, limit);

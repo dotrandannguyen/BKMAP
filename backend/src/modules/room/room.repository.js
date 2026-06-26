@@ -275,6 +275,27 @@ export const roomRepository = {
 				}
 			}
 
+			// Đồng bộ ảnh (nếu có gửi lên trong payload sửa)
+			// Tránh việc admin duyệt lại mà bị mất ảnh hoặc không cập nhật ảnh mới
+			if (data.images && Array.isArray(data.images)) {
+				// 1. Xóa ảnh cũ
+				await tx.roomImage.deleteMany({
+					where: { roomId: id },
+				});
+				
+				// 2. Thêm ảnh mới
+				if (data.images.length > 0) {
+					const imageRecords = data.images.map((url, index) => ({
+						roomId: id,
+						imageUrl: url,
+						displayOrder: index,
+					}));
+					await tx.roomImage.createMany({
+						data: imageRecords,
+					});
+				}
+			}
+
 			return await tx.room.update({
 				where: { id },
 				data: {

@@ -19,6 +19,8 @@ export const getRoomsSchema = {
 		features: z.string().optional(),
 		search: z.string().optional(),
 		ownerEmail: z.string().optional(),
+		mine: z.string().optional(),
+		approvalStatus: z.string().optional(),
 	}),
 };
 

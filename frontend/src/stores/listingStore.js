@@ -112,29 +112,7 @@ export const useListingStore = create((set, get) => ({
     }
   },
 
-  fetchUserListings: async (userEmail) => {
-    if (!userEmail) {
-      set({ userListings: [] });
-      return;
-    }
-    try {
-      const apiUrl = getApiUrl();
-      const params = new URLSearchParams({ ownerEmail: userEmail, limit: 100 });
-      const res = await fetch(`${apiUrl}/rooms?${params.toString()}`);
-      if (res.ok) {
-        const json = await res.json();
-        const raw = json.data?.data || json.data || [];
-        const userRooms = raw.map(mapRoomData);
-        set({ userListings: userRooms });
-      } else {
-        console.warn(`[ListingStore] Failed to fetch listings for user: ${userEmail}`);
-        set({ userListings: [] });
-      }
-    } catch (err) {
-      console.error(`[ListingStore] Error fetching user listings:`, err);
-      set({ userListings: [] });
-    }
-  },
+
 
   // Thêm hoặc cập nhật listing
   addListing: (newListing, userEmail) => {

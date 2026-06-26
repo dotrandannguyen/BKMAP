@@ -557,14 +557,52 @@ export default function CreateListingView() {
       };
 
       const isEditing = !!initialData?.id;
-      const endpoint = isEditing ? `${apiUrl}/rooms/${initialData.id}` : `${apiUrl}/rooms`;
+      const roomId = isEditing ? initialData.id : null;
+      let finalImageUrls = imageUrls.filter(url => !url.startsWith('blob:'));
+
+      // Nếu đang chỉnh sửa (isEditing), TẢI ẢNH MỚI LÊN TRƯỚC để lấy URL thêm vào payload sửa đổi
+      if (isEditing && selectedFiles.length > 0) {
+        let uploadedCount = 0;
+        setUploadStatus(`Đang tải ảnh lên (0/${selectedFiles.length})...`);
+        
+        const uploadPromises = selectedFiles.map(async (fileObj, index) => {
+          const formData = new FormData();
+          formData.append('file', fileObj.file);
+          formData.append('displayOrder', finalImageUrls.length + index);
+
+          const uploadRes = await fetch(`${apiUrl}/rooms/${roomId}/image`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          if (!uploadRes.ok) {
+             console.warn('Lỗi khi tải lên một ảnh:', await uploadRes.text());
+             toast.error('Tải lên một số ảnh thất bại. Vui lòng thử lại.');
+             return null;
+          }
+          const uploadData = await uploadRes.json();
+          
+          uploadedCount++;
+          setUploadStatus(`Đang tải ảnh lên (${uploadedCount}/${selectedFiles.length})...`);
+          
+          return uploadData.data?.imageUrl || uploadData.imageUrl;
+        });
+
+        const newUrls = await Promise.all(uploadPromises);
+        finalImageUrls = [...finalImageUrls, ...newUrls.filter(Boolean)];
+      }
+
+      const endpoint = isEditing ? `${apiUrl}/rooms/${roomId}` : `${apiUrl}/rooms`;
       const httpMethod = isEditing ? 'PATCH' : 'POST';
 
       if (isEditing) {
-        // Chỉ lấy những url cũ thật (đã được lưu), loại bỏ các file preview (blob:)
-        createRoomPayload.imageUrls = imageUrls.filter(url => !url.startsWith('blob:'));
+        createRoomPayload.imageUrls = finalImageUrls;
       }
 
+      setUploadStatus('Đang cập nhật thông tin bài đăng...');
       const createRes = await fetch(endpoint, {
         method: httpMethod,
         headers: {
@@ -607,27 +645,27 @@ export default function CreateListingView() {
              .join('; ');
            throw new Error(`Vui lòng kiểm tra lại thông tin: ${errorMessages}`);
         }
-        throw new Error(errData.message || 'Lỗi khi tạo phòng trên server');
+        throw new Error(errData.message || 'Lỗi khi lưu thông tin trên server');
       }
 
       const createData = await createRes.json();
-      const roomId = isEditing ? initialData.id : (createData.data?.room?.id || createData.room?.id);
+      const newRoomId = isEditing ? roomId : (createData.data?.room?.id || createData.room?.id || createData.data?.id);
       
-      if (!roomId) {
+      if (!newRoomId) {
         throw new Error('Không nhận được ID phòng từ hệ thống');
       }
 
-      // 2. Upload hình ảnh đồng thời (Concurrency) để tối ưu tốc độ
-      if (selectedFiles.length > 0) {
+      // Nếu tạo mới (chưa upload ảnh), upload ảnh SAU KHI TẠO PHÒNG
+      if (!isEditing && selectedFiles.length > 0) {
         let uploadedCount = 0;
-        setUploadStatus(`Đang đăng (0/${selectedFiles.length})...`);
+        setUploadStatus(`Đang đăng ảnh (0/${selectedFiles.length})...`);
         
         const uploadPromises = selectedFiles.map(async (fileObj, index) => {
           const formData = new FormData();
           formData.append('file', fileObj.file);
           formData.append('displayOrder', index);
 
-          const uploadRes = await fetch(`${apiUrl}/rooms/${roomId}/image`, {
+          const uploadRes = await fetch(`${apiUrl}/rooms/${newRoomId}/image`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -641,10 +679,9 @@ export default function CreateListingView() {
           }
           
           uploadedCount++;
-          setUploadStatus(`Đang đăng (${uploadedCount}/${selectedFiles.length})...`);
+          setUploadStatus(`Đang đăng ảnh (${uploadedCount}/${selectedFiles.length})...`);
         });
 
-        // Đợi tất cả request chạy song song hoàn tất
         await Promise.all(uploadPromises);
       }
 

@@ -29,12 +29,107 @@ import {
   MapPin,
   Check,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
 
 const API_URL =
   import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
     ? import.meta.env.VITE_API_URL
     : `http://${window.location.hostname}:3000/api`;
+
+const confirmAction = (message, onConfirm) => {
+  let toastId = null;
+  toastId = toast.warn(
+    <div className="flex flex-col gap-3 p-1">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+          <AlertTriangle size={20} className="text-rose-600" />
+        </div>
+        <div>
+          <h4 className="text-base font-bold text-slate-800">Xác nhận</h4>
+          <p className="text-sm text-slate-600 mt-1">{message}</p>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 mt-2">
+        <button
+          onClick={() => toast.dismiss(toastId)}
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-all"
+        >
+          Hủy bỏ
+        </button>
+        <button
+          onClick={() => {
+            toast.dismiss(toastId);
+            onConfirm();
+          }}
+          className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-rose-500/20 active:scale-95"
+        >
+          Đồng ý
+        </button>
+      </div>
+    </div>,
+    {
+      position: "top-center",
+      autoClose: false,
+      closeOnClick: false,
+      draggable: false,
+      icon: false,
+      theme: "light",
+      className: "!rounded-2xl !p-4 !shadow-xl border border-slate-100",
+    }
+  );
+};
+
+const promptAction = (message, onConfirm) => {
+  const uniqueInputId = `prompt-${Math.random().toString(36).slice(2, 9)}`;
+  let toastId = null;
+  toastId = toast.warn(
+    <div className="flex flex-col gap-3 p-1">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <Info size={20} className="text-blue-600" />
+        </div>
+        <div className="flex-1">
+          <h4 className="text-base font-bold text-slate-800">Yêu cầu thông tin</h4>
+          <p className="text-sm text-slate-600 mt-1 mb-3">{message}</p>
+          <textarea
+            id={uniqueInputId}
+            placeholder="Nhập nội dung ở đây..."
+            className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none h-20 transition-all"
+            autoFocus
+          />
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 mt-1">
+        <button
+          onClick={() => toast.dismiss(toastId)}
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-all"
+        >
+          Hủy bỏ
+        </button>
+        <button
+          onClick={() => {
+            const val = document.getElementById(uniqueInputId)?.value;
+            toast.dismiss(toastId);
+            onConfirm(val);
+          }}
+          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-blue-500/20 active:scale-95"
+        >
+          Xác nhận
+        </button>
+      </div>
+    </div>,
+    {
+      position: "top-center",
+      autoClose: false,
+      closeOnClick: false,
+      draggable: false,
+      icon: false,
+      theme: "light",
+      className: "!rounded-2xl !p-4 !shadow-xl border border-slate-100",
+    }
+  );
+};
 
 function useAdminFetch() {
   const token = localStorage.getItem('accessToken');
@@ -291,28 +386,30 @@ function UserRoomsModal({ userId, userName, onClose, apiFetch }) {
     navigate('/create');
   };
 
-  const handleHide = async (id, isHidden) => {
+  const handleHide = (id, isHidden) => {
     const action = isHidden ? 'restore' : 'hide';
     const label = isHidden ? 'Hiện lại phòng này?' : 'Ẩn phòng này khỏi danh sách?';
-    if (!window.confirm(label)) return;
-    try {
-      await apiFetch(`/rooms/${id}/${action}`, { method: 'PATCH' });
-      toast.success(isHidden ? 'Đã hiện lại phòng trọ.' : 'Đã ẩn phòng trọ.');
-      loadRooms();
-    } catch (e) {
-      toast.error(e.message);
-    }
+    confirmAction(label, async () => {
+      try {
+        await apiFetch(`/rooms/${id}/${action}`, { method: 'PATCH' });
+        toast.success(isHidden ? 'Đã hiện lại phòng trọ.' : 'Đã ẩn phòng trọ.');
+        loadRooms();
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
-  const handleDelete = async (id, title) => {
-    if (!window.confirm(`Xóa vĩnh viễn phòng "${title}"?\n⚠️ Hành động này không thể hoàn tác!`)) return;
-    try {
-      await apiFetch(`/rooms/${id}`, { method: 'DELETE' });
-      toast.success('Đã xóa phòng trọ vĩnh viễn.');
-      loadRooms();
-    } catch (e) {
-      toast.error(e.message);
-    }
+  const handleDelete = (id, title) => {
+    confirmAction(`Xóa vĩnh viễn phòng "${title}"?\n⚠️ Hành động này không thể hoàn tác!`, async () => {
+      try {
+        await apiFetch(`/rooms/${id}`, { method: 'DELETE' });
+        toast.success('Đã xóa phòng trọ vĩnh viễn.');
+        loadRooms();
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
   return (
@@ -587,17 +684,17 @@ function UsersTab({ apiFetch }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleBan = async (id, isBanned) => {
+  const handleBan = (id, isBanned) => {
     const action = isBanned ? 'unban' : 'ban';
-    const confirm = window.confirm(isBanned ? 'Mở khóa tài khoản này?' : 'Khóa tài khoản này?');
-    if (!confirm) return;
-    try {
-      await apiFetch(`/users/${id}/${action}`, { method: 'PATCH' });
-      toast.success(isBanned ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.');
-      load();
-    } catch (e) {
-      toast.error(e.message);
-    }
+    confirmAction(isBanned ? 'Mở khóa tài khoản này?' : 'Khóa tài khoản này?', async () => {
+      try {
+        await apiFetch(`/users/${id}/${action}`, { method: 'PATCH' });
+        toast.success(isBanned ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.');
+        load();
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
   return (
@@ -759,33 +856,35 @@ function RoomsTab({ apiFetch }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleApprove = async (id, title) => {
-    if (!window.confirm(`Phê duyệt phòng trọ "${title}"?`)) return;
-    try {
-      await apiFetch(`/rooms/${id}/approve`, { method: 'PATCH' });
-      toast.success('Đã phê duyệt phòng trọ.');
-      load(); // Tải lại danh sách
-    } catch (e) {
-      toast.error(e.message);
-    }
+  const handleApprove = (id, title) => {
+    confirmAction(`Phê duyệt phòng trọ "${title}"?`, async () => {
+      try {
+        await apiFetch(`/rooms/${id}/approve`, { method: 'PATCH' });
+        toast.success('Đã phê duyệt phòng trọ.');
+        load();
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
-  const handleReject = async (id, title) => {
-    const reason = window.prompt(`Vui lòng nhập lý do từ chối phòng trọ "${title}":`);
-    if (!reason || reason.trim().length < 10) {
-      toast.warn('Lý do từ chối là bắt buộc và phải dài ít nhất 10 ký tự.');
-      return;
-    }
-    try {
-      await apiFetch(`/rooms/${id}/reject`, {
-        method: 'PATCH',
-        body: JSON.stringify({ rejectionReason: reason }),
-      });
-      toast.success('Đã từ chối phòng trọ.');
-      load();
-    } catch (e) {
-      toast.error(e.message);
-    }
+  const handleReject = (id, title) => {
+    promptAction(`Vui lòng nhập lý do từ chối phòng trọ "${title}":`, async (reason) => {
+      if (!reason || reason.trim().length < 10) {
+        toast.warn('Lý do từ chối là bắt buộc và phải dài ít nhất 10 ký tự.');
+        return;
+      }
+      try {
+        await apiFetch(`/rooms/${id}/reject`, {
+          method: 'PATCH',
+          body: JSON.stringify({ rejectionReason: reason }),
+        });
+        toast.success('Đã từ chối phòng trọ.');
+        load();
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
   const handleView = (id) => {
@@ -793,29 +892,31 @@ function RoomsTab({ apiFetch }) {
   };
 
 
-  const handleHide = async (id, status) => {
+  const handleHide = (id, status) => {
     const isHidden = status === 'ADMIN_HIDDEN';
     const action = isHidden ? 'restore' : 'hide';
     const label = isHidden ? 'Hiện lại phòng này?' : 'Ẩn phòng này khỏi danh sách?';
-    if (!window.confirm(label)) return;
-    try {
-      await apiFetch(`/rooms/${id}/${action}`, { method: 'PATCH' });
-      toast.success(isHidden ? 'Đã hiện lại phòng trọ.' : 'Đã ẩn phòng trọ.');
-      load();
-    } catch (e) {
-      toast.error(e.message);
-    }
+    confirmAction(label, async () => {
+      try {
+        await apiFetch(`/rooms/${id}/${action}`, { method: 'PATCH' });
+        toast.success(isHidden ? 'Đã hiện lại phòng trọ.' : 'Đã ẩn phòng trọ.');
+        load();
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
-  const handleDelete = async (id, title) => {
-    if (!window.confirm(`Xóa vĩnh viễn phòng "${title}"?\n⚠️ Hành động này không thể hoàn tác!`)) return;
-    try {
-      await apiFetch(`/rooms/${id}`, { method: 'DELETE' });
-      toast.success('Đã xóa phòng trọ vĩnh viễn.');
-      load();
-    } catch (e) {
-      toast.error(e.message);
-    }
+  const handleDelete = (id, title) => {
+    confirmAction(`Xóa vĩnh viễn phòng "${title}"?\n⚠️ Hành động này không thể hoàn tác!`, async () => {
+      try {
+        await apiFetch(`/rooms/${id}`, { method: 'DELETE' });
+        toast.success('Đã xóa phòng trọ vĩnh viễn.');
+        load();
+      } catch (e) {
+        toast.error(e.message);
+      }
+    });
   };
 
   const formatVND = (n) => Number(n).toLocaleString('vi-VN') + ' đ';
@@ -879,6 +980,16 @@ function RoomsTab({ apiFetch }) {
               className={`${btnSm} bg-green-50 text-green-700 hover:bg-green-100`}>
               Hiện lại
             </button>
+          </>
+        );
+    }
+    
+    if (status === 'REJECTED') {
+       return (
+          <>
+            <button onClick={() => handleApprove(room.id, room.title)} title="Duyệt lại" className={`${btnSm} bg-green-50 text-green-700 hover:bg-green-100`}>Duyệt lại</button>
+            <button onClick={() => handleView(room.id)} title="Xem chi tiết" className={`${btnSm} bg-slate-100 text-slate-700 hover:bg-slate-200`}>Xem</button>
+            <button onClick={() => handleDelete(room.id, room.title)} title="Xóa vĩnh viễn" className={`${btnSm} bg-red-50 text-red-600 hover:bg-red-100`}>Xóa</button>
           </>
         );
     }
@@ -1045,9 +1156,16 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { userEmail, userName, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [globalStats, setGlobalStats] = useState(null);
   const apiFetch = useAdminFetch();
 
   const userDisplayName = userName || userEmail?.split('@')[0] || 'Admin';
+
+  useEffect(() => {
+    apiFetch('/dashboard')
+      .then(res => setGlobalStats(res.data))
+      .catch(() => {});
+  }, [apiFetch]);
 
   const handleLogout = () => {
     logout();
@@ -1095,14 +1213,26 @@ export default function AdminPage() {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   activeTab === id
                     ? 'bg-primary text-white shadow-sm shadow-primary/20'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                <Icon size={17} />
-                {label}
+                <div className="flex items-center gap-3">
+                  <Icon size={17} />
+                  {label}
+                </div>
+                {globalStats && id === 'users' && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeTab === id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                    {globalStats.totalUsers || 0}
+                  </span>
+                )}
+                {globalStats && id === 'rooms' && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeTab === id ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                    {globalStats.totalRooms || 0}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -1114,11 +1244,18 @@ export default function AdminPage() {
             <button
               key={id}
               onClick={() => setActiveTab(id)}
-              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold transition-all ${
+              className={`flex flex-col items-center gap-0.5 text-[10px] font-bold transition-all relative ${
                 activeTab === id ? 'text-primary' : 'text-slate-400'
               }`}
             >
-              <Icon size={20} />
+              <div className="relative">
+                <Icon size={20} />
+                {globalStats && (id === 'users' || id === 'rooms') && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[8px] px-1 rounded-full border border-white">
+                    {id === 'users' ? globalStats.totalUsers : globalStats.totalRooms}
+                  </span>
+                )}
+              </div>
               {label}
             </button>
           ))}
