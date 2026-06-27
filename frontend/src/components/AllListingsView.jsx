@@ -238,6 +238,7 @@ export default function AllListingsView() {
                 {/* Cover Photo */}
                 <div className="relative h-48 w-full overflow-hidden bg-slate-50">
                   <img
+                    loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     alt={item.title}
                     src={item.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'}
@@ -320,6 +321,7 @@ export default function AllListingsView() {
                     {item.host?.avatar ? (
                       <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
                         <img
+                          loading="lazy"
                           alt={item.host.name || 'Chủ trọ'}
                           className="w-full h-full object-cover"
                           src={item.host.avatar}

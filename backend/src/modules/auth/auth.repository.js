@@ -23,6 +23,7 @@ export const authRepository = {
 				avatar: data.avatar,
 				isVerified: false,
 				verifyToken: data.verifyToken,
+				tokenExpires: data.tokenExpires,
 			},
 		});
 	},

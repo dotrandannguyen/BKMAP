@@ -206,6 +206,7 @@ export default function DashboardView() {
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-200">
                             <img
+                              loading="lazy"
                               alt={room.title}
                               className="w-full h-full object-cover"
                               src={thumbnail}

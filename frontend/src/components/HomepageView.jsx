@@ -333,6 +333,7 @@ export default function HomepageView() {
                 {/* Cover Photo */}
                 <div className="relative h-48 w-full overflow-hidden">
                   <img
+                    loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     alt={item.title}
                     src={item.images[0]}
@@ -409,6 +410,7 @@ export default function HomepageView() {
                     {item.host?.avatar ? (
                       <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
                         <img
+                          loading="lazy"
                           alt={item.host.name || 'Chủ trọ'}
                           className="w-full h-full object-cover"
                           src={item.host.avatar}
@@ -482,7 +484,7 @@ export default function HomepageView() {
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-400/10 rounded-full blur-2xl group-hover:bg-emerald-400/20 transition-colors duration-500"></div>
             
             <div className="relative w-28 h-28 flex items-center justify-center animate-[bounce_4s_infinite_ease-in-out]">
-              <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Shield.png" alt="Shield 3D" className="w-24 h-24 object-contain drop-shadow-2xl group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500" />
+              <img loading="lazy" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Shield.png" alt="Shield 3D" className="w-24 h-24 object-contain drop-shadow-2xl group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500" />
             </div>
             
             <div className="space-y-3 z-10">
@@ -519,7 +521,7 @@ export default function HomepageView() {
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-400/10 rounded-full blur-2xl group-hover:bg-pink-400/20 transition-colors duration-500"></div>
             
             <div className="relative w-28 h-28 flex items-center justify-center animate-[bounce_4.5s_infinite_ease-in-out]">
-              <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Speech%20Balloon.png" alt="Chat 3D" className="w-24 h-24 object-contain drop-shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500" />
+              <img loading="lazy" src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Speech%20Balloon.png" alt="Chat 3D" className="w-24 h-24 object-contain drop-shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500" />
             </div>
             
             <div className="space-y-3 z-10">
@@ -659,6 +661,7 @@ export default function HomepageView() {
           <span className="absolute inset-0 rounded-full bg-indigo-500 opacity-40 animate-ping"></span>
           <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-indigo-500 bg-indigo-50">
             <img 
+            loading="lazy"
             src="https://graph.facebook.com/tuvansinhvien.dut/picture?type=large" 
             alt="TVSV BKDN Logo" 
             className="w-full h-full object-cover" 

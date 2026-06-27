@@ -50,6 +50,14 @@ const authLimiter = rateLimit({
 	message: { message: 'Quá nhiều lần đăng nhập thất bại, vui lòng thử lại sau 15 phút.' },
 });
 
+const geocodeLimiter = rateLimit({
+	windowMs: 60 * 1000, // 1 minute
+	max: 15, // max 15 reqs per minute
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { message: 'Thao tác quá nhanh, vui lòng chờ giây lát.' },
+});
+
 app.use(globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
@@ -62,21 +70,44 @@ app.use(cookieParser());
 app.use(passport.initialize());
 
 // --- ROUTES ---
-app.get('/api/geocode', async (req, res, next) => {
+const geocodeCache = new Map();
+
+app.get('/api/geocode', geocodeLimiter, async (req, res, next) => {
 	const { q } = req.query;
 	if (!q) {
 		return res.status(400).json({ message: 'Missing query parameter q' });
 	}
+
+	const cacheKey = q.trim().toLowerCase();
+	
+	// 1. Kiểm tra Cache RAM cục bộ
+	if (geocodeCache.has(cacheKey)) {
+		const cachedData = geocodeCache.get(cacheKey);
+		// Xóa cache cũ nếu quá hạn (24h)
+		if (Date.now() - cachedData.timestamp < 24 * 60 * 60 * 1000) {
+			return res.json(cachedData.data);
+		} else {
+			geocodeCache.delete(cacheKey);
+		}
+	}
+
 	try {
 		const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=5&countrycodes=vn`, {
 			headers: {
 				'User-Agent': 'BKMAP-App/1.0',
 			},
 		});
+		
 		if (response.ok) {
 			const data = await response.json();
+			// Lưu vào In-memory Cache
+			geocodeCache.set(cacheKey, {
+				timestamp: Date.now(),
+				data: data
+			});
 			return res.json(data);
 		}
+		
 		return res.status(response.status).json({ message: 'Geocoding failed' });
 	} catch (error) {
 		next(error);

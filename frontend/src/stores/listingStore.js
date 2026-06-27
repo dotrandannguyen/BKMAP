@@ -90,14 +90,11 @@ export const useListingStore = create((set, get) => ({
       }
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
-      console.log(`[ListingStore] Fetching URL: ${apiUrl}/rooms${queryString}`);
       const res = await fetch(`${apiUrl}/rooms${queryString}`);
       if (res.ok) {
         const json = await res.json();
-        console.log('[ListingStore] Received JSON response:', json);
         const raw = json.data?.data || json.data || [];
         const total = json.data?.meta?.total !== undefined ? json.data.meta.total : (raw.length || 0);
-        console.log(`[ListingStore] Extracted total: ${total}, raw length: ${raw.length}`);
         const roomsFromApi = raw.map(mapRoomData);
         set({ listings: roomsFromApi, totalRooms: total });
       } else {

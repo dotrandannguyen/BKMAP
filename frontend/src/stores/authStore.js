@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { useUiStore } from './uiStore.js';
 
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api') {
+    return import.meta.env.VITE_API_URL;
+  }
+  return `http://${window.location.hostname}:3000/api`;
+};
+
 export const useAuthStore = create((set) => ({
   isLoggedIn: !!localStorage.getItem('accessToken'),
   userEmail: localStorage.getItem('userEmail') || '',
@@ -72,7 +79,7 @@ export const useAuthStore = create((set) => ({
   forgotPassword: async (email) => {
     set({ loading: true, error: null, message: null });
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch(`${getApiUrl()}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -90,7 +97,7 @@ export const useAuthStore = create((set) => ({
   resetPassword: async (token, password, onSuccess) => {
     set({ loading: true, error: null, message: null });
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch(`${getApiUrl()}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
@@ -112,7 +119,7 @@ export const useAuthStore = create((set) => ({
       throw new Error('Bạn chưa đăng nhập.');
     }
 
-    const response = await fetch('/api/auth/change-password', {
+    const response = await fetch(`${getApiUrl()}/auth/change-password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
