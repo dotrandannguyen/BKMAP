@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { UnauthorizedException } from '../exceptions/index.js';
+import prisma from '../../config/database.js';
 
 const ACCESS_JWT_SECRET = process.env.ACCESS_JWT_SECRET;
 
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
 	try {
 		const authHeader = req.headers.authorization;
 
@@ -15,6 +16,16 @@ export const authMiddleware = (req, res, next) => {
 
 		// Verify token
 		const payload = jwt.verify(token, ACCESS_JWT_SECRET);
+
+		// Kiểm tra user có bị khóa không (isBanned)
+		const user = await prisma.user.findUnique({
+			where: { id: payload.sub },
+			select: { isBanned: true }
+		});
+
+		if (!user || user.isBanned) {
+			throw new UnauthorizedException('Tài khoản đã bị khóa hoặc không tồn tại');
+		}
 
 		// Attach user info to request
 		req.user = { id: payload.sub, role: payload.role };
@@ -29,18 +40,34 @@ export const authMiddleware = (req, res, next) => {
 	}
 };
 
+
 // MỚI: Middleware tùy chọn - Nếu có token thì lấy user, nếu không thì vẫn cho qua (cho Guest)
-export const optionalAuth = (req, res, next) => {
+export const optionalAuth = async (req, res, next) => {
 	try {
 		const authHeader = req.headers.authorization;
 		if (authHeader && authHeader.startsWith('Bearer ')) {
 			const token = authHeader.split(' ')[1];
 			const payload = jwt.verify(token, ACCESS_JWT_SECRET);
-			req.user = { id: payload.sub, role: payload.role };
+			
+			const user = await prisma.user.findUnique({
+				where: { id: payload.sub },
+				select: { isBanned: true }
+			});
+
+			if (user && !user.isBanned) {
+				req.user = { id: payload.sub, role: payload.role };
+			}
 		}
 		next();
 	} catch (error) {
 		// Nếu token sai hoặc hết hạn cũng cho qua như Guest, hoặc có thể chọn xóa req.user
 		next();
 	}
+};
+
+export const requireAdmin = (req, res, next) => {
+	if (!req.user || req.user.role !== 'ADMIN') {
+		return next(new UnauthorizedException('Yêu cầu quyền Quản trị viên (Admin)'));
+	}
+	next();
 };
