@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { compressImage } from '../utils/imageUtils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -104,12 +105,7 @@ export default function CreateListingView() {
   const onAddListing = (listing) => addListing(listing, userEmail);
   const [step, setStep] = useState(1);
 
-  // Dọn dẹp trạng thái chỉnh sửa khi rời khỏi trang
-  useEffect(() => {
-    return () => {
-      setEditingListing(null);
-    };
-  }, [setEditingListing]);
+
 
   // Cuộn lên đầu trang khi đổi bước (Step)
   useEffect(() => {
@@ -126,6 +122,23 @@ export default function CreateListingView() {
   const [description, setDescription] = useState(initialData?.description || '');
   const [selectedAmenities, setSelectedAmenities] = useState(initialData?.amenities || []);
   const [imageUrls, setImageUrls] = useState(initialData?.images || []);
+
+  // Dọn dẹp trạng thái chỉnh sửa và blob URLs khi rời khỏi trang
+  const imageUrlsRef = useRef(imageUrls);
+  useEffect(() => {
+    imageUrlsRef.current = imageUrls;
+  }, [imageUrls]);
+
+  useEffect(() => {
+    return () => {
+      setEditingListing(null);
+      imageUrlsRef.current.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [setEditingListing]);
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
@@ -470,7 +483,7 @@ export default function CreateListingView() {
     }
   };
 
-  const processFiles = (files) => {
+  const processFiles = async (files) => {
     if (!files || files.length === 0) return;
 
     let allowedFiles = files;
@@ -481,13 +494,25 @@ export default function CreateListingView() {
 
     if (allowedFiles.length === 0) return;
 
-    const newFiles = allowedFiles.map(file => ({
-      file,
-      previewUrl: URL.createObjectURL(file)
-    }));
-    
-    setSelectedFiles(prev => [...prev, ...newFiles]);
-    setImageUrls(prev => [...prev, ...newFiles.map(f => f.previewUrl)]);
+    try {
+      setIsUploading(true);
+      const compressedFiles = await Promise.all(
+        allowedFiles.map(file => compressImage(file))
+      );
+
+      const newFiles = compressedFiles.map(file => ({
+        file,
+        previewUrl: URL.createObjectURL(file)
+      }));
+      
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+      setImageUrls(prev => [...prev, ...newFiles.map(f => f.previewUrl)]);
+    } catch (err) {
+      console.error('Lỗi khi nén ảnh:', err);
+      toast.error('Có lỗi xảy ra trong quá trình nén ảnh.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleImageUpload = (e) => {
@@ -520,6 +545,9 @@ export default function CreateListingView() {
 
   const handleRemoveImage = (indexToRemove) => {
     const urlToRemove = imageUrls[indexToRemove];
+    if (urlToRemove && urlToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(urlToRemove);
+    }
     setImageUrls(prev => prev.filter((_, i) => i !== indexToRemove));
     setSelectedFiles(prev => prev.filter(f => f.previewUrl !== urlToRemove));
   };
@@ -687,7 +715,7 @@ export default function CreateListingView() {
 
       // 3. Fetch lại room từ backend để lấy Supabase URLs thực tế (thay vì blob: preview)
       setUploadStatus('Đang đồng bộ dữ liệu...');
-      const roomRes = await fetch(`${apiUrl}/rooms/${roomId}`, {
+      const roomRes = await fetch(`${apiUrl}/rooms/${newRoomId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       let realImageUrls = imageUrls; // Fallback
@@ -704,7 +732,7 @@ export default function CreateListingView() {
       // Cập nhật State cho UI hiển thị ngay lập tức
       const newHouse = {
         ...(initialData || {}),
-        id: roomId,
+        id: newRoomId,
         title: createRoomPayload.title,
         type: type,
         price: price,

@@ -65,9 +65,3 @@ export const optionalAuth = async (req, res, next) => {
 	}
 };
 
-export const requireAdmin = (req, res, next) => {
-	if (!req.user || req.user.role !== 'ADMIN') {
-		return next(new UnauthorizedException('Yêu cầu quyền Quản trị viên (Admin)'));
-	}
-	next();
-};

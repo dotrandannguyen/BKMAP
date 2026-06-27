@@ -24,11 +24,10 @@ const API_URL =
     : `http://${window.location.hostname}:3000/api`;
 
 function useAdminFetch() {
-  const token = localStorage.getItem('accessToken');
-  const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
   return useCallback(
     async (path, options = {}) => {
+      const token = localStorage.getItem('accessToken');
+      const authHeader = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
       const res = await fetch(`${API_URL}/admin${path}`, {
         ...options,
         headers: { ...authHeader, ...(options.headers || {}) },
@@ -37,7 +36,7 @@ function useAdminFetch() {
       if (!res.ok) throw new Error(data.message || 'Lỗi không xác định');
       return data;
     },
-    [token]
+    []
   );
 }
 
@@ -60,11 +59,13 @@ export default function DetailView() {
   const [isMapPopupOpen, setIsMapPopupOpen] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     // Sync with store listings cache if loaded
     const cached = listings.find((item) => item.id === id);
     if (cached) {
       setLocalListing(cached);
-      if (cached.images && cached.images.length > 0 && !activeImage) {
+      if (cached.images && cached.images.length > 0) {
         setActiveImage(cached.images[0]);
       }
     }
@@ -120,20 +121,26 @@ export default function DetailView() {
           rejectionReason: room.rejectionReason, // IMPORTANT: Add rejection reason
         };
 
-        setLocalListing(mapped);
-        if (mapped.images && mapped.images.length > 0 && !activeImage) {
-          setActiveImage(mapped.images[0]);
+        if (!cancelled) {
+          setLocalListing(mapped);
+          if (mapped.images && mapped.images.length > 0) {
+            setActiveImage(mapped.images[0]);
+          }
+          setLoading(false);
         }
-        setLoading(false);
       } catch (err) {
-        console.error('Lỗi tải chi tiết phòng:', err);
-        setError(err.message);
-        setLoading(false);
+        if (!cancelled) {
+          console.error('Lỗi tải chi tiết phòng:', err);
+          setError(err.message);
+          setLoading(false);
+        }
       }
     };
 
     fetchListingDetail();
-  }, [id, listings, activeImage]); // Add activeImage to dependencies
+
+    return () => { cancelled = true; };
+  }, [id]); // Only re-fetch when route param changes
 
   // Admin approval/rejection handlers
   const confirmAction = (message, onConfirm) => {

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 
 // Store Imports
@@ -8,20 +8,30 @@ import { useUiStore } from './stores/uiStore';
 
 // Component Imports
 import Navbar from './components/Navbar';
-import HomepageView from './components/HomepageView';
-import MapView from './components/MapView';
-import DetailView from './components/DetailView';
-import DashboardView from './components/DashboardView';
-import CreateListingView from './components/CreateListingView';
-import AllListingsView from './components/AllListingsView';
+import ScrollToTop from './components/ScrollToTop';
 
-// Page Imports
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import UserPage from './pages/UserPage';
-import AdminPage from './pages/AdminPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
+// Lazy loaded components (Code Splitting)
+const HomepageView = lazy(() => import('./components/HomepageView'));
+const MapView = lazy(() => import('./components/MapView'));
+const DetailView = lazy(() => import('./components/DetailView'));
+const DashboardView = lazy(() => import('./components/DashboardView'));
+const CreateListingView = lazy(() => import('./components/CreateListingView'));
+const AllListingsView = lazy(() => import('./components/AllListingsView'));
+
+// Lazy loaded pages
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const UserPage = lazy(() => import('./pages/UserPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+
+// Loading Fallback
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+  </div>
+);
 
 // Route guard: chuyển hướng về /login nếu chưa đăng nhập
 function RequireAuth({ children }) {
@@ -58,32 +68,35 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased text-[#0b1c30]">
+      <ScrollToTop />
       <Navbar />
 
       <main className="flex-1 pb-16 md:pb-0">
-        <Routes>
-          <Route path="/" element={<HomepageView />} />
-          <Route path="/all-listings" element={<AllListingsView />} />
-          <Route path="/map" element={<MapView />} />
-          <Route path="/rooms/:id" element={<DetailView />} />
-          <Route path="/dashboard" element={<DashboardView />} />
-          <Route path="/create" element={
-            <RequireAuth>
-              <CreateListingView />
-            </RequireAuth>
-          } />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/profile" element={<UserPage />} />
-          <Route path="/admin" element={
-            <RequireAdmin>
-              <AdminPage />
-            </RequireAdmin>
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<HomepageView />} />
+            <Route path="/all-listings" element={<AllListingsView />} />
+            <Route path="/map" element={<MapView />} />
+            <Route path="/rooms/:id" element={<DetailView />} />
+            <Route path="/dashboard" element={<DashboardView />} />
+            <Route path="/create" element={
+              <RequireAuth>
+                <CreateListingView />
+              </RequireAuth>
+            } />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/profile" element={<UserPage />} />
+            <Route path="/admin" element={
+              <RequireAdmin>
+                <AdminPage />
+              </RequireAdmin>
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );
