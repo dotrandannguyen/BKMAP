@@ -1,0 +1,596 @@
+# BKMAP - Kịch Bản Kiểm Thử Hệ Thống Chi Tiết
+
+> Tài liệu này phản ánh chính xác 100% cấu trúc hệ thống thực tế gồm **35 API endpoints**, **6 trang giao diện**, **4 module backend** và toàn bộ logic nghiệp vụ.
+
+---
+
+## A. XÁC THỰC & QUẢN LÝ TÀI KHOẢN
+
+### A1. Đăng ký tài khoản (`POST /api/auth/register`)
+
+- [ ] **A1.1** Đăng ký thành công với thông tin hợp lệ
+  - Nhập: `email` hợp lệ, `password` >= 6 ký tự, `userName` >= 2 ký tự
+  - Kỳ vọng: Trả về 200, tài khoản được tạo với `isVerified: false`. Nhận được email chứa link xác thực gửi đến Gmail.
+
+- [ ] **A1.2** Đăng ký với email đã tồn tại
+  - Nhập: Email trùng với tài khoản đã có trong DB
+  - Kỳ vọng: Trả về 409, thông báo "Email đã được sử dụng"
+
+- [ ] **A1.3** Đăng ký thiếu trường bắt buộc
+  - Nhập: Bỏ trống `email` hoặc `password` hoặc `userName`
+  - Kỳ vọng: Trả về 422, báo lỗi validation cụ thể cho từng trường bị thiếu
+
+- [ ] **A1.4** Đăng ký với mật khẩu quá ngắn
+  - Nhập: `password` chỉ có 3 ký tự (< 6)
+  - Kỳ vọng: Trả về 422, lỗi validation trường `password`
+
+- [ ] **A1.5** Đăng ký với `userName` quá ngắn
+  - Nhập: `userName` chỉ 1 ký tự (< 2)
+  - Kỳ vọng: Trả về 422, lỗi validation trường `userName`
+
+- [ ] **A1.6** Đăng ký với email sai định dạng
+  - Nhập: `email = "abc"` hoặc `"abc@"`
+  - Kỳ vọng: Trả về 422, lỗi "email không hợp lệ"
+
+### A2. Xác thực Email (`POST /api/auth/verify-email`)
+
+- [ ] **A2.1** Xác thực thành công bằng token hợp lệ
+  - Nhập: `token` lấy từ email hoặc response đăng ký (dev mode)
+  - Kỳ vọng: Trả về 200, tài khoản chuyển sang `isVerified: true`
+
+- [ ] **A2.2** Xác thực bằng token đã hết hạn (> 24 giờ)
+  - Kỳ vọng: Trả về lỗi, thông báo token hết hạn
+
+- [ ] **A2.3** Xác thực bằng token sai / không tồn tại
+  - Kỳ vọng: Trả về lỗi 404
+
+- [ ] **A2.4** Xác thực qua link GET trong email (`GET /api/auth/verify-email?token=xxx`)
+  - Bấm link trong email thực tế
+  - Kỳ vọng: Trình duyệt hiển thị trang HTML thông báo xác thực thành công
+
+### A3. Đăng nhập thường (`POST /api/auth/login`)
+
+- [ ] **A3.1** Đăng nhập thành công
+  - Nhập: Email đã xác thực + đúng mật khẩu
+  - Kỳ vọng: Trả về `accessToken` (JWT 1 ngày) + `refreshToken` (HttpOnly cookie 7 ngày) + thông tin user. Giao diện chuyển đến `/profile` (USER) hoặc `/admin` (ADMIN).
+
+- [ ] **A3.2** Đăng nhập sai mật khẩu
+  - Kỳ vọng: Trả về 401, thông báo sai thông tin đăng nhập
+
+- [ ] **A3.3** Đăng nhập với email chưa đăng ký
+  - Kỳ vọng: Trả về 404, thông báo không tìm thấy tài khoản
+
+- [ ] **A3.4** Đăng nhập tài khoản chưa xác thực email
+  - Kỳ vọng: Cho phép đăng nhập nhưng có thể bị hạn chế chức năng (tùy logic hiện tại)
+
+- [ ] **A3.5** Đăng nhập tài khoản bị khóa (`isBanned: true`)
+  - Kỳ vọng: Trả về lỗi, thông báo tài khoản bị khóa, không cấp token
+
+- [ ] **A3.6** Đăng nhập bằng email Google (không có mật khẩu local)
+  - Nhập email Google + bất kỳ password nào
+  - Kỳ vọng: Trả về lỗi, thông báo tài khoản chỉ dùng Google, hướng dẫn dùng nút "Đăng nhập bằng Google"
+
+### A4. Đăng nhập Google OAuth (`GET /api/auth/google`)
+
+- [ ] **A4.1** Luồng Google OAuth hoàn chỉnh
+  - Bấm nút "Đăng nhập bằng Google" trên trang Login hoặc Register
+  - Kỳ vọng: Chuyển hướng đến Google consent → chọn tài khoản → redirect về `/login?token=...&email=...&name=...&avatar=...` → Frontend lưu token vào localStorage → chuyển đến `/profile`
+
+- [ ] **A4.2** Google OAuth với email đã đăng ký local
+  - Đăng ký tài khoản bằng email `abc@gmail.com` (local), sau đó đăng nhập bằng Google cùng email đó
+  - Kỳ vọng: Tài khoản được liên kết (`googleId` được gán), đăng nhập thành công
+
+- [ ] **A4.3** Google OAuth từ chối (user cancel)
+  - Bấm "Cancel" trên trang consent Google
+  - Kỳ vọng: Redirect về `/login?error=...`, giao diện hiển thị thông báo lỗi
+
+### A5. Đổi mật khẩu (`POST /api/auth/change-password`)
+
+- [ ] **A5.1** Đổi mật khẩu thành công
+  - Vào Profile → Đổi mật khẩu → Nhập đúng mật khẩu cũ + mật khẩu mới (>= 6 ký tự) + xác nhận khớp
+  - Kỳ vọng: Thông báo thành công. Đăng xuất → Đăng nhập lại bằng mật khẩu mới → thành công.
+
+- [ ] **A5.2** Đổi mật khẩu sai mật khẩu cũ
+  - Kỳ vọng: Trả lỗi, thông báo mật khẩu cũ không đúng
+
+- [ ] **A5.3** Mật khẩu mới trùng mật khẩu cũ
+  - Kỳ vọng: Trả lỗi, thông báo không cho phép dùng lại mật khẩu cũ
+
+- [ ] **A5.4** Mật khẩu mới và xác nhận không khớp
+  - Kỳ vọng: Trả lỗi validation (Zod refine)
+
+- [ ] **A5.5** Đổi mật khẩu tài khoản Google (không có password)
+  - Kỳ vọng: Trả lỗi, thông báo tài khoản Google không hỗ trợ đổi mật khẩu
+
+### A6. Làm mới Token (`POST /api/auth/refresh-token`)
+
+- [ ] **A6.1** Refresh token hợp lệ (từ cookie)
+  - Kỳ vọng: Trả về `accessToken` mới, set `refreshToken` cookie mới (Refresh Token Rotation)
+
+- [ ] **A6.2** Refresh token hết hạn hoặc bị thu hồi
+  - Kỳ vọng: Trả lỗi 401, buộc đăng nhập lại
+
+### A7. Đăng xuất (`POST /api/auth/logout`)
+
+- [ ] **A7.1** Đăng xuất thành công
+  - Bấm nút "Đăng xuất" trên giao diện
+  - Kỳ vọng: `accessToken`, `userEmail`, `userName`, `userAvatar`, `userRole`, `favoriteRoomIds` bị xóa khỏi localStorage. Cookie `refreshToken` bị xóa. Giao diện chuyển về trạng thái khách (guest). `hashedRefreshToken` trong DB bị set null.
+
+---
+
+## B. QUẢN LÝ PHÒNG TRỌ (CHỦ TRỌ)
+
+### B1. Đăng tin trọ mới (`POST /api/rooms`)
+
+- [ ] **B1.1** Đăng tin thành công (luồng 4 bước đầy đủ)
+  - **Bước 1**: Chọn vị trí trên bản đồ (click marker), gõ tìm địa chỉ (có autocomplete từ Nominatim), điền tiêu đề (5-150 ký tự), giá thuê (số dương), SĐT chủ trọ (đúng 10 chữ số)
+  - **Bước 2**: Viết mô tả (>= 10 ký tự), chọn tiện ích (WiFi, điều hòa...), điền giá điện/nước (tùy chọn)
+  - **Bước 3**: Tải lên 1-10 hình ảnh (JPEG/PNG/WebP, max 10MB/ảnh)
+  - **Bước 4**: Xem trước thông tin → Xác nhận đăng
+  - Kỳ vọng: Room tạo thành công trong DB. Ảnh được xử lý bởi Sharp (resize 1200×1200, WebP q80) và tải lên Supabase bucket `BKMAP-images`. Phòng xuất hiện trong Dashboard cá nhân. Xuất hiện trên trang chủ/bản đồ công khai.
+
+- [ ] **B1.2** Tìm kiếm địa chỉ có autocomplete
+  - Gõ "Ngô Sĩ Liên" vào ô tìm kiếm địa chỉ ở Bước 1
+  - Kỳ vọng: Dropdown đề xuất địa chỉ xuất hiện ngay sau khi dừng gõ 450ms (debounce), không cần nhấn Enter. Click chọn → map pan đến vị trí, ô địa chỉ tự điền, khoảng cách đến BK được tính tự động (OSRM walking route).
+
+- [ ] **B1.3** Validation Zod chặn ngay khi điền sai (trước khi chuyển bước)
+  - Bỏ trống tiêu đề → bấm "Tiếp theo"
+  - Kỳ vọng: Hiển thị lỗi đỏ tại ô tiêu đề, toast cảnh báo, **không cho** chuyển sang Bước 2
+
+- [ ] **B1.4** Validation SĐT chủ trọ phải đúng 10 chữ số
+  - Nhập SĐT `"012345"` (6 số) hoặc `"abc"`
+  - Kỳ vọng: Viền đỏ + lỗi validation tại ô SĐT
+
+- [ ] **B1.5** Chưa chọn vị trí trên bản đồ → bấm Tiếp
+  - Kỳ vọng: Lỗi "Vui lòng chọn vị trí phòng trọ trên bản đồ"
+
+- [ ] **B1.6** Diện tích là trường tùy chọn
+  - Bỏ trống ô diện tích → bấm Tiếp theo
+  - Kỳ vọng: Không báo lỗi, cho phép tiếp tục bình thường
+
+- [ ] **B1.7** Tải lên 0 ảnh → bấm Tiếp
+  - Kỳ vọng: Lỗi validation yêu cầu tối thiểu 1 ảnh (step3Schema: `imagesCount min 1`)
+
+- [ ] **B1.8** Tải lên > 10 ảnh
+  - Kỳ vọng: Hệ thống giới hạn tối đa 10 ảnh, không cho thêm
+
+- [ ] **B1.9** Guard chống mất dữ liệu khi rời trang
+  - Đang điền form ở Bước 2 → bấm nút "Trang chủ" trên Navbar
+  - Kỳ vọng: Hiện popup xác nhận "Bạn có muốn rời trang? Dữ liệu chưa lưu sẽ bị mất"
+
+### B2. Chỉnh sửa phòng trọ (`PATCH /api/rooms/:id`)
+
+- [ ] **B2.1** Chỉnh sửa thành công
+  - Vào Dashboard → bấm icon chỉnh sửa → thay đổi giá và tiêu đề → Lưu
+  - Kỳ vọng: Dữ liệu cập nhật trong DB, cache bị invalidate, thông tin mới hiển thị ngay trên giao diện
+
+- [ ] **B2.2** Chỉnh sửa phòng của người khác (không phải chủ, không phải ADMIN)
+  - Gọi API `PATCH /api/rooms/:id` với token của user không phải chủ phòng
+  - Kỳ vọng: Trả về 403 "Bạn không có quyền"
+
+- [ ] **B2.3** Thêm/xóa ảnh khi chỉnh sửa
+  - Xóa 1 ảnh cũ, thêm 2 ảnh mới → Lưu
+  - Kỳ vọng: Ảnh cũ bị xóa khỏi Supabase (qua outbox worker), ảnh mới được upload thành công
+
+### B3. Xóa phòng trọ (`DELETE /api/rooms/:id`)
+
+- [ ] **B3.1** Chủ trọ xóa phòng thành công
+  - Vào Dashboard → bấm nút xóa → xác nhận trong popup
+  - Kỳ vọng: Phòng biến mất khỏi Dashboard, trang chủ và bản đồ. Ảnh được đưa vào hàng đợi xóa trên Supabase (outboxFileDelete). Cache room list và detail bị invalidate.
+
+- [ ] **B3.2** Xóa phòng của người khác (không phải chủ, không phải ADMIN)
+  - Kỳ vọng: Trả về 403
+
+- [ ] **B3.3** Xóa phòng có ID không hợp lệ (không phải UUID)
+  - Kỳ vọng: Trả về 400 "ID phòng trọ không hợp lệ"
+
+- [ ] **B3.4** Xóa phòng không tồn tại (UUID hợp lệ nhưng không có trong DB)
+  - Kỳ vọng: Trả về 404 "Không tìm thấy phòng trọ"
+
+### B4. Upload ảnh phòng (`POST /api/rooms/:id/image`)
+
+- [ ] **B4.1** Upload ảnh JPEG/PNG thành công
+  - Kỳ vọng: Ảnh được Sharp resize (max 1200×1200), chuyển WebP (quality 80), lưu lên Supabase tại đường dẫn `rooms/{roomId}/{uuid}.webp`
+
+- [ ] **B4.2** Upload file không phải ảnh (PDF, ZIP...)
+  - Kỳ vọng: Multer chặn, trả lỗi MIME type không hợp lệ (chỉ cho phép `image/jpeg`, `image/png`, `image/webp`)
+
+- [ ] **B4.3** Upload ảnh > 10MB
+  - Kỳ vọng: Multer chặn, trả lỗi vượt quá kích thước cho phép
+
+- [ ] **B4.4** Upload ảnh thứ 11 (đã có 10 ảnh)
+  - Kỳ vọng: Trả lỗi "Tối đa 10 ảnh"
+
+### B5. Xóa ảnh phòng (`DELETE /api/rooms/:id/images/:imageId`)
+
+- [ ] **B5.1** Xóa ảnh thành công
+  - Kỳ vọng: Record `RoomImage` bị xóa trong DB, `storagePath` được thêm vào `outboxFileDelete` để worker xử lý xóa trên Supabase
+
+- [ ] **B5.2** Xóa ảnh không thuộc phòng đó
+  - Kỳ vọng: Trả lỗi, không cho xóa
+
+### B6. Sắp xếp lại thứ tự ảnh (`PATCH /api/rooms/:id/images/reorder`)
+
+- [ ] **B6.1** Sắp xếp lại thành công
+  - Gửi payload `{ images: [{ id, displayOrder }, ...] }`
+  - Kỳ vọng: Thứ tự ảnh cập nhật trong DB, cache bị invalidate
+
+---
+
+## C. DANH SÁCH YÊU THÍCH
+
+### C1. Lấy danh sách yêu thích (`GET /api/favorites`)
+
+- [ ] **C1.1** Lấy danh sách yêu thích khi đã đăng nhập
+  - Kỳ vọng: Trả về `{ ids: [...], rooms: [...] }` với đầy đủ thông tin phòng (owner, images, features, creator)
+
+- [ ] **C1.2** Lấy danh sách khi chưa có phòng yêu thích nào
+  - Kỳ vọng: Trả về `{ ids: [], rooms: [] }`
+
+- [ ] **C1.3** Gọi API khi chưa đăng nhập (không có token)
+  - Kỳ vọng: Trả về 401 Unauthorized
+
+### C2. Thêm yêu thích (`POST /api/favorites`)
+
+- [ ] **C2.1** Thêm phòng vào yêu thích thành công
+  - Bấm icon trái tim trên card phòng trọ
+  - Kỳ vọng: Icon chuyển đỏ, badge yêu thích trên Navbar tăng 1, record `UserFavorite` được tạo trong DB
+
+- [ ] **C2.2** Thêm phòng đã yêu thích rồi (trùng lặp)
+  - Kỳ vọng: Upsert — không lỗi, không tạo bản ghi trùng (nhờ `@@id([userId, roomId])`)
+
+- [ ] **C2.3** Thêm phòng không tồn tại
+  - Kỳ vọng: Trả về 404 "Không tìm thấy phòng trọ"
+
+- [ ] **C2.4** Yêu thích khi chưa đăng nhập (Guest mode)
+  - Bấm trái tim khi chưa login
+  - Kỳ vọng: Lưu vào localStorage key `favoriteRoomIds`, không gọi API
+
+### C3. Xóa yêu thích (`DELETE /api/favorites/:roomId`)
+
+- [ ] **C3.1** Bỏ yêu thích thành công
+  - Bấm lại icon trái tim đỏ
+  - Kỳ vọng: Icon trở về trắng, badge giảm 1, phòng biến mất khỏi trang Yêu thích
+
+- [ ] **C3.2** Bỏ yêu thích phòng không có trong danh sách
+  - Kỳ vọng: Không lỗi (deleteMany trả về count 0)
+
+### C4. Đồng bộ yêu thích khi phòng bị xóa
+
+- [ ] **C4.1** Host xóa phòng → kiểm tra trang yêu thích của user khác
+  - **Bước 1**: User A lưu phòng trọ "Trọ ABC" của Host B vào yêu thích
+  - **Bước 2**: Host B xóa phòng "Trọ ABC"
+  - **Bước 3**: User A vào lại trang `/profile` (trang yêu thích)
+  - Kỳ vọng: Trang yêu thích tải lại dữ liệu mới từ server (`loadSavedIds()` được gọi khi mount). Phòng đã xóa không còn hiển thị (nhờ `onDelete: Cascade` trên FK và filter `room !== null` ở backend).
+
+### C5. Trang Yêu thích - Giao diện (`/profile`)
+
+- [ ] **C5.1** Sắp xếp phòng yêu thích theo giá tăng/giảm
+  - Chọn dropdown "Giá thấp đến cao" hoặc "Giá cao đến thấp"
+  - Kỳ vọng: Danh sách card phòng trọ sắp xếp lại đúng thứ tự
+
+- [ ] **C5.2** Sắp xếp theo "Mới nhất"
+  - Kỳ vọng: Sắp theo `createdAt` giảm dần (mới nhất lên đầu)
+
+---
+
+## D. QUẢN TRỊ ADMIN (`/api/admin/*`)
+
+> Tất cả endpoint admin đều yêu cầu `authMiddleware` + `requireAdmin` (role=ADMIN)
+
+### D1. Dashboard thống kê (`GET /api/admin/dashboard`)
+
+- [ ] **D1.1** Hiển thị đúng 5 chỉ số
+  - Kỳ vọng: `totalUsers` (tổng user), `totalRooms` (tổng phòng), `activeRooms` (phòng đang hiển thị công khai, không bị ẩn, chủ không bị ban), `hiddenRooms` (phòng bị ẩn hoặc chủ bị ban), `bannedUsers` (user bị khóa)
+
+- [ ] **D1.2** User thường truy cập trang Admin
+  - Kỳ vọng: Frontend chặn bởi `RequireAdmin` guard → redirect về `/`. Nếu gọi API trực tiếp → 403 Forbidden.
+
+### D2. Quản lý User
+
+- [ ] **D2.1** Danh sách user phân trang (`GET /api/admin/users?page=1&limit=10`)
+  - Kỳ vọng: Trả về danh sách user kèm số phòng đã tạo (`_count.roomsCreated`) và số phòng đã lưu (`_count.favorites`)
+
+- [ ] **D2.2** Tìm kiếm user theo email hoặc tên (`?search=ngocchau`)
+  - Kỳ vọng: Chỉ trả về user có email hoặc userName chứa từ khóa tìm kiếm
+
+- [ ] **D2.3** Khóa tài khoản user (`PATCH /api/admin/users/:id/ban`)
+  - Kỳ vọng: User đó không thể đăng nhập. Toàn bộ phòng trọ của user bị ẩn khỏi trang công khai (filter `creator.isBanned: false` trong `room.repository.findAll`). Cache room list bị invalidate.
+
+- [ ] **D2.4** Admin tự khóa chính mình
+  - Kỳ vọng: Trả lỗi, không cho phép tự ban bản thân
+
+- [ ] **D2.5** Admin khóa Admin khác
+  - Kỳ vọng: Trả lỗi, không cho phép ban tài khoản ADMIN
+
+- [ ] **D2.6** Khóa user đã bị khóa rồi
+  - Kỳ vọng: Trả lỗi "Tài khoản này đã bị khóa rồi"
+
+- [ ] **D2.7** Mở khóa user (`PATCH /api/admin/users/:id/unban`)
+  - Kỳ vọng: User có thể đăng nhập lại, phòng trọ hiển thị lại trên công khai, cache bị invalidate
+
+- [ ] **D2.8** Mở khóa user không bị khóa
+  - Kỳ vọng: Trả lỗi "Tài khoản này đang hoạt động bình thường"
+
+- [ ] **D2.9** Xem danh sách phòng của 1 user (`GET /api/admin/users/:id/rooms`)
+  - Kỳ vọng: Trả về tất cả phòng do user đó tạo (bao gồm cả phòng bị ẩn)
+
+### D3. Quản lý Phòng trọ (Admin)
+
+- [ ] **D3.1** Danh sách phòng hiển thị TẤT CẢ (kể cả phòng bị ẩn)
+  - Kỳ vọng: Khác với API công khai, trang admin hiển thị cả phòng `isHidden: true`
+
+- [ ] **D3.2** Tìm kiếm phòng theo tiêu đề hoặc địa chỉ (`?search=Ngô Sĩ Liên`)
+  - Kỳ vọng: Tìm kiếm case-insensitive trong cả trường `title` và `address`
+
+- [ ] **D3.3** Ẩn phòng vi phạm (`PATCH /api/admin/rooms/:id/hide`)
+  - Kỳ vọng: `isHidden` chuyển `true`. Phòng biến mất khỏi trang chủ và bản đồ công khai. Cache bị invalidate.
+
+- [ ] **D3.4** Ẩn phòng đã bị ẩn rồi
+  - Kỳ vọng: Trả lỗi "Phòng trọ này đã bị ẩn rồi"
+
+- [ ] **D3.5** Khôi phục phòng (`PATCH /api/admin/rooms/:id/restore`)
+  - Kỳ vọng: `isHidden` chuyển `false`. Phòng hiển thị lại trên công khai. Cache bị invalidate.
+
+- [ ] **D3.6** Khôi phục phòng của user bị ban
+  - Kỳ vọng: Trả lỗi, không cho restore nếu creator đang bị khóa
+
+- [ ] **D3.7** Admin xóa phòng vĩnh viễn (`DELETE /api/admin/rooms/:id`)
+  - Kỳ vọng: Phòng bị xóa hoàn toàn (hard delete), ảnh được thêm vào outbox cleanup, UserFavorite cascade delete
+
+- [ ] **D3.8** Admin chỉnh sửa phòng của bất kỳ user nào
+  - Bấm icon chỉnh sửa → chuyển đến `/create` với dữ liệu phòng
+  - Kỳ vọng: ADMIN có quyền sửa phòng của tất cả user (kiểm tra `role === 'ADMIN'` trong service)
+
+---
+
+## E. TÌM KIẾM, LỌC & HIỂN THỊ CÔNG KHAI
+
+### E1. Trang chủ (`/`)
+
+- [ ] **E1.1** Hiển thị 10 phòng mới nhất
+  - Truy cập trang chủ
+  - Kỳ vọng: Gọi `GET /api/rooms?limit=10`, hiển thị tối đa 10 card phòng mới nhất (không hiển thị phòng bị ẩn, phòng của user bị ban)
+
+- [ ] **E1.2** Thanh tìm kiếm Hero với gợi ý tự động
+  - Gõ "WiFi" hoặc "điều hòa" vào ô tìm kiếm
+  - Kỳ vọng: Dropdown gợi ý xuất hiện ngay (tìm trong amenities/type/title của listings đã tải). Bấm Enter hoặc chọn gợi ý → chuyển đến `/map` với searchQuery.
+
+- [ ] **E1.3** Quick-link chips tìm kiếm nhanh
+  - Bấm chip "Có điều hoà" hoặc "Không chung chủ"
+  - Kỳ vọng: Set searchQuery + navigate đến `/map`
+
+- [ ] **E1.4** Hiển thị tổng số phòng trọ trong hệ thống
+  - Kỳ vọng: Mục thống kê hiển thị số `totalRooms` chính xác từ API
+
+### E2. Trang danh sách tất cả phòng (`/all-listings`)
+
+- [ ] **E2.1** Hiển thị danh sách phòng dạng grid (1-4 cột responsive)
+  - Kỳ vọng: Gọi `fetchRooms()` on mount, hiển thị tất cả phòng công khai
+
+- [ ] **E2.2** Sắp xếp: Mới nhất / Giá tăng / Giá giảm
+  - Bấm lần lượt các nút sắp xếp trên sort bar
+  - Kỳ vọng: Danh sách sắp xếp lại tương ứng ở phía client
+
+- [ ] **E2.3** Bộ lọc nâng cao (popup modal)
+  - Bấm nút bộ lọc → chọn mức giá "1 triệu - 2 triệu" + khoảng cách "Dưới 2km"
+  - Kỳ vọng: Modal popup hiển thị đúng dạng pill/chip 2 cột. Sau khi áp dụng, chỉ hiển thị phòng thỏa cả 2 điều kiện.
+
+- [ ] **E2.4** Lọc theo tên đường
+  - Nhập "Âu Cơ" vào ô tìm đường
+  - Kỳ vọng: Chỉ hiển thị phòng có address chứa "Âu Cơ"
+
+- [ ] **E2.5** Phân trang client-side (12 phòng/trang)
+  - Kỳ vọng: Hiện nút Previous/Next, chuyển trang mượt mà
+
+- [ ] **E2.6** Không có kết quả
+  - Lọc với điều kiện không có phòng nào thỏa mãn
+  - Kỳ vọng: Hiện thông báo "Không tìm thấy phòng trọ nào" với icon phù hợp
+
+### E3. Trang chi tiết phòng (`/rooms/:id`)
+
+- [ ] **E3.1** Hiển thị đầy đủ thông tin
+  - Click vào 1 card phòng → chuyển đến trang chi tiết
+  - Kỳ vọng: Gọi `GET /api/rooms/:id`, hiển thị: gallery ảnh (ảnh chính + thumbnail), tiêu đề, địa chỉ, thời gian đăng, thông tin chủ trọ (tên + SĐT), mô tả, tiện ích, giá điện/nước/chi phí khác, giá thuê, diện tích, khoảng cách đến BK, bản đồ vị trí.
+
+- [ ] **E3.2** Gallery ảnh: hover thumbnail thay đổi ảnh chính
+  - Kỳ vọng: Ảnh chính cập nhật theo thumbnail được hover
+
+- [ ] **E3.3** Copy số điện thoại chủ trọ
+  - Bấm nút "Liên hệ chủ trọ"
+  - Kỳ vọng: SĐT được copy vào clipboard (dùng Clipboard API, fallback textarea)
+
+- [ ] **E3.4** Chia sẻ link phòng
+  - Bấm nút Share
+  - Kỳ vọng: URL phòng được copy vào clipboard
+
+- [ ] **E3.5** Bản đồ chi tiết với 2 marker
+  - Kỳ vọng: Map hiển thị marker vị trí phòng (chấm đỏ pulse) + marker trường BK (icon school). Có popup fullscreen map.
+
+- [ ] **E3.6** Truy cập phòng không tồn tại
+  - Nhập URL `/rooms/00000000-0000-0000-0000-000000000000`
+  - Kỳ vọng: Hiển thị thông báo lỗi "Không tìm thấy phòng trọ" hoặc redirect
+
+---
+
+## F. BẢN ĐỒ TƯƠNG TÁC (`/map`)
+
+- [ ] **F1** Bản đồ Leaflet hiển thị đúng vị trí trường BK
+  - Kỳ vọng: Map khởi tạo tại tọa độ `[16.07380, 108.14990]`, zoom 15. Có marker trường BK (icon đỏ tròn + school icon).
+
+- [ ] **F2** Marker giá tiền kiểu Airbnb cho mỗi phòng
+  - Kỳ vọng: Mỗi phòng có marker hiển thị giá tiền format VNĐ. Marker đang chọn: màu amber. Marker bình thường: màu indigo.
+
+- [ ] **F3** Click marker → pan đến vị trí + highlight card bên trái
+  - Kỳ vọng: Map pan smooth, card phòng tương ứng scroll vào view bên panel trái
+
+- [ ] **F4** Tìm kiếm trên bản đồ có debounce 400ms
+  - Gõ "Ngô Sĩ Liên" vào ô tìm kiếm
+  - Kỳ vọng: Sau 400ms dừng gõ, tự động gọi `fetchRooms({ search, limit: 100 })`, marker trên map cập nhật lại
+
+- [ ] **F5** Lọc theo giá trên bản đồ
+  - Chọn chip giá "1tr - 2tr"
+  - Kỳ vọng: Marker trên map chỉ hiện phòng trong khoảng giá đó
+
+- [ ] **F6** Card chi tiết nổi (floating pin card) khi chọn phòng
+  - Click marker hoặc card → hiện card chi tiết nổi trên map
+  - Kỳ vọng: Hiện ảnh, tên, giá, địa chỉ, nút xem chi tiết
+
+- [ ] **F7** Auto fit bounds khi danh sách phòng thay đổi
+  - Kỳ vọng: Map tự zoom để hiển thị tất cả marker trong viewport
+
+- [ ] **F8** Responsive: Split view desktop, toggle pill mobile
+  - Desktop: Panel trái + map phải
+  - Mobile: Có nút toggle chuyển đổi giữa danh sách và bản đồ
+
+---
+
+## G. DASHBOARD CHỦ TRỌ (`/dashboard`)
+
+- [ ] **G1** Chỉ hiển thị phòng do chính user tạo
+  - Kỳ vọng: Gọi `fetchRooms({ ownerEmail, limit: 100 })`, lọc chỉ phòng có `ownerEmail` trùng với email đăng nhập
+
+- [ ] **G2** Bảng danh sách phòng với đầy đủ cột
+  - Kỳ vọng: Hiển thị cột: Ảnh, Tiêu đề, Loại, Khoảng cách, Giá thuê, Actions (Xem/Sửa/Xóa)
+
+- [ ] **G3** Nút "Đăng tin nhà mới" → chuyển đến `/create`
+  - Kỳ vọng: `editingListing` được set null (không phải chế độ edit), chuyển đến form tạo mới
+
+- [ ] **G4** Popup xác nhận xóa phòng
+  - Bấm nút xóa → hiện modal "Bạn chắc chắn muốn xóa niêm yết ... ? Thao tác không hoàn tác."
+  - Kỳ vọng: Bấm "Hủy" → đóng modal. Bấm "Xóa" → gọi `DELETE /api/rooms/:id`, phòng biến mất khỏi bảng.
+
+- [ ] **G5** Chưa có phòng nào → hiển thị empty state
+  - Kỳ vọng: Thông báo "Chưa có phòng trọ nào do bạn quản lý" + nút "Đăng trọ mới"
+
+---
+
+## H. CACHING & HIỆU NĂNG
+
+### H1. Redis Cache cho danh sách phòng
+
+- [ ] **H1.1** Request đầu tiên (cache miss)
+  - Gọi `GET /api/rooms` lần đầu (guest, page=1, limit=10)
+  - Kỳ vọng: Cache miss, truy vấn DB, kết quả được lưu vào Redis key `cache:development:rooms:list:page-1:limit-10` với TTL 180 giây
+
+- [ ] **H1.2** Request thứ hai (cache hit)
+  - Gọi lại `GET /api/rooms` ngay sau đó
+  - Kỳ vọng: Cache hit, trả về từ Redis, không truy vấn DB. Kiểm tra qua `GET /api/cache/metrics`.
+
+- [ ] **H1.3** Cache chỉ áp dụng cho guest, không cho user đăng nhập
+  - Gọi `GET /api/rooms` với Bearer token
+  - Kỳ vọng: Bỏ qua cache, truy vấn DB trực tiếp (middleware kiểm tra `Authorization` header)
+
+- [ ] **H1.4** Cache bị invalidate khi tạo/sửa/xóa phòng
+  - Tạo phòng mới → gọi lại `GET /api/rooms`
+  - Kỳ vọng: Cache cũ bị xóa bởi `invalidate('rooms:list:*')`, phòng mới xuất hiện
+
+### H2. Redis Cache cho chi tiết phòng
+
+- [ ] **H2.1** Cache detail với TTL 30 phút
+  - Gọi `GET /api/rooms/:id` 2 lần liên tiếp (guest)
+  - Kỳ vọng: Lần 1 cache miss, lần 2 cache hit. Key: `cache:development:room:detail:{id}`
+
+### H3. Redis sập - Graceful Degradation
+
+- [ ] **H3.1** Tắt Redis → gọi API rooms
+  - Dừng dịch vụ Redis (`redis-cli shutdown` hoặc stop service)
+  - Kỳ vọng: `redisStatus.isReady` chuyển `false`. Tất cả cache operation skip. API vẫn hoạt động bình thường bằng cách truy vấn DB trực tiếp. Log backend ghi cảnh báo, không crash.
+
+---
+
+## I. BẢO MẬT & GIỚI HẠN TẢI
+
+### I1. Rate Limiting
+
+- [ ] **I1.1** Global rate limit: 200 request / 15 phút
+  - Gửi 201 request liên tục đến bất kỳ endpoint
+  - Kỳ vọng: Request thứ 201 trả về `429 Too Many Requests`
+
+- [ ] **I1.2** Auth rate limit: 10 request / 15 phút
+  - Gửi 11 request `POST /api/auth/login` liên tục
+  - Kỳ vọng: Request thứ 11 trả về `429 Too Many Requests`
+
+### I2. Authorization
+
+- [ ] **I2.1** Gọi API yêu cầu auth mà không có token
+  - Gọi `POST /api/rooms` không có header `Authorization`
+  - Kỳ vọng: 401 Unauthorized
+
+- [ ] **I2.2** Gọi API với token hết hạn
+  - Kỳ vọng: 401, thông báo token expired
+
+- [ ] **I2.3** Gọi API với token giả mạo
+  - Kỳ vọng: 401, thông báo token không hợp lệ
+
+- [ ] **I2.4** User thường gọi API admin
+  - Gọi `GET /api/admin/dashboard` với token role=USER
+  - Kỳ vọng: 403 Forbidden
+
+### I3. CORS
+
+- [ ] **I3.1** Request từ origin được phép (`localhost:5173`)
+  - Kỳ vọng: Response có header `Access-Control-Allow-Origin` đúng
+
+- [ ] **I3.2** Request từ origin không được phép
+  - Kỳ vọng: CORS chặn, trình duyệt báo lỗi Cross-Origin
+
+### I4. Helmet Security Headers
+
+- [ ] **I4.1** Kiểm tra response headers
+  - Kỳ vọng: Có các header bảo mật: `X-Content-Type-Options: nosniff`, `X-Frame-Options`, `Strict-Transport-Security`, v.v.
+
+---
+
+## J. XỬ LÝ LỖI & TRƯỜNG HỢP BIÊN
+
+### J1. Lỗi Database
+
+- [ ] **J1.1** Gửi roomId là UUID hợp lệ nhưng không tồn tại
+  - Kỳ vọng: 404 "Không tìm thấy phòng trọ"
+
+- [ ] **J1.2** Gửi ID không phải UUID (ví dụ: `"abc123"`)
+  - Kỳ vọng: 400 "ID không hợp lệ" (uuid validate check)
+
+- [ ] **J1.3** Lỗi foreign key (P2003) khi tạo phòng
+  - Ví dụ: featureId không tồn tại
+  - Kỳ vọng: 400 "Dữ liệu liên kết không hợp lệ"
+
+### J2. Lỗi Upload
+
+- [ ] **J2.1** Supabase Storage không khả dụng
+  - Kỳ vọng: Backend trả lỗi 500 có message rõ ràng, không crash server
+
+### J3. Geocoding
+
+- [ ] **J3.1** Gọi `GET /api/geocode?q=Ngô Sĩ Liên`
+  - Kỳ vọng: Proxy đến Nominatim OpenStreetMap, trả về tối đa 5 kết quả địa chỉ tại Việt Nam (countrycodes=vn)
+
+- [ ] **J3.2** Gọi geocode với query rỗng
+  - Kỳ vọng: Trả về mảng rỗng hoặc lỗi validation
+
+### J4. Cleanup Worker
+
+- [ ] **J4.1** Worker xử lý xóa file trên Supabase
+  - Xóa phòng có ảnh → kiểm tra bảng `outboxFileDelete`
+  - Kỳ vọng: Records được tạo với `status: PENDING`. Worker chạy và xóa file trên Supabase. Records bị xóa sau khi thành công.
+
+- [ ] **J4.2** Worker retry khi xóa thất bại
+  - Kỳ vọng: `retryCount` tăng lên, `status` chuyển `FAILED`, `errorMessage` được ghi. Tối đa 3 lần retry (MAX_RETRIES=3). Sau 3 lần vẫn fail → record giữ lại để admin xử lý thủ công.
+
+### J5. Responsive & Cross-Browser
+
+- [ ] **J5.1** Giao diện desktop (1920×1080)
+  - Kỳ vọng: Layout hiển thị đẹp, grid 4 cột cho danh sách phòng
+
+- [ ] **J5.2** Giao diện tablet (768px)
+  - Kỳ vọng: Grid co lại 2 cột, Navbar vẫn hoạt động
+
+- [ ] **J5.3** Giao diện mobile (375px)
+  - Kỳ vọng: Grid 1 cột, Navbar chuyển sang bottom tab bar cố định (5 tab: Khám phá, Bản đồ, Chủ trọ, Đã lưu, Admin nếu là ADMIN)
+
+---
+
+> **Tổng cộng: ~90 test case** bao phủ toàn bộ 35 API endpoints, 6 trang giao diện, 4 module backend, caching, bảo mật và xử lý lỗi.
+
+
