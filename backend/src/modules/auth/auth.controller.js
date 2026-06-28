@@ -42,27 +42,240 @@ export const authController = {
 
 	// Dành cho GET request khi click từ email
 	async verifyEmailGet(req, res, next) {
+		const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+		const loginUrl = `${frontendUrl}/login`;
+
+		const renderPage = (isSuccess, message) => {
+			const primaryColor = '#004ac6';
+			const successColor = '#10b981';
+			const errorColor = '#ef4444';
+			
+			const iconHtml = isSuccess 
+				? `<div class="icon-wrapper success">
+						<svg viewBox="0 0 52 52" class="checkmark">
+							<circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+							<path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+						</svg>
+				   </div>`
+				: `<div class="icon-wrapper error">
+						<svg viewBox="0 0 52 52" class="cross">
+							<circle class="cross__circle" cx="26" cy="26" r="25" fill="none"/>
+							<path class="cross__path-1" fill="none" d="M16 16 36 36"/>
+							<path class="cross__path-2" fill="none" d="M36 16 16 36"/>
+						</svg>
+				   </div>`;
+
+			const title = isSuccess ? 'Xác thực tài khoản thành công! 🎉' : 'Xác thực thất bại ⚠️';
+			const buttonText = 'Đăng nhập ngay';
+
+			return `
+				<!DOCTYPE html>
+				<html lang="vi">
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>${title} | BK'S MAP</title>
+					<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+					<style>
+						* {
+							box-sizing: border-box;
+							margin: 0;
+							padding: 0;
+						}
+						body {
+							font-family: 'Inter', system-ui, -apple-system, sans-serif;
+							background: radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.04) 0%, transparent 40%),
+							            radial-gradient(circle at 90% 80%, rgba(0, 74, 198, 0.04) 0%, transparent 40%),
+							            #f8f9ff;
+							color: #0b1c30;
+							min-height: 100vh;
+							display: flex;
+							align-items: center;
+							justify-content: center;
+							padding: 20px;
+						}
+						.container {
+							width: 100%;
+							max-width: 440px;
+							background: rgba(255, 255, 255, 0.85);
+							backdrop-filter: saturate(180%) blur(20px);
+							-webkit-backdrop-filter: saturate(180%) blur(20px);
+							border: 1px solid rgba(255, 255, 255, 0.5);
+							border-radius: 24px;
+							padding: 40px 30px;
+							text-align: center;
+							box-shadow: 0px 20px 40px rgba(0, 74, 198, 0.05);
+							animation: fadeIn 0.6s ease-out;
+						}
+						@keyframes fadeIn {
+							from { opacity: 0; transform: translateY(15px); }
+							to { opacity: 1; transform: translateY(0); }
+						}
+						
+						.icon-wrapper {
+							width: 80px;
+							height: 80px;
+							margin: 0 auto 24px;
+							display: flex;
+							align-items: center;
+							justify-content: center;
+						}
+
+						/* Success Checkmark Animation */
+						.checkmark__circle {
+							stroke-dasharray: 166;
+							stroke-dashoffset: 166;
+							stroke-width: 3;
+							stroke-miterlimit: 10;
+							stroke: ${successColor};
+							fill: none;
+							animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+						}
+						.checkmark {
+							width: 80px;
+							height: 80px;
+							border-radius: 50%;
+							display: block;
+							stroke-width: 3;
+							stroke: ${successColor};
+							stroke-miterlimit: 10;
+							box-shadow: inset 0px 0px 0px ${successColor};
+							animation: fillSuccess 0.4s ease-in-out 0.4s forwards, scale 0.3s ease-in-out 0.9s both;
+						}
+						.checkmark__check {
+							transform-origin: 50% 50%;
+							stroke-dasharray: 48;
+							stroke-dashoffset: 48;
+							stroke-width: 3;
+							stroke-linecap: round;
+							animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+						}
+
+						/* Error Cross Animation */
+						.cross__circle {
+							stroke-dasharray: 166;
+							stroke-dashoffset: 166;
+							stroke-width: 3;
+							stroke-miterlimit: 10;
+							stroke: ${errorColor};
+							fill: none;
+							animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+						}
+						.cross {
+							width: 80px;
+							height: 80px;
+							border-radius: 50%;
+							display: block;
+							stroke-width: 3;
+							stroke: ${errorColor};
+							stroke-miterlimit: 10;
+							box-shadow: inset 0px 0px 0px ${errorColor};
+							animation: fillError 0.4s ease-in-out 0.4s forwards, scale 0.3s ease-in-out 0.9s both;
+						}
+						.cross__path-1, .cross__path-2 {
+							transform-origin: 50% 50%;
+							stroke-dasharray: 48;
+							stroke-dashoffset: 48;
+							stroke-width: 3;
+							stroke-linecap: round;
+						}
+						.cross__path-1 {
+							animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.7s forwards;
+						}
+						.cross__path-2 {
+							animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.9s forwards;
+						}
+
+						@keyframes stroke {
+							100% { stroke-dashoffset: 0; }
+						}
+						@keyframes scale {
+							0%, 100% { transform: none; }
+							50% { transform: scale3d(1.1, 1.1, 1); }
+						}
+						@keyframes fillSuccess {
+							100% { box-shadow: inset 0px 0px 0px 40px rgba(16, 185, 129, 0.1); }
+						}
+						@keyframes fillError {
+							100% { box-shadow: inset 0px 0px 0px 40px rgba(239, 68, 68, 0.1); }
+						}
+
+						h1 {
+							font-size: 22px;
+							font-weight: 700;
+							color: #0b1c30;
+							margin-bottom: 12px;
+							line-height: 1.3;
+						}
+						p {
+							font-size: 15px;
+							color: #555c68;
+							line-height: 1.6;
+							margin-bottom: 30px;
+						}
+						
+						.btn {
+							display: inline-flex;
+							align-items: center;
+							justify-content: center;
+							width: 100%;
+							padding: 14px 24px;
+							font-size: 15px;
+							font-weight: 600;
+							text-decoration: none;
+							border-radius: 12px;
+							transition: all 0.25s ease;
+							cursor: pointer;
+						}
+						
+						.btn-primary {
+							background: ${primaryColor};
+							color: #ffffff;
+							box-shadow: 0 4px 14px rgba(0, 74, 198, 0.25);
+						}
+						
+						.btn-primary:hover {
+							background: #003fa8;
+							transform: translateY(-2px);
+							box-shadow: 0 6px 20px rgba(0, 74, 198, 0.35);
+						}
+
+						.btn-primary:active {
+							transform: translateY(0);
+						}
+						
+						.footer {
+							margin-top: 24px;
+							font-size: 12px;
+							color: #a0a5b0;
+						}
+					</style>
+				</head>
+				<body>
+					<div class="container">
+						${iconHtml}
+						<h1>${title}</h1>
+						<p>${message}</p>
+						<a href="${loginUrl}" class="btn btn-primary">${buttonText}</a>
+						<div class="footer">
+							&copy; ${new Date().getFullYear()} BK'S MAP. All rights reserved.
+						</div>
+					</div>
+				</body>
+				</html>
+			`;
+		};
+
 		try {
 			const token = req.query.token;
 			if (!token) {
-				return res.status(400).send(`<h2>Lỗi: Không tìm thấy token xác thực.</h2>`);
+				return res.status(400).send(renderPage(false, 'Không tìm thấy token xác thực hợp lệ. Vui lòng thử lại.'));
 			}
 			await authService.verifyEmail({ token });
-			return res.send(`
-				<div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-					<h2 style="color: #28a745;">Xác thực tài khoản thành công! 🎉</h2>
-					<p>Bây giờ bạn đã có thể quay lại ứng dụng để đăng nhập.</p>
-				</div>
-			`);
+			return res.send(renderPage(true, 'Kích hoạt tài khoản thành công! Bây giờ bạn đã có thể bắt đầu khám phá và đăng tin phòng trọ.'));
 		} catch (error) {
-			// Không interpolate error.message vào HTML — tránh XSS
-			const safeMessage = error.message === 'Token Expired.' ? 'Link xác thực đã hết hạn.' : 'Token không hợp lệ hoặc đã được sử dụng.';
-			return res.status(400).send(`
-				<div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-					<h2 style="color: #dc3545;">Xác thực thất bại </h2>
-					<p>${safeMessage}</p>
-				</div>
-			`);
+			const safeMessage = error.message === 'Token Expired.' ? 'Link xác thực của bạn đã hết hạn. Vui lòng gửi lại yêu cầu kích hoạt.' : 'Token xác thực không hợp lệ hoặc đã được sử dụng.';
+			return res.status(400).send(renderPage(false, safeMessage));
 		}
 	},
 

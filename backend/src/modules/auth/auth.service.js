@@ -86,9 +86,9 @@ export const authService = {
     }
 
     // NẾU MUỐN CHẶN LOGIN KHI CHƯA XÁC THỰC EMAIL THÌ MỞ ĐOẠN NÀY RA
-    // if (!user.isVerified) {
-    //   throw new UnauthorizedException('Tài khoản chưa được xác thực. Vui lòng kiểm tra email.');
-    // }
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Tài khoản chưa được xác thực. Vui lòng kiểm tra email.');
+    }
 
     // JWT payload
     const payload = {

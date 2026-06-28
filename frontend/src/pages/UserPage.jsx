@@ -20,7 +20,7 @@ const UserPage = () => {
   const navigate = useNavigate();
   const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar, changePassword: changePasswordAction } = useAuthStore();
   const { listings, selectListing } = useListingStore();
-  const { savedIds, favoriteRooms, toggleSaved } = useUiStore();
+  const { savedIds, favoriteRooms, toggleSaved, loadSavedIds } = useUiStore();
 
   const userDisplayName = userName || userEmail.split('@')[0];
   const savedListings = isLoggedIn
@@ -28,6 +28,12 @@ const UserPage = () => {
     : listings.filter(l => savedIds.includes(l.id));
 
   const [sortBy, setSortBy] = React.useState('newest');
+
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      loadSavedIds();
+    }
+  }, [isLoggedIn, loadSavedIds]);
 
   // State for Change Password Modal
   const [isModalOpen, setIsModalOpen] = React.useState(false);

@@ -99,7 +99,7 @@ export const useUiStore = create((set, get) => ({
       const json = await res.json();
       const ids = Array.isArray(json.data?.ids) ? json.data.ids : [];
       const favoriteRooms = Array.isArray(json.data?.rooms)
-        ? json.data.rooms.map(mapRoomToListing)
+        ? json.data.rooms.filter(Boolean).map(mapRoomToListing)
         : [];
 
       set({
