@@ -16,6 +16,7 @@ const ROOM_INCLUDE = {
 	owner: true,
 	images: { orderBy: { displayOrder: 'asc' }, take: 1 }, // chỉ lấy ảnh đầu
 	creator: { select: { id: true, userName: true, email: true, isBanned: true } },
+	revision: true,
 };
 
 export const adminRepository = {
@@ -88,20 +89,36 @@ export const adminRepository = {
 	async findAllRooms({ search, creatorEmail, approvalStatus, page = 1, limit = 20 }) {
 		const skip = (page - 1) * limit;
 		const where = {};
+		const andConditions = [];
 
 		if (creatorEmail) {
-			where.creator = { email: { contains: creatorEmail, mode: 'insensitive' } };
+			andConditions.push({ creator: { email: { contains: creatorEmail, mode: 'insensitive' } } });
 		}
 
 		if (search) {
-			where.OR = [
-				{ title: { contains: search, mode: 'insensitive' } },
-				{ address: { contains: search, mode: 'insensitive' } },
-			];
+			andConditions.push({
+				OR: [
+					{ title: { contains: search, mode: 'insensitive' } },
+					{ address: { contains: search, mode: 'insensitive' } },
+				]
+			});
 		}
 
 		if (approvalStatus && ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'ADMIN_HIDDEN'].includes(approvalStatus)) {
-			where.approvalStatus = approvalStatus;
+			if (approvalStatus === 'PENDING_APPROVAL') {
+				andConditions.push({
+					OR: [
+						{ approvalStatus: 'PENDING_APPROVAL' },
+						{ revision: { isNot: null } }
+					]
+				});
+			} else {
+				andConditions.push({ approvalStatus });
+			}
+		}
+
+		if (andConditions.length > 0) {
+			where.AND = andConditions;
 		}
 
 		const [total, rooms] = await prisma.$transaction([
@@ -193,7 +210,14 @@ export const adminRepository = {
 			prisma.user.count(),
 			prisma.room.count(),
 			prisma.room.count({ where: { approvalStatus: 'APPROVED' } }),
-			prisma.room.count({ where: { approvalStatus: 'PENDING_APPROVAL' } }),
+			prisma.room.count({
+				where: {
+					OR: [
+						{ approvalStatus: 'PENDING_APPROVAL' },
+						{ revision: { isNot: null } }
+					]
+				}
+			}),
 			prisma.room.count({ where: { approvalStatus: 'REJECTED' } }),
 			prisma.room.count({ where: { approvalStatus: 'ADMIN_HIDDEN' } }),
 			prisma.user.count({ where: { isBanned: true } }),

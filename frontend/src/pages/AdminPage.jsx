@@ -494,7 +494,7 @@ function UserRoomsModal({ userId, userName, onClose, apiFetch }) {
 }
 
 // ─── Room Detail Modal ─────────────────────────────────────────────────────────
-function RoomDetailModal({ roomId, onClose, apiFetch }) {
+function RoomDetailModal({ roomId, onClose, apiFetch, onApprove, onReject }) {
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(null);
@@ -529,6 +529,30 @@ function RoomDetailModal({ roomId, onClose, apiFetch }) {
 
   const formatVND = (n) => (n ? Number(n).toLocaleString('vi-VN') + ' đ' : 'Chưa cập nhật');
 
+  const compareField = (label, originalVal, newVal, formatter = (v) => v) => {
+    if (newVal === undefined || newVal === null) return null;
+    const normalizedOriginal = typeof originalVal === 'string' ? originalVal.trim() : originalVal;
+    const normalizedNew = typeof newVal === 'string' ? newVal.trim() : newVal;
+    
+    if (String(normalizedOriginal) !== String(normalizedNew)) {
+      return (
+        <div className="py-2 border-b border-slate-100 last:border-0 flex flex-col gap-1">
+          <span className="text-xs font-bold text-slate-500">{label}:</span>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="line-through text-red-500 bg-red-50 px-1.5 py-0.5 rounded">{formatter(originalVal) || '(Trống)'}</span>
+            <span className="material-symbols-outlined text-[14px] text-slate-400">arrow_right_alt</span>
+            <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 font-bold rounded">{formatter(newVal) || '(Trống)'}</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const revision = room?.revision;
+  const isPendingRevision = revision && revision.status === 'PENDING_APPROVAL';
+  const payload = isPendingRevision ? revision.payload : null;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-slate-50 rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative">
@@ -546,7 +570,105 @@ function RoomDetailModal({ roomId, onClose, apiFetch }) {
           {!loading && !room && <div className="py-12 text-center text-slate-400 text-sm">Không thể tải thông tin phòng.</div>}
           
           {room && (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="space-y-6">
+              {isPendingRevision && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 mb-2 space-y-4 shadow-sm">
+                  <h4 className="font-extrabold text-indigo-900 flex items-center gap-2 text-base">
+                    <span className="material-symbols-outlined text-[20px] font-bold text-indigo-600">edit_note</span>
+                    Yêu cầu chỉnh sửa thông tin phòng đang chờ phê duyệt
+                  </h4>
+                  <p className="text-xs text-indigo-700 leading-relaxed font-semibold">
+                    Chủ trọ đã gửi yêu cầu cập nhật thông tin. Dưới đây là danh sách các thay đổi so với thông tin gốc đang hiển thị:
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-sm bg-white p-4 rounded-lg border border-indigo-100/80 shadow-inner">
+                    {compareField('Tiêu đề', room.title, payload.title)}
+                    {compareField('Giá thuê / tháng', room.price, payload.price, formatVND)}
+                    {compareField('Diện tích', room.area, payload.area, (v) => `${v} m²`)}
+                    {compareField('Địa chỉ', room.address, payload.address)}
+                    {compareField('Mô tả', room.description, payload.description)}
+                    {compareField('Giá điện', room.electricityPrice, payload.electricityPrice)}
+                    {compareField('Giá nước', room.waterPrice, payload.waterPrice)}
+                    {compareField('Chi phí khác', room.otherCosts, payload.otherCosts)}
+                    {compareField('Tên chủ trọ', room.owner?.userName, payload.ownerName)}
+                    {compareField('Số điện thoại', room.owner?.phoneNumber, payload.ownerPhone)}
+                    
+                    {/* Compare Features */}
+                    {(() => {
+                      const originalFeatures = room.features?.map(f => f.feature.name) || [];
+                      const newFeatures = payload.features || [];
+                      const isDifferent = JSON.stringify(originalFeatures.sort()) !== JSON.stringify(newFeatures.sort());
+                      if (isDifferent) {
+                        return (
+                          <div className="py-2 border-b border-slate-100 last:border-0 col-span-1 md:col-span-2 flex flex-col gap-1">
+                            <span className="text-xs font-bold text-slate-500">Tiện ích:</span>
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="line-through text-red-500 bg-red-50 px-1.5 py-0.5 rounded">{originalFeatures.join(', ') || '(Không có)'}</span>
+                              <span className="material-symbols-outlined text-[14px] text-slate-400">arrow_right_alt</span>
+                              <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 font-bold rounded">{newFeatures.join(', ') || '(Không có)'}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Compare Images */}
+                    {(() => {
+                      const originalUrls = room.images?.map(img => img.imageUrl) || [];
+                      const newUrls = payload.imageUrls || payload.images || [];
+                      const isDifferent = JSON.stringify(originalUrls) !== JSON.stringify(newUrls);
+                      if (isDifferent) {
+                        return (
+                          <div className="py-2 border-b border-slate-100 last:border-0 col-span-1 md:col-span-2 flex flex-col gap-2">
+                            <span className="text-xs font-bold text-slate-500">Hình ảnh:</span>
+                            <div className="grid grid-cols-2 gap-3 mt-1">
+                              <div>
+                                <p className="text-[10px] text-slate-400 font-bold mb-1 uppercase">Ảnh gốc:</p>
+                                <div className="flex gap-1 overflow-x-auto pb-1">
+                                  {originalUrls.map((url, i) => (
+                                    <img key={i} src={url} className="w-10 h-10 object-cover rounded border flex-shrink-0" alt="" />
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-indigo-500 font-bold mb-1 uppercase">Thứ tự ảnh mới:</p>
+                                <div className="flex gap-1 overflow-x-auto pb-1">
+                                  {newUrls.map((url, i) => (
+                                    <img key={i} src={url} className="w-10 h-10 object-cover rounded border border-indigo-200 flex-shrink-0" alt="" />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  
+                  {/* Action Buttons for Revision */}
+                  {onApprove && onReject && (
+                    <div className="flex gap-3 justify-end pt-2">
+                      <button
+                        type="button"
+                        onClick={() => onApprove(room.id, room.title)}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-lg uppercase shadow-sm transition-colors cursor-pointer"
+                      >
+                        Phê duyệt thay đổi
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onReject(room.id, room.title)}
+                        className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-lg uppercase transition-colors cursor-pointer border border-red-200"
+                      >
+                        Từ chối thay đổi
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Left Column - Content */}
               <div className="lg:col-span-3 space-y-6">
                 {/* Title & Address */}
@@ -648,7 +770,8 @@ function RoomDetailModal({ roomId, onClose, apiFetch }) {
                  </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
         </div>
       </div>
     </div>
@@ -923,6 +1046,20 @@ function RoomsTab({ apiFetch }) {
   
   const renderStatus = (room) => {
     const statusTag = "px-2 py-1 text-xs font-bold rounded-full flex items-center gap-1 w-fit";
+    
+    if (room.revision && room.revision.status === 'PENDING_APPROVAL') {
+      return (
+        <span
+          onClick={() => handleView(room.id)}
+          className={`${statusTag} bg-indigo-50 text-indigo-600 border border-indigo-150 animate-pulse cursor-pointer hover:bg-indigo-100 transition-colors`}
+          title="Bấm để xem chi tiết và so sánh các thay đổi"
+        >
+          <span className="material-symbols-outlined text-[14px]">edit_note</span>
+          Yêu cầu sửa đổi
+        </span>
+      );
+    }
+
     switch (room.approvalStatus) {
       case 'APPROVED':
         if (room.creator?.isBanned) return <span className={`${statusTag} bg-red-50 text-red-700`}><EyeOff size={12} /> User bị khóa</span>;
@@ -949,6 +1086,16 @@ function RoomsTab({ apiFetch }) {
         <button onClick={() => handleDelete(room.id, room.title)} title="Xóa vĩnh viễn" className={`${btnSm} bg-red-50 text-red-600 hover:bg-red-100`}>Xóa</button>
       </>
     );
+
+    if (room.revision && room.revision.status === 'PENDING_APPROVAL') {
+      return (
+        <>
+          <button onClick={() => handleView(room.id)} title="Xem chi tiết và phê duyệt thay đổi" className={`${btnSm} bg-green-500 text-white hover:bg-green-600`}>Duyệt</button>
+          <button onClick={() => handleView(room.id)} title="Xem chi tiết và so sánh" className={`${btnSm} bg-blue-50 text-blue-700 hover:bg-blue-100`}>Xem</button>
+          <button onClick={() => handleView(room.id)} title="Xem chi tiết và từ chối thay đổi" className={`${btnSm} bg-red-50 text-red-700 hover:bg-red-100`}>Từ chối</button>
+        </>
+      );
+    }
 
     if (status === 'PENDING_APPROVAL') {
       return (
@@ -1139,6 +1286,14 @@ function RoomsTab({ apiFetch }) {
           roomId={viewingRoomId}
           apiFetch={apiFetch}
           onClose={() => setViewingRoomId(null)}
+          onApprove={(id, title) => {
+            handleApprove(id, title);
+            setViewingRoomId(null);
+          }}
+          onReject={(id, title) => {
+            handleReject(id, title);
+            setViewingRoomId(null);
+          }}
         />
       )}
     </div>

@@ -7,6 +7,7 @@ import {
 	verifyEmailSchema,
 	forgotPasswordSchema,
 	resetPasswordSchema,
+	resendVerificationSchema,
 } from './dto/requests/auth.request.js';
 import { changePasswordSchema } from './dto/requests/change-password.request.js';
 import { validateRequestMiddleware } from '../../common/middleware/index.js';
@@ -52,6 +53,12 @@ router.post(
 	'/reset-password',
 	validateRequestMiddleware(resetPasswordSchema),
 	authController.resetPassword,
+);
+
+router.post(
+	'/resend-verification',
+	validateRequestMiddleware(resendVerificationSchema),
+	authController.resendVerification,
 );
 
 // --- GOOGLE OAUTH ---

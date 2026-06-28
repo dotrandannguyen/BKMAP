@@ -180,18 +180,34 @@ export default function AllListingsView() {
             <button
               onClick={() => setIsFilterOpen(true)}
               className={`px-4 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors cursor-pointer border ${
-                streetFilter || priceRange !== 'all' || distanceRange !== 'all'
+                streetFilter || priceRange !== 'all'
                   ? 'bg-primary text-white border-primary font-medium shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">filter_alt</span>
               <span>Bộ lọc</span>
-              {(streetFilter || priceRange !== 'all' || distanceRange !== 'all') && (
+              {(streetFilter || priceRange !== 'all') && (
                 <span className="bg-white text-primary text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   !
                 </span>
               )}
+            </button>
+
+            {/* Gần Bách khoa Button */}
+            <button
+              onClick={() => {
+                setSortType(prev => prev === 'distance' ? 'newest' : 'distance');
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-1.5 rounded-lg flex items-center gap-1.5 text-xs transition-colors cursor-pointer border ${
+                sortType === 'distance'
+                  ? 'bg-primary text-white border-primary font-medium shadow-sm'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">near_me</span>
+              <span>Gần Bách khoa</span>
             </button>
           </div>
           
@@ -475,37 +491,7 @@ export default function AllListingsView() {
                 </div>
               </div>
 
-              {/* Distance Filter */}
-              <div>
-                <h4 className="text-[11px] font-extrabold text-slate-500 mb-2.5 uppercase tracking-wide">Khoảng cách tới Bách Khoa</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'all', label: 'Tất cả khoảng cách' },
-                    { id: 'under2', label: 'Dưới 2 km' },
-                    { id: '2-4', label: 'Từ 2 - 4 km' },
-                    { id: '4-6', label: 'Từ 4 - 6 km' },
-                    { id: 'over6', label: 'Trên 6 km' },
-                  ].map((range) => {
-                    const isSelected = distanceRange === range.id;
-                    return (
-                      <button
-                        key={range.id}
-                        type="button"
-                        onClick={() => { setDistanceRange(range.id); setCurrentPage(1); }}
-                        className={`px-3 py-2 rounded-xl text-[11px] font-bold border transition-all cursor-pointer text-center select-none ${
-                          range.id === 'all' ? 'col-span-2 py-2.5' : ''
-                        } ${
-                          isSelected
-                            ? 'bg-primary/10 border-primary text-primary shadow-xs'
-                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                        }`}
-                      >
-                        {range.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+
 
               <div className="flex gap-3 pt-4 border-t border-slate-100">
                 <button

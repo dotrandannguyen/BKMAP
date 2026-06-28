@@ -118,7 +118,14 @@ export const roomRepository = {
 
 		// Mặc định chỉ lấy bài đã duyệt, trừ khi có filter cụ thể (cho Admin)
 		if (filters.approvalStatus) {
-			where.approvalStatus = filters.approvalStatus;
+			if (filters.approvalStatus === 'PENDING_APPROVAL') {
+				where.OR = [
+					{ approvalStatus: 'PENDING_APPROVAL' },
+					{ revision: { isNot: null } }
+				];
+			} else {
+				where.approvalStatus = filters.approvalStatus;
+			}
 		} else {
 			where.approvalStatus = 'APPROVED';
 		}
@@ -179,6 +186,7 @@ export const roomRepository = {
 				images: { orderBy: { displayOrder: 'asc' } },
 				features: { include: { feature: true } },
 				creator: { select: { id: true, userName: true, email: true, avatar: true } },
+				revision: true,
 			},
 		});
 
@@ -277,15 +285,16 @@ export const roomRepository = {
 
 			// Đồng bộ ảnh (nếu có gửi lên trong payload sửa)
 			// Tránh việc admin duyệt lại mà bị mất ảnh hoặc không cập nhật ảnh mới
-			if (data.images && Array.isArray(data.images)) {
+			const targetImages = data.imageUrls || data.images;
+			if (targetImages && Array.isArray(targetImages)) {
 				// 1. Xóa ảnh cũ
 				await tx.roomImage.deleteMany({
 					where: { roomId: id },
 				});
 				
 				// 2. Thêm ảnh mới
-				if (data.images.length > 0) {
-					const imageRecords = data.images.map((url, index) => ({
+				if (targetImages.length > 0) {
+					const imageRecords = targetImages.map((url, index) => ({
 						roomId: id,
 						imageUrl: url,
 						displayOrder: index,

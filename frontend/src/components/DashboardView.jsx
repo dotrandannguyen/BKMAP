@@ -39,7 +39,11 @@ export default function DashboardView() {
   // Fetch danh sách phòng của chính mình (kể cả PENDING, REJECTED)
   const fetchMyListings = async () => {
     const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    if (!token) {
+      setMyListings([]);
+      setLoadingListings(false);
+      return;
+    }
     setLoadingListings(true);
     try {
       const res = await fetch(`${getApiUrl()}/rooms?mine=true&limit=100`, {
@@ -165,7 +169,21 @@ export default function DashboardView() {
 
       {/* Table */}
       <div className="bg-white rounded-[2.25rem] border border-slate-200/60 overflow-hidden shadow-xs">
-        {loadingListings ? (
+        {!userEmail ? (
+          <div className="py-20 px-6 text-center space-y-4">
+            <span className="material-symbols-outlined text-5xl text-slate-300">lock</span>
+            <h3 className="text-base font-bold text-on-surface-variant">Vui lòng đăng nhập để quản lý tin đăng</h3>
+            <p className="text-xs text-outline max-w-sm mx-auto leading-relaxed">
+              Bạn cần đăng nhập tài khoản để có thể xem danh sách, chỉnh sửa hoặc đăng tin phòng trọ mới của mình.
+            </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="bg-primary hover:bg-indigo-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm shadow-primary/10"
+            >
+              Đăng nhập ngay
+            </button>
+          </div>
+        ) : loadingListings ? (
           <div className="py-20 text-center">
             <span className="material-symbols-outlined text-4xl text-slate-300 animate-spin">progress_activity</span>
             <p className="text-sm text-on-surface-variant mt-3">Đang tải danh sách phòng...</p>

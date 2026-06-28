@@ -1,16 +1,36 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { z } from 'zod';
+import { toast } from 'react-toastify';
 import { useAuthStore } from '../stores/authStore';
 import { Mail, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
 import './Auth.css';
 
+const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Vui lòng nhập email')
+    .email('Email không đúng định dạng (ví dụ: ten@gmail.com)'),
+});
+
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
+  const [validationError, setValidationError] = useState('');
   const { forgotPassword, loading, error, message } = useAuthStore();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    forgotPassword(email);
+    setValidationError('');
+
+    const result = forgotPasswordSchema.safeParse({ email: email.trim() });
+    if (!result.success) {
+      const msg = result.error.errors[0].message;
+      setValidationError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    forgotPassword(result.data.email);
   };
 
   return (
@@ -46,14 +66,19 @@ const ForgotPasswordPage = () => {
             <div className="input-wrapper">
               <Mail className="input-icon" size={18} />
               <input
-                type="email"
+                type="text"
                 id="email"
                 placeholder="Nhập email của bạn"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setValidationError(''); }}
                 required
               />
             </div>
+            {validationError && (
+              <span className="field-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+                {validationError}
+              </span>
+            )}
           </div>
           <button type="submit" className="auth-btn primary-btn" disabled={loading}>
             {loading ? 'Đang gửi...' : 'Gửi yêu cầu'}

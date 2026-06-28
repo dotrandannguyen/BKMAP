@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from 'react-toastify';
 import { useUiStore } from './uiStore.js';
 
 const getApiUrl = () => {
@@ -56,6 +57,7 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem('userAvatar');
     localStorage.removeItem('userRole');
     localStorage.removeItem('favoriteRoomIds');
+    localStorage.removeItem('isGoogleLogin');
     set({
       isLoggedIn: false,
       userEmail: '',
@@ -91,6 +93,7 @@ export const useAuthStore = create((set) => ({
       set({ loading: false, message: data.message || data.data?.message });
     } catch (error) {
       set({ loading: false, error: error.message });
+      toast.error(error.message);
     }
   },
 

@@ -32,7 +32,9 @@ export const authMiddleware = async (req, res, next) => {
 
 		next();
 	} catch (error) {
-		if (error.name === 'TokenExpiredError') {
+		if (error.status) {
+			next(error);
+		} else if (error.name === 'TokenExpiredError') {
 			next(new UnauthorizedException('Access token expired'));
 		} else {
 			next(new UnauthorizedException('Invalid access token'));

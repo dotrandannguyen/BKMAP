@@ -131,14 +131,13 @@ export default function CreateListingView() {
 
   useEffect(() => {
     return () => {
-      setEditingListing(null);
       imageUrlsRef.current.forEach(url => {
         if (url.startsWith('blob:')) {
           URL.revokeObjectURL(url);
         }
       });
     };
-  }, [setEditingListing]);
+  }, []);
   const [selectedFiles, setSelectedFiles] = useState([]); // Track File objects for backend upload
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
@@ -486,10 +485,27 @@ export default function CreateListingView() {
   const processFiles = async (files) => {
     if (!files || files.length === 0) return;
 
-    let allowedFiles = files;
-    if (selectedFiles.length + files.length > 10) {
+    // Check and filter out HEIC/HEIF files
+    const heicFiles = files.filter(file => {
+      const name = file.name ? file.name.toLowerCase() : '';
+      return name.endsWith('.heic') || name.endsWith('.heif') || file.type === 'image/heic' || file.type === 'image/heif';
+    });
+
+    if (heicFiles.length > 0) {
+      toast.error('Hệ thống hiện tại chưa hỗ trợ định dạng ảnh HEIC/HEIF (từ iPhone). Vui lòng chuyển đổi sang định dạng JPG, PNG hoặc WebP trước khi tải lên.');
+    }
+
+    const nonHeicFiles = files.filter(file => {
+      const name = file.name ? file.name.toLowerCase() : '';
+      return !(name.endsWith('.heic') || name.endsWith('.heif') || file.type === 'image/heic' || file.type === 'image/heif');
+    });
+
+    if (nonHeicFiles.length === 0) return;
+
+    let allowedFiles = nonHeicFiles;
+    if (selectedFiles.length + nonHeicFiles.length > 10) {
       toast.warning('Chỉ được phép tải lên tối đa 10 ảnh. Các ảnh thừa sẽ bị bỏ qua.');
-      allowedFiles = files.slice(0, 10 - selectedFiles.length);
+      allowedFiles = nonHeicFiles.slice(0, 10 - selectedFiles.length);
     }
 
     if (allowedFiles.length === 0) return;
@@ -541,6 +557,57 @@ export default function CreateListingView() {
     if (!isUploading && e.dataTransfer.files) {
       processFiles(Array.from(e.dataTransfer.files));
     }
+  };
+
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
+  const handleImageDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index);
+  };
+
+  const handleImageDragOver = (e, index) => {
+    e.preventDefault();
+  };
+
+  const handleImageDrop = (e, targetIndex) => {
+    e.preventDefault();
+    const sourceIndex = draggedIndex !== null ? draggedIndex : Number(e.dataTransfer.getData('text/plain'));
+    if (sourceIndex === targetIndex || sourceIndex === null || isNaN(sourceIndex)) return;
+
+    const newImageUrls = [...imageUrls];
+    const [movedUrl] = newImageUrls.splice(sourceIndex, 1);
+    newImageUrls.splice(targetIndex, 0, movedUrl);
+    setImageUrls(newImageUrls);
+
+    const newSelectedFiles = [];
+    newImageUrls.forEach(url => {
+      const fileObj = selectedFiles.find(f => f.previewUrl === url);
+      if (fileObj) {
+        newSelectedFiles.push(fileObj);
+      }
+    });
+    setSelectedFiles(newSelectedFiles);
+    setDraggedIndex(null);
+  };
+
+  const handleSetCoverImage = (index) => {
+    if (index === 0) return;
+    const newImageUrls = [...imageUrls];
+    const [movedUrl] = newImageUrls.splice(index, 1);
+    newImageUrls.unshift(movedUrl);
+    setImageUrls(newImageUrls);
+
+    const newSelectedFiles = [];
+    newImageUrls.forEach(url => {
+      const fileObj = selectedFiles.find(f => f.previewUrl === url);
+      if (fileObj) {
+        newSelectedFiles.push(fileObj);
+      }
+    });
+    setSelectedFiles(newSelectedFiles);
+    toast.success('Đã chọn ảnh làm ảnh bìa!');
   };
 
   const handleRemoveImage = (indexToRemove) => {
@@ -759,14 +826,18 @@ export default function CreateListingView() {
       }
       
       setIsSuccess(true);
+      setEditingListing(null);
 
       if (isEditing) {
-        // Thông báo rõ ràng: bài đăng đang chờ Admin duyệt và tạm thời ẩn
-        toast.info('✏️ Yêu cầu chỉnh sửa đã được gửi! Bài đăng sẽ được ẩn cho đến khi Admin xem xét và phê duyệt.', {
-          autoClose: 5000,
-        });
+        if (userRole === 'ADMIN') {
+          toast.success('Cập nhật thông tin phòng thành công!');
+        } else {
+          toast.info('✏️ Yêu cầu chỉnh sửa đã được gửi! Bài đăng của bạn vẫn hiển thị công khai với thông tin cũ trong lúc chờ Admin phê duyệt các thay đổi mới.', {
+            autoClose: 6000,
+          });
+        }
       } else {
-        toast.success('🎉 Đăng ký thành công! Bài đăng đang chờ Admin phê duyệt.');
+        toast.success('Đăng ký thành công! Bài đăng đang chờ Admin phê duyệt.');
       }
 
       setTimeout(() => {
@@ -775,7 +846,7 @@ export default function CreateListingView() {
       
       
     } catch (error) {
-      toast.error(`❌ Đã xảy ra lỗi: ${error.message}`);
+      toast.error(`Đã xảy ra lỗi: ${error.message}`);
       console.error(error);
     } finally {
       setIsUploading(false);
@@ -798,6 +869,7 @@ export default function CreateListingView() {
             setNextUrl(targetUrl);
             setIsConfirmModalOpen(true);
           } else {
+            setEditingListing(null);
             navigate(targetUrl);
           }
         }}
@@ -1244,18 +1316,73 @@ export default function CreateListingView() {
                 </div>
 
                 {imageUrls.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {imageUrls.map((url, index) => (
-                      <div key={index} className="rounded-xl overflow-hidden border border-slate-200 h-24 relative group">
-                        <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  <div>
+                    <p className="text-xs text-slate-500 font-semibold mb-3 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">info</span>
+                      Mẹo: Kéo thả các ảnh để thay đổi thứ tự hiển thị. Ảnh đầu tiên (#1) sẽ là ảnh bìa của tin đăng.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {imageUrls.map((url, index) => (
+                        <div
+                          key={index}
+                          draggable
+                          onDragStart={(e) => handleImageDragStart(e, index)}
+                          onDragOver={(e) => handleImageDragOver(e, index)}
+                          onDrop={(e) => handleImageDrop(e, index)}
+                          onDragEnd={() => setDraggedIndex(null)}
+                          className={`rounded-xl overflow-hidden border-2 relative group h-28 cursor-grab active:cursor-grabbing transition-all duration-200 select-none ${
+                            draggedIndex === index 
+                              ? 'border-dashed border-primary bg-primary/5 opacity-50 scale-95 shadow-inner' 
+                              : 'border-slate-200 hover:border-primary/50 shadow-sm hover:shadow-md'
+                          }`}
                         >
-                          <span className="material-symbols-outlined text-[10px]">close</span>
-                        </button>
-                      </div>
-                    ))}
+                          <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover pointer-events-none" />
+                          
+                          {/* Cover Image Badge / Action */}
+                          {index === 0 ? (
+                            <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm select-none">
+                              <span className="material-symbols-outlined text-[12px] font-bold">star</span>
+                              Ảnh bìa
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetCoverImage(index);
+                              }}
+                              className="absolute top-2 left-2 bg-white/90 hover:bg-primary hover:text-white text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[12px]">star_border</span>
+                              Đặt làm ảnh bìa
+                            </button>
+                          )}
+                          
+                          {/* Drag handle visual overlay on hover */}
+                          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white text-2xl drop-shadow-md">drag_indicator</span>
+                          </div>
+
+                          {/* Delete Button */}
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(index);
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20"
+                            title="Xóa ảnh này"
+                          >
+                            <span className="material-symbols-outlined text-[14px] font-bold">close</span>
+                          </button>
+
+                          {/* Index indicator */}
+                          <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow-sm select-none">
+                            #{index + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {validationErrors.imagesCount && (
@@ -1415,6 +1542,7 @@ export default function CreateListingView() {
               <button
                 onClick={() => {
                   setIsSuccess(true); 
+                  setEditingListing(null);
                   setIsConfirmModalOpen(false);
                   navigate(nextUrl || '/dashboard');
                 }}

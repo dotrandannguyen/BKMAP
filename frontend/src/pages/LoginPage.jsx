@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import './Auth.css';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
@@ -38,7 +39,11 @@ const LoginPage = () => {
         const googleError = params.get('error');
 
         if (googleError) {
-            setError('Đăng nhập Google thất bại. Vui lòng thử lại.');
+            const friendlyError = (googleError === 'google_denied' || googleError === 'google_auth_failed')
+                ? 'Đăng nhập Google thất bại. Vui lòng thử lại.'
+                : googleError;
+            setError(friendlyError);
+            toast.error(friendlyError);
             window.history.replaceState({}, '', '/login');
             return;
         }
@@ -52,6 +57,7 @@ const LoginPage = () => {
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userName', name);
             localStorage.setItem('userAvatar', avatar);
+            localStorage.setItem('isGoogleLogin', 'true');
 
             login(email, name, avatar);
             window.history.replaceState({}, '', '/login');
@@ -89,6 +95,7 @@ const LoginPage = () => {
                 localStorage.setItem('userEmail', userData.email);
                 localStorage.setItem('userName', userData.userName || userData.email.split('@')[0]);
                 localStorage.setItem('userAvatar', userData.avatar || '');
+                localStorage.setItem('isGoogleLogin', 'false');
 
                 let role = 'USER';
                 try {
@@ -105,11 +112,13 @@ const LoginPage = () => {
                     navigate('/profile');
                 }
             } else {
+                localStorage.setItem('isGoogleLogin', 'false');
                 login(userData.email, userData.userName || userData.email.split('@')[0], userData.avatar || '');
                 navigate('/profile');
             }
         } catch (err) {
             setError(err.message);
+            toast.error(err.message);
         } finally {
             setIsLoading(false);
         }

@@ -228,7 +228,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                                 disabled={isVerifying}
                                 className="ml-8 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-1.5 px-3 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer transition-colors active:scale-95 disabled:opacity-50"
                             >
-                                {isVerifying ? 'Đang kích hoạt...' : '⚡ Kích hoạt tài khoản Dev nhanh'}
+                                {isVerifying ? 'Đang kích hoạt...' : 'Kích hoạt tài khoản Dev nhanh'}
                             </button>
                         )}
                     </div>

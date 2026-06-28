@@ -45,7 +45,7 @@ export const authController = {
 		const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 		const loginUrl = `${frontendUrl}/login`;
 
-		const renderPage = (isSuccess, message) => {
+		const renderPage = (isSuccess, message, hasExpiredToken = false) => {
 			const primaryColor = '#004ac6';
 			const successColor = '#10b981';
 			const errorColor = '#ef4444';
@@ -65,7 +65,7 @@ export const authController = {
 						</svg>
 				   </div>`;
 
-			const title = isSuccess ? 'Xác thực tài khoản thành công! 🎉' : 'Xác thực thất bại ⚠️';
+			const title = isSuccess ? 'Xác thực tài khoản thành công!' : 'Xác thực thất bại';
 			const buttonText = 'Đăng nhập ngay';
 
 			return `
@@ -226,6 +226,8 @@ export const authController = {
 							border-radius: 12px;
 							transition: all 0.25s ease;
 							cursor: pointer;
+							border: none;
+							outline: none;
 						}
 						
 						.btn-primary {
@@ -243,6 +245,20 @@ export const authController = {
 						.btn-primary:active {
 							transform: translateY(0);
 						}
+
+						.btn-secondary {
+							background: rgba(11, 28, 48, 0.05);
+							color: #0b1c30;
+						}
+						
+						.btn-secondary:hover {
+							background: rgba(11, 28, 48, 0.1);
+							transform: translateY(-2px);
+						}
+
+						.btn-secondary:active {
+							transform: translateY(0);
+						}
 						
 						.footer {
 							margin-top: 24px;
@@ -256,11 +272,71 @@ export const authController = {
 						${iconHtml}
 						<h1>${title}</h1>
 						<p>${message}</p>
-						<a href="${loginUrl}" class="btn btn-primary">${buttonText}</a>
+						
+						${hasExpiredToken 
+							? `<button id="btn-resend" class="btn btn-primary" style="margin-bottom: 12px;">Gửi lại email xác thực</button>
+							   <a href="${loginUrl}" class="btn btn-secondary">Quay lại đăng nhập</a>`
+							: `<a href="${loginUrl}" class="btn btn-primary">${buttonText}</a>`
+						}
+
 						<div class="footer">
 							&copy; ${new Date().getFullYear()} BK'S MAP. All rights reserved.
 						</div>
 					</div>
+
+					${hasExpiredToken ? `
+					<script>
+						const btnResend = document.getElementById('btn-resend');
+						if (btnResend) {
+							btnResend.addEventListener('click', async () => {
+								const urlParams = new URLSearchParams(window.location.search);
+								const token = urlParams.get('token');
+								if (!token) {
+									alert('Không tìm thấy mã token hợp lệ để gửi lại.');
+									return;
+								}
+								
+								btnResend.disabled = true;
+								btnResend.innerText = 'Đang gửi lại...';
+								
+								try {
+									const response = await fetch('/api/auth/resend-verification', {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/json'
+										},
+										body: JSON.stringify({ token })
+									});
+									
+									const result = await response.json();
+									if (response.ok) {
+										const container = document.querySelector('.container');
+										container.innerHTML = \`
+											<div class="icon-wrapper success">
+												<svg viewBox="0 0 52 52" class="checkmark">
+													<circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+													<path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+												</svg>
+											</div>
+											<h1>Gửi lại thành công! ✉️</h1>
+											<p>Hệ thống đã gửi một email xác thực mới đến hòm thư của bạn. Vui lòng kiểm tra lại hộp thư chính hoặc thư rác.</p>
+											<a href="${loginUrl}" class="btn btn-secondary" style="width: 100%;">Quay lại đăng nhập</a>
+										\`;
+									} else {
+										alert(result.message || 'Gửi lại email thất bại. Vui lòng đăng ký lại tài khoản.');
+										btnResend.disabled = false;
+										btnResend.innerText = 'Gửi lại email xác thực';
+									}
+								} catch (err) {
+									console.error(err);
+									alert('Lỗi mạng. Vui lòng kiểm tra lại kết nối của bạn.');
+									btnResend.disabled = false;
+									btnResend.innerText = 'Gửi lại email xác thực';
+								}
+							});
+						}
+					</script>
+					` : ''}
 				</body>
 				</html>
 			`;
@@ -274,8 +350,9 @@ export const authController = {
 			await authService.verifyEmail({ token });
 			return res.send(renderPage(true, 'Kích hoạt tài khoản thành công! Bây giờ bạn đã có thể bắt đầu khám phá và đăng tin phòng trọ.'));
 		} catch (error) {
-			const safeMessage = error.message === 'Token Expired.' ? 'Link xác thực của bạn đã hết hạn. Vui lòng gửi lại yêu cầu kích hoạt.' : 'Token xác thực không hợp lệ hoặc đã được sử dụng.';
-			return res.status(400).send(renderPage(false, safeMessage));
+			const isExpired = error.message === 'Token Expired.';
+			const safeMessage = isExpired ? 'Đường link kích hoạt tài khoản của bạn đã hết hạn. Bạn có thể yêu cầu gửi lại email mới bên dưới.' : 'Token xác thực không hợp lệ hoặc đã được sử dụng.';
+			return res.status(400).send(renderPage(false, safeMessage, isExpired));
 		}
 	},
 
@@ -356,7 +433,8 @@ export const authController = {
 		} catch (error) {
 			console.error('[Google OAuth] Callback error:', error.message);
 			const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-			return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+			const errorMsg = error.message || 'google_auth_failed';
+			return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(errorMsg)}`);
 		}
 	},
 
@@ -383,6 +461,15 @@ export const authController = {
 	async resetPassword(req, res, next) {
 		try {
 			const data = await authService.resetPassword(req.body);
+			return new HttpResponse(res).success(data);
+		} catch (error) {
+			next(error);
+		}
+	},
+
+	async resendVerification(req, res, next) {
+		try {
+			const data = await authService.resendVerification(req.body);
 			return new HttpResponse(res).success(data);
 		} catch (error) {
 			next(error);
