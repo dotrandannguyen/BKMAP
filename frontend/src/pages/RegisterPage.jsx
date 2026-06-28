@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 import './Auth.css';
 import { Mail, Lock, User, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -12,6 +13,20 @@ const GoogleIcon = () => (
     </svg>
 );
 
+const registerSchema = z.object({
+    name: z.string()
+        .min(2, 'Họ và tên phải có ít nhất 2 ký tự')
+        .max(100, 'Họ và tên không được vượt quá 100 ký tự')
+        .refine(val => val.trim().length > 0, 'Họ và tên không được để trống'),
+    email: z.string()
+        .min(1, 'Email không được để trống')
+        .email('Định dạng email không hợp lệ')
+        .trim(),
+    password: z.string()
+        .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+        .max(50, 'Mật khẩu không được vượt quá 50 ký tự'),
+});
+
 const RegisterPage = ({ onRegisterSuccess }) => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
@@ -19,6 +34,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
         email: '',
         password: '',
     });
+    const [validationErrors, setValidationErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -26,8 +42,25 @@ const RegisterPage = ({ onRegisterSuccess }) => {
     const [verifyToken, setVerifyToken] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
 
+    const validateSingleField = (name, value) => {
+        const fieldSchema = registerSchema.pick({ [name]: true });
+        const result = fieldSchema.safeParse({ [name]: value });
+        if (!result.success) {
+            const msg = result.error.issues[0]?.message || 'Không hợp lệ';
+            setValidationErrors(prev => ({ ...prev, [name]: msg }));
+        } else {
+            setValidationErrors(prev => {
+                const copy = { ...prev };
+                delete copy[name];
+                return copy;
+            });
+        }
+    };
+
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        validateSingleField(name, value);
     };
 
     const handleAutoVerify = async () => {
@@ -66,6 +99,25 @@ const RegisterPage = ({ onRegisterSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Full form validation with Zod
+        const validationResult = registerSchema.safeParse(formData);
+        if (!validationResult.success) {
+            const errorsMap = {};
+            validationResult.error.issues.forEach(issue => {
+                const path = issue.path[0];
+                if (path) {
+                    errorsMap[path] = issue.message;
+                }
+            });
+            setValidationErrors(errorsMap);
+            
+            // Set the first error to the main error block
+            const firstMsg = validationResult.error.issues[0]?.message || 'Thông tin đăng ký không hợp lệ.';
+            setError(firstMsg);
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         setSuccessMsg('');
@@ -184,9 +236,9 @@ const RegisterPage = ({ onRegisterSuccess }) => {
 
                 <form className="auth-form" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="name">Họ và Tên</label>
+                        <label htmlFor="name" style={{ color: validationErrors.name ? '#ef4444' : '' }}>Họ và Tên</label>
                         <div className="input-wrapper">
-                            <User className="input-icon" size={18} />
+                            <User className="input-icon" size={18} style={{ color: validationErrors.name ? '#ef4444' : '' }} />
                             <input
                                 id="name"
                                 name="name"
@@ -195,14 +247,23 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                                 placeholder="Nhập họ và tên đầy đủ..."
                                 value={formData.name}
                                 onChange={handleChange}
+                                style={{
+                                    borderColor: validationErrors.name ? '#ef4444' : '',
+                                    boxShadow: validationErrors.name ? '0 0 0 1px #fca5a5' : '',
+                                }}
                             />
                         </div>
+                        {validationErrors.name && (
+                            <span className="text-[11px] text-red-500 font-semibold mt-1 block animate-fade-in">
+                                {validationErrors.name}
+                            </span>
+                        )}
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="email">Email sinh viên / Chủ nhà</label>
+                        <label htmlFor="email" style={{ color: validationErrors.email ? '#ef4444' : '' }}>Email sinh viên / Chủ nhà</label>
                         <div className="input-wrapper">
-                            <Mail className="input-icon" size={18} />
+                            <Mail className="input-icon" size={18} style={{ color: validationErrors.email ? '#ef4444' : '' }} />
                             <input
                                 id="email"
                                 name="email"
@@ -211,14 +272,23 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                                 placeholder="Nhập địa chỉ email của bạn..."
                                 value={formData.email}
                                 onChange={handleChange}
+                                style={{
+                                    borderColor: validationErrors.email ? '#ef4444' : '',
+                                    boxShadow: validationErrors.email ? '0 0 0 1px #fca5a5' : '',
+                                }}
                             />
                         </div>
+                        {validationErrors.email && (
+                            <span className="text-[11px] text-red-500 font-semibold mt-1 block animate-fade-in">
+                                {validationErrors.email}
+                            </span>
+                        )}
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="password">Mật khẩu</label>
+                        <label htmlFor="password" style={{ color: validationErrors.password ? '#ef4444' : '' }}>Mật khẩu</label>
                         <div className="input-wrapper">
-                            <Lock className="input-icon" size={18} />
+                            <Lock className="input-icon" size={18} style={{ color: validationErrors.password ? '#ef4444' : '' }} />
                             <input
                                 id="password"
                                 name="password"
@@ -227,6 +297,10 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                                 placeholder="Tạo mật khẩu mạnh..."
                                 value={formData.password}
                                 onChange={handleChange}
+                                style={{
+                                    borderColor: validationErrors.password ? '#ef4444' : '',
+                                    boxShadow: validationErrors.password ? '0 0 0 1px #fca5a5' : '',
+                                }}
                             />
                             <button
                                 type="button"
@@ -237,6 +311,11 @@ const RegisterPage = ({ onRegisterSuccess }) => {
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
+                        {validationErrors.password && (
+                            <span className="text-[11px] text-red-500 font-semibold mt-1 block animate-fade-in">
+                                {validationErrors.password}
+                            </span>
+                        )}
 
                         {formData.password && (
                             <div className="password-strength">
