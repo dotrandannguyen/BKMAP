@@ -1,14 +1,28 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { z } from 'zod';
+import { toast } from 'react-toastify';
 import { useAuthStore } from '../stores/authStore';
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import './Auth.css';
+
+const resetPasswordSchema = z.object({
+  password: z
+    .string()
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+  confirmPassword: z
+    .string()
+    .min(1, 'Vui lòng xác nhận mật khẩu'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Mật khẩu xác nhận không khớp.',
+  path: ['confirmPassword'],
+});
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [validationError, setValidationError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
   
   const { resetPassword, loading, error, message } = useAuthStore();
   const navigate = useNavigate();
@@ -36,15 +50,16 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setValidationError('');
+    setValidationErrors({});
 
-    if (password !== confirmPassword) {
-      setValidationError('Mật khẩu xác nhận không khớp.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setValidationError('Mật khẩu phải có ít nhất 6 ký tự.');
+    const result = resetPasswordSchema.safeParse({ password, confirmPassword });
+    if (!result.success) {
+      const fieldErrors = {};
+      result.error.errors.forEach((err) => {
+        fieldErrors[err.path[0]] = err.message;
+      });
+      setValidationErrors(fieldErrors);
+      toast.error(result.error.errors[0].message);
       return;
     }
 
@@ -56,7 +71,8 @@ const ResetPasswordPage = () => {
         }, 3000);
       });
     } else {
-      setValidationError('Không tìm thấy mã xác thực (token). Vui lòng kiểm tra lại liên kết từ email.');
+      toast.error('Không tìm thấy mã xác thực (token). Vui lòng kiểm tra lại liên kết từ email.');
+      setValidationErrors({ token: 'Không tìm thấy mã xác thực (token).' });
     }
   };
 
@@ -75,10 +91,10 @@ const ResetPasswordPage = () => {
         </div>
 
         {/* Error Messages */}
-        {(error || validationError) && (
+        {error && (
           <div className="error-message mb-5">
             <AlertCircle size={20} />
-            <span>{error || validationError}</span>
+            <span>{error}</span>
           </div>
         )}
 
@@ -107,7 +123,7 @@ const ResetPasswordPage = () => {
                 id="password"
                 placeholder="Nhập mật khẩu mới"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setValidationErrors((prev) => ({ ...prev, password: '' })); }}
                 required
                 disabled={!token || !!message}
               />
@@ -138,6 +154,11 @@ const ResetPasswordPage = () => {
                 </span>
               </div>
             )}
+            {validationErrors.password && (
+              <span className="field-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+                {validationErrors.password}
+              </span>
+            )}
           </div>
 
           <div className="form-group">
@@ -149,11 +170,16 @@ const ResetPasswordPage = () => {
                 id="confirm-password"
                 placeholder="Xác nhận lại mật khẩu"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => { setConfirmPassword(e.target.value); setValidationErrors((prev) => ({ ...prev, confirmPassword: '' })); }}
                 required
                 disabled={!token || !!message}
               />
             </div>
+            {validationErrors.confirmPassword && (
+              <span className="field-error" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+                {validationErrors.confirmPassword}
+              </span>
+            )}
           </div>
 
           <button 

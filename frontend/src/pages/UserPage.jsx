@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { useAuthStore } from '../stores/authStore';
 import { useListingStore } from '../stores/listingStore';
 import { useUiStore } from '../stores/uiStore';
@@ -20,7 +21,7 @@ const UserPage = () => {
   const navigate = useNavigate();
   const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar, changePassword: changePasswordAction } = useAuthStore();
   const { listings, selectListing } = useListingStore();
-  const { savedIds, favoriteRooms, toggleSaved } = useUiStore();
+  const { savedIds, favoriteRooms, toggleSaved, loadSavedIds } = useUiStore();
 
   const userDisplayName = userName || userEmail.split('@')[0];
   const savedListings = isLoggedIn
@@ -28,6 +29,12 @@ const UserPage = () => {
     : listings.filter(l => savedIds.includes(l.id));
 
   const [sortBy, setSortBy] = React.useState('newest');
+
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      loadSavedIds();
+    }
+  }, [isLoggedIn, loadSavedIds]);
 
   // State for Change Password Modal
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -180,7 +187,14 @@ const UserPage = () => {
         {/* Bottom nav */}
         {isLoggedIn ? (
           <div className="mt-auto p-3 border-t border-slate-100 space-y-1">
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => setIsModalOpen(true)}>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => {
+              const isGoogleLogin = localStorage.getItem('isGoogleLogin') === 'true';
+              if (isGoogleLogin) {
+                toast.warning('Tài khoản của bạn đăng nhập bằng Google, do đó không thể đổi mật khẩu trên hệ thống này.');
+              } else {
+                setIsModalOpen(true);
+              }
+            }}>
               <Lock size={18} />
               <span className="text-sm font-semibold">Đổi mật khẩu</span>
             </div>

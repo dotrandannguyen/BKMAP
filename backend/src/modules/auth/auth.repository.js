@@ -117,4 +117,14 @@ export const authRepository = {
 			},
 		});
 	},
+
+	async updateVerifyToken(userId, token, expires) {
+		return await prisma.user.update({
+			where: { id: userId },
+			data: {
+				verifyToken: token,
+				tokenExpires: expires,
+			},
+		});
+	},
 };

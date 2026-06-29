@@ -5,9 +5,10 @@ import { favoriteRepository } from './favorite.repository.js';
 export const favoriteService = {
 	async getFavorites(userId) {
 		const favorites = await favoriteRepository.findByUserId(userId);
+		const validFavorites = favorites.filter((favorite) => favorite.room !== null);
 		return {
-			ids: favorites.map((favorite) => favorite.roomId),
-			rooms: favorites.map((favorite) => favorite.room),
+			ids: validFavorites.map((favorite) => favorite.roomId),
+			rooms: validFavorites.map((favorite) => favorite.room),
 		};
 	},
 

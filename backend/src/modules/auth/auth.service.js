@@ -66,7 +66,7 @@ export const authService = {
     const user = await authRepository.findUserByEmail(dto.email);
 
     if (!user) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng.');
+      throw new UnauthorizedException('Email chưa được đăng ký. Vui lòng đăng ký trước khi đăng nhập.');
     }
 
     // Guard: User đăng ký bằng Google không có password
@@ -86,9 +86,9 @@ export const authService = {
     }
 
     // NẾU MUỐN CHẶN LOGIN KHI CHƯA XÁC THỰC EMAIL THÌ MỞ ĐOẠN NÀY RA
-    // if (!user.isVerified) {
-    //   throw new UnauthorizedException('Tài khoản chưa được xác thực. Vui lòng kiểm tra email.');
-    // }
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Tài khoản chưa được xác thực. Vui lòng kiểm tra email.');
+    }
 
     // JWT payload
     const payload = {
@@ -293,6 +293,10 @@ export const authService = {
       throw new ClientException(404, 'Email không tồn tại trong hệ thống.');
     }
 
+    if (!user.passwordHash) {
+      throw new ClientException(400, 'Tài khoản này sử dụng đăng nhập Google. Vui lòng đăng nhập bằng Google thay vì đặt lại mật khẩu.');
+    }
+
     const resetToken = crypto.randomBytes(32).toString('hex');
     const passwordResetExpires = new Date();
     passwordResetExpires.setHours(passwordResetExpires.getHours() + 1); // 1 hour valid
@@ -334,6 +338,43 @@ export const authService = {
 
     return {
       message: 'Đặt lại mật khẩu thành công.',
+    };
+  },
+
+  // RESEND VERIFICATION EMAIL
+  async resendVerification(dto) {
+    const { email, token } = dto;
+    let user;
+
+    if (token) {
+      user = await authRepository.findUserByVerifyToken(token);
+    } else if (email) {
+      user = await authRepository.findUserByEmail(email);
+    }
+
+    if (!user) {
+      throw new ClientException(404, 'Tài khoản không tồn tại.');
+    }
+
+    if (user.isVerified) {
+      throw new ClientException(400, 'Tài khoản này đã được xác thực trước đó.');
+    }
+
+    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpires = new Date();
+    tokenExpires.setHours(tokenExpires.getHours() + 24);
+
+    await authRepository.updateVerifyToken(user.id, verifyToken, tokenExpires);
+
+    // Send email in background
+    sendVerificationEmail(user.email, verifyToken).catch(console.error);
+
+    const isDev = !process.env.SMTP_USER;
+
+    return {
+      email: user.email,
+      verifyToken: isDev ? verifyToken : undefined,
+      message: 'Email xác thực mới đã được gửi. Vui lòng kiểm tra hộp thư.',
     };
   },
 };

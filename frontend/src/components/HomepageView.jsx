@@ -5,7 +5,7 @@ import { useUiStore } from '../stores/uiStore';
 
 export default function HomepageView() {
   const navigate = useNavigate();
-  const { listings, totalRooms, selectListing, resetData, fetchRooms } = useListingStore();
+  const { listings, totalRooms, selectListing, resetData, fetchRooms, setEditingListing } = useListingStore();
   const { setSearchQuery, setPriceFilter, savedIds, toggleSaved, recentSearches, addSearchQuery } = useUiStore();
 
   React.useEffect(() => {
@@ -314,7 +314,7 @@ export default function HomepageView() {
                 Khôi phục trọ mẫu
               </button> */}
               <button
-                onClick={() => navigate('/create')}
+                onClick={() => { setEditingListing(null); navigate('/create'); }}
                 className="bg-white hover:bg-slate-100 text-slate-700 border px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 Đăng trọ mới
@@ -616,7 +616,7 @@ export default function HomepageView() {
             <h4 className="text-xs font-bold text-on-surface uppercase tracking-widest">Nền tảng</h4>
             <ul className="space-y-2 text-xs text-on-surface-variant">
               <li><button onClick={() => navigate('/map')} className="hover:text-primary transition-colors cursor-pointer text-left">Tìm phòng trọ</button></li>
-              <li><button onClick={() => navigate('/create')} className="hover:text-primary transition-colors cursor-pointer text-left">Đăng tin cho thuê</button></li>
+              <li><button onClick={() => { setEditingListing(null); navigate('/create'); }} className="hover:text-primary transition-colors cursor-pointer text-left">Đăng tin cho thuê</button></li>
               <li><button onClick={() => navigate('/dashboard')} className="hover:text-primary transition-colors cursor-pointer text-left">Xác thực nhà trọ</button></li>
             </ul>
           </div>
