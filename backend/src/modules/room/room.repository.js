@@ -116,63 +116,74 @@ export const roomRepository = {
 			},
 		};
 
-		// Mặc định chỉ lấy bài đã duyệt, trừ khi có filter cụ thể (cho Admin)
-		if (filters.approvalStatus) {
-			if (filters.approvalStatus === 'PENDING_APPROVAL') {
-				where.OR = [
-					{ approvalStatus: 'PENDING_APPROVAL' },
-					{ revision: { isNot: null } }
-				];
-			} else {
-				where.approvalStatus = filters.approvalStatus;
-			}
-		} else {
-			where.approvalStatus = 'APPROVED';
-		}
-
-		if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-			where.price = {};
-			if (filters.minPrice !== undefined) where.price.gte = filters.minPrice;
-			if (filters.maxPrice !== undefined) where.price.lte = filters.maxPrice;
-		}
-
-		if (filters.minArea !== undefined || filters.maxArea !== undefined) {
-			where.area = {};
-			if (filters.minArea !== undefined) where.area.gte = filters.minArea;
-			if (filters.maxArea !== undefined) where.area.lte = filters.maxArea;
-		}
-
-		if (filters.distanceToBk !== undefined) {
-			where.distanceToBk = { lte: filters.distanceToBk };
-		}
-
-		if (filters.status) {
-			where.status = filters.status;
-		}
-
-		if (filters.ward) {
-			where.ward = { contains: filters.ward, mode: 'insensitive' };
-		}
-
-		if (filters.ownerEmail) {
-			where.creator.email = filters.ownerEmail;
-		}
+		const andConditions = [];
 
 		if (filters.userId) {
 			// Cho phép người dùng xem bài của chính mình bất kể trạng thái duyệt
-			where.createdBy = filters.userId;
-			delete where.approvalStatus; 
+			andConditions.push({ createdBy: filters.userId });
+		} else {
+			// Mặc định chỉ lấy bài đã duyệt, trừ khi có filter cụ thể (cho Admin)
+			if (filters.approvalStatus) {
+				if (filters.approvalStatus === 'PENDING_APPROVAL') {
+					andConditions.push({
+						OR: [
+							{ approvalStatus: 'PENDING_APPROVAL' },
+							{ revision: { isNot: null } }
+						]
+					});
+				} else {
+					andConditions.push({ approvalStatus: filters.approvalStatus });
+				}
+			} else {
+				andConditions.push({ approvalStatus: 'APPROVED' });
+			}
+		}
+
+		if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+			const priceCond = {};
+			if (filters.minPrice !== undefined) priceCond.gte = filters.minPrice;
+			if (filters.maxPrice !== undefined) priceCond.lte = filters.maxPrice;
+			andConditions.push({ price: priceCond });
+		}
+
+		if (filters.minArea !== undefined || filters.maxArea !== undefined) {
+			const areaCond = {};
+			if (filters.minArea !== undefined) areaCond.gte = filters.minArea;
+			if (filters.maxArea !== undefined) areaCond.lte = filters.maxArea;
+			andConditions.push({ area: areaCond });
+		}
+
+		if (filters.distanceToBk !== undefined) {
+			andConditions.push({ distanceToBk: { lte: filters.distanceToBk } });
+		}
+
+		if (filters.status) {
+			andConditions.push({ status: filters.status });
+		}
+
+		if (filters.ward) {
+			andConditions.push({ ward: { contains: filters.ward, mode: 'insensitive' } });
+		}
+
+		if (filters.ownerEmail) {
+			andConditions.push({ creator: { email: filters.ownerEmail } });
 		}
 
 		if (filters.search) {
 			const searchPattern = filters.search.trim();
 			if (searchPattern) {
-				where.OR = [
-					{ title: { contains: searchPattern, mode: 'insensitive' } },
-					{ address: { contains: searchPattern, mode: 'insensitive' } },
-					{ description: { contains: searchPattern, mode: 'insensitive' } },
-				];
+				andConditions.push({
+					OR: [
+						{ title: { contains: searchPattern, mode: 'insensitive' } },
+						{ address: { contains: searchPattern, mode: 'insensitive' } },
+						{ description: { contains: searchPattern, mode: 'insensitive' } },
+					]
+				});
 			}
+		}
+
+		if (andConditions.length > 0) {
+			where.AND = andConditions;
 		}
 
 		const total = await prisma.room.count({ where });
