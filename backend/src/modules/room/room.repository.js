@@ -356,7 +356,20 @@ export const roomRepository = {
 	},
 
 	async deleteRoom(id) {
-		return await prisma.room.delete({ where: { id } });
+		return await prisma.$transaction(async (tx) => {
+			const roomImages = await tx.roomImage.findMany({ where: { roomId: id } });
+			const paths = roomImages.map((img) => img.storagePath).filter(Boolean);
+
+			const deletedRoom = await tx.room.delete({ where: { id } });
+
+			if (paths.length > 0) {
+				await tx.outboxFileDelete.createMany({
+					data: paths.map((path) => ({ storagePath: path, status: 'PENDING' })),
+				});
+			}
+
+			return deletedRoom;
+		});
 	},
 
 	async addImageToRoom(roomId, imageUrl, displayOrder, storagePath) {
@@ -374,7 +387,15 @@ export const roomRepository = {
 	},
 
 	async deleteImageById(imageId) {
-		return await prisma.roomImage.delete({ where: { id: imageId } });
+		return await prisma.$transaction(async (tx) => {
+			const image = await tx.roomImage.findUnique({ where: { id: imageId } });
+			if (image && image.storagePath) {
+				await tx.outboxFileDelete.create({
+					data: { storagePath: image.storagePath, status: 'PENDING' },
+				});
+			}
+			return await tx.roomImage.delete({ where: { id: imageId } });
+		});
 	},
 
 	async updateImagesOrder(imagesData) {
