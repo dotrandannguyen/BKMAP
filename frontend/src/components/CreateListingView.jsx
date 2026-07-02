@@ -8,6 +8,7 @@ import { useListingStore } from '../stores/listingStore';
 import { useAuthStore } from '../stores/authStore';
 import { toast } from 'react-toastify';
 import { z } from 'zod';
+import { getApiUrl } from '../utils/apiConfig.js';
 
 const step1Schema = z.object({
   title: z.string().min(5, 'Tiêu đề tin phải từ 5 ký tự trở lên.').max(150, 'Tiêu đề không được vượt quá 150 ký tự.'),
@@ -307,7 +308,7 @@ export default function CreateListingView() {
     }
     setIsSearchingCreate(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+      const apiUrl = getApiUrl();
       const res = await fetch(`${apiUrl}/geocode?q=${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
@@ -371,7 +372,7 @@ export default function CreateListingView() {
     const timer = setTimeout(() => {
       const handleAutocompleteSearch = async () => {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+          const apiUrl = getApiUrl();
           const res = await fetch(`${apiUrl}/geocode?q=${encodeURIComponent(createSearchQuery)}`);
           if (res.ok) {
             const data = await res.json();
@@ -624,7 +625,7 @@ export default function CreateListingView() {
       setUploadStatus('Đang khởi tạo thông tin phòng...');
       setIsUploading(true);
 
-      const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+      const apiUrl = getApiUrl();
       const token = localStorage.getItem('accessToken');
 
       if (!token) {

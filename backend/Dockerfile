@@ -15,5 +15,5 @@ RUN npx prisma generate
 
 EXPOSE 3000
 
-# mặc định dev (có thể override bằng docker-compose)
-CMD ["npm", "run", "dev"]
+# Production: chạy node trực tiếp (không dùng nodemon)
+CMD ["npm", "run", "start"]

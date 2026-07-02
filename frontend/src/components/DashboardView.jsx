@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useListingStore } from '../stores/listingStore';
 import { useAuthStore } from '../stores/authStore';
+import { getApiUrl } from '../utils/apiConfig.js';
 
 // Badge hiển thị trạng thái phê duyệt (approvalStatus từ backend)
 const ApprovalBadge = ({ approvalStatus }) => {
@@ -18,13 +19,6 @@ const ApprovalBadge = ({ approvalStatus }) => {
       {text}
     </span>
   );
-};
-
-const getApiUrl = () => {
-  if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api') {
-    return import.meta.env.VITE_API_URL;
-  }
-  return `http://${window.location.hostname}:3000/api`;
 };
 
 export default function DashboardView() {

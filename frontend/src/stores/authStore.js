@@ -1,13 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'react-toastify';
 import { useUiStore } from './uiStore.js';
-
-const getApiUrl = () => {
-  if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api') {
-    return import.meta.env.VITE_API_URL;
-  }
-  return `http://${window.location.hostname}:3000/api`;
-};
+import { getApiUrl } from '../utils/apiConfig.js';
 
 export const useAuthStore = create((set) => ({
   isLoggedIn: !!localStorage.getItem('accessToken'),

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import './Auth.css';
 import { Mail, Lock, User, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { getApiUrl } from '../utils/apiConfig.js';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -67,7 +68,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
         setIsVerifying(true);
         setError('');
         try {
-            const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+            const apiUrl = getApiUrl();
             const response = await fetch(`${apiUrl}/auth/verify-email`, {
                 method: 'POST',
                 headers: {
@@ -124,7 +125,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
         setVerifyToken('');
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+            const apiUrl = getApiUrl();
             const response = await fetch(`${apiUrl}/auth/register`, {
                 method: 'POST',
                 headers: {
@@ -352,10 +353,7 @@ const RegisterPage = ({ onRegisterSuccess }) => {
 
                     <div className="social-login">
                         <button type="button" onClick={() => {
-                            const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
-                                ? import.meta.env.VITE_API_URL
-                                : `http://${window.location.hostname}:3000/api`;
-                            window.location.href = `${backendUrl}/auth/google`;
+                            window.location.href = `${getApiUrl()}/auth/google`;
                         }} className="social-btn google-btn">
                             <GoogleIcon />
                             <span>Đăng ký bằng Google</span>

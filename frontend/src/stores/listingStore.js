@@ -1,13 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'react-toastify';
 import { loadListings, saveListings, clearListings, resetToBaseline } from '../mockData';
-
-const getApiUrl = () => {
-  if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api') {
-    return import.meta.env.VITE_API_URL;
-  }
-  return `http://${window.location.hostname}:3000/api`;
-};
+import { getApiUrl } from '../utils/apiConfig.js';
 
 const savedEditingListing = localStorage.getItem('editingListing');
 let initialEditingListing = null;
