@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
+import ReactGA from 'react-ga4';
 
 // Store Imports
 import { useAuthStore } from './stores/authStore';
@@ -50,6 +51,25 @@ function RequireAdmin({ children }) {
   return children;
 }
 
+// Khởi tạo GA4 (chỉ khởi tạo 1 lần)
+const TRACKING_ID = import.meta.env.VITE_GA_ID;
+if (TRACKING_ID) {
+  ReactGA.initialize(TRACKING_ID);
+}
+
+// Hook để theo dõi thay đổi Route và gửi pageview cho GA4
+function RouteChangeTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (TRACKING_ID) {
+      ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
+    }
+  }, [location]);
+
+  return null;
+}
+
 export default function App() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
@@ -69,6 +89,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased text-[#0b1c30]">
       <ScrollToTop />
+      <RouteChangeTracker />
       <Navbar />
 
       <main className="flex-1 pb-16 md:pb-0">

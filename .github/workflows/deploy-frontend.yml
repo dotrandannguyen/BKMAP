@@ -34,6 +34,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: /api
+          VITE_GA_ID: G-CBZ2DDS4RH
 
       - name: Prepare Frontend Directory on EC2
         uses: appleboy/ssh-action@v1
