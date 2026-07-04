@@ -85,6 +85,10 @@ const LoginPage = () => {
             const result = await response.json();
 
             if (!response.ok) {
+                if (result.errors && typeof result.errors === 'object') {
+                    const messages = Object.values(result.errors).join('. ');
+                    throw new Error(messages || 'Đăng nhập thất bại.');
+                }
                 throw new Error(result.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
             }
 
