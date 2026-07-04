@@ -14,7 +14,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to EC2 via SSH
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy backend files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "backend/"
+          target: "/opt/bkmap"
+          overwrite: true
+
+      - name: Build and Restart Docker on EC2
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -23,10 +36,7 @@ jobs:
           script: |
             cd /opt/bkmap/backend
 
-            # Kéo code mới nhất
-            git pull origin main
-
-            # Rebuild và khởi động lại (chỉ recreate service có thay đổi)
+            # Rebuild và khởi động lại
             docker compose -f docker-compose.prod.yml up -d --build
 
             # Dọn dẹp Docker image cũ tránh đầy ổ đĩa
@@ -34,6 +44,6 @@ jobs:
 
             # Health check sau deploy
             echo "Waiting for backend to start..."
-            sleep 10
-            curl -f http://localhost/health || echo "⚠️ Health check failed!"
+            sleep 15
+            curl -f http://localhost/api/health || echo "⚠️ Health check failed!"
             docker compose -f docker-compose.prod.yml ps
