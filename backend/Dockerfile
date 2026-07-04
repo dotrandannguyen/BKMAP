@@ -5,7 +5,7 @@ WORKDIR /app
 # copy package first để cache npm install
 COPY package*.json ./
 
-RUN npm install
+RUN npm ci --omit=dev
 
 # copy toàn bộ source
 COPY . .
