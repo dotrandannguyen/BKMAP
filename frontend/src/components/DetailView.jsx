@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/authStore'; // Import useAuthStore
 import { useUiStore } from '../stores/uiStore';
 import { toast } from 'react-toastify';
 import { ShieldCheck, X, AlertTriangle, Info } from 'lucide-react';
+import { getApiUrl } from '../utils/apiConfig.js';
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -18,10 +19,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // useAdminFetch hook (copied from AdminPage.jsx)
-const API_URL =
-  import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
-    ? import.meta.env.VITE_API_URL
-    : `http://${window.location.hostname}:3000/api`;
+const API_URL = getApiUrl();
 
 function useAdminFetch() {
   return useCallback(

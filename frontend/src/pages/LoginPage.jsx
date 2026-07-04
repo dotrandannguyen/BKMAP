@@ -5,6 +5,7 @@ import './Auth.css';
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUiStore } from '../stores/uiStore';
+import { getApiUrl } from '../utils/apiConfig.js';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24">
@@ -71,7 +72,7 @@ const LoginPage = () => {
         setError('');
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+            const apiUrl = getApiUrl();
             const response = await fetch(`${apiUrl}/auth/login`, {
                 method: 'POST',
                 headers: {
@@ -204,10 +205,7 @@ const LoginPage = () => {
 
                     <div className="social-login">
                         <button type="button" onClick={() => {
-                            const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
-                                ? import.meta.env.VITE_API_URL
-                                : `http://${window.location.hostname}:3000/api`;
-                            window.location.href = `${backendUrl}/auth/google`;
+                            window.location.href = `${getApiUrl()}/auth/google`;
                         }} className="social-btn google-btn">
                             <GoogleIcon />
                             <span>Đăng nhập bằng Google</span>

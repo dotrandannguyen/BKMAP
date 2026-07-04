@@ -538,7 +538,7 @@ export default function HomepageView() {
       <section className="py-16 px-6 md:px-12 bg-[#0b1c30] text-white">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
           <div className="space-y-1">
-            <div className="text-3xl md:text-4xl font-extrabold text-sky-300">78,426+</div>
+            <div className="text-3xl md:text-4xl font-extrabold text-sky-300">300K+</div>
             <p className="text-[11px] md:text-xs font-semibold text-slate-300 uppercase tracking-widest">Lượt truy cập trong 4 năm hoạt động</p>
           </div>
           <div 

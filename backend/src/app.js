@@ -16,6 +16,10 @@ import { cacheMetrics } from './common/services/cache.service.js';
 
 const app = express();
 
+// --- HEALTH CHECK (cho monitoring sau deploy) ---
+app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+
 // --- SECURITY HEADERS ---
 app.use(helmet());
 

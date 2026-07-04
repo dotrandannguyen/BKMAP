@@ -1,3 +1,5 @@
+import { getApiUrl } from './utils/apiConfig.js';
+
 const originalFetch = window.fetch;
 
 let isRefreshing = false;
@@ -20,7 +22,7 @@ window.fetch = async (input, init = {}) => {
     throw error;
   }
   
-  const apiUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_API_URL : `http://${window.location.hostname}:3000/api`;
+  const apiUrl = getApiUrl();
   const url = typeof input === 'string' ? input : input.url;
   
   // Chỉ can thiệp nếu là lỗi 401 và gọi vào API của chính mình (bỏ qua external api)
