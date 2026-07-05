@@ -50,7 +50,8 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem('userName');
     localStorage.removeItem('userAvatar');
     localStorage.removeItem('userRole');
-    localStorage.removeItem('favoriteRoomIds');
+    // Note: Do NOT remove 'favoriteRoomIds' here — guest local favorites must persist.
+    // loadSavedIds() below will re-read them from localStorage.
     localStorage.removeItem('isGoogleLogin');
     set({
       isLoggedIn: false,

@@ -25,14 +25,8 @@ const LoginPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        localStorage.removeItem('favoriteRoomIds');
-        try {
-            useUiStore.getState().loadSavedIds();
-        } catch (e) {
-            console.error('Failed to reset saved IDs on login page mount:', e);
-        }
-    }, []);
+    // Note: We intentionally do NOT clear favoriteRoomIds here.
+    // Guest favorites in localStorage must be preserved across login/logout.
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
