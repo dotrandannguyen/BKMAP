@@ -5,7 +5,11 @@ import { useUiStore } from '../stores/uiStore';
 
 export default function Navbar() {
   const location = useLocation();
-  const { isLoggedIn, userEmail, userName, userAvatar, userRole } = useAuthStore();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const userEmail = useAuthStore((s) => s.userEmail);
+  const userName = useAuthStore((s) => s.userName);
+  const userAvatar = useAuthStore((s) => s.userAvatar);
+  const userRole = useAuthStore((s) => s.userRole);
   const savedCount = useUiStore((s) => s.savedIds.length);
   const userDisplayName = isLoggedIn ? (userName || userEmail.split('@')[0]) : '';
 

@@ -54,9 +54,21 @@ const LoginPage = () => {
             localStorage.setItem('userAvatar', avatar);
             localStorage.setItem('isGoogleLogin', 'true');
 
-            login(email, name, avatar);
+            // Decode role from JWT (same as normal login flow)
+            let role = 'USER';
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                role = payload.role || 'USER';
+                localStorage.setItem('userRole', role);
+            } catch (_) { /* ignore decode errors */ }
+
+            login(email, name, avatar, role);
             window.history.replaceState({}, '', '/login');
-            navigate('/profile');
+            if (role === 'ADMIN') {
+                navigate('/admin');
+            } else {
+                navigate('/profile');
+            }
         }
     }, []);
 
@@ -108,7 +120,7 @@ const LoginPage = () => {
                 if (role === 'ADMIN') {
                     navigate('/admin');
                 } else {
-                    navigate('/profile');
+                    navigate('/');
                 }
             } else {
                 localStorage.setItem('isGoogleLogin', 'false');
