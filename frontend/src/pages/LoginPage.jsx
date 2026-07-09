@@ -25,14 +25,8 @@ const LoginPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        localStorage.removeItem('favoriteRoomIds');
-        try {
-            useUiStore.getState().loadSavedIds();
-        } catch (e) {
-            console.error('Failed to reset saved IDs on login page mount:', e);
-        }
-    }, []);
+    // Note: We intentionally do NOT clear favoriteRoomIds here.
+    // Guest favorites in localStorage must be preserved across login/logout.
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -60,9 +54,21 @@ const LoginPage = () => {
             localStorage.setItem('userAvatar', avatar);
             localStorage.setItem('isGoogleLogin', 'true');
 
-            login(email, name, avatar);
+            // Decode role from JWT (same as normal login flow)
+            let role = 'USER';
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                role = payload.role || 'USER';
+                localStorage.setItem('userRole', role);
+            } catch (_) { /* ignore decode errors */ }
+
+            login(email, name, avatar, role);
             window.history.replaceState({}, '', '/login');
-            navigate('/profile');
+            if (role === 'ADMIN') {
+                navigate('/admin');
+            } else {
+                navigate('/profile');
+            }
         }
     }, []);
 
@@ -85,6 +91,10 @@ const LoginPage = () => {
             const result = await response.json();
 
             if (!response.ok) {
+                if (result.errors && typeof result.errors === 'object') {
+                    const messages = Object.values(result.errors).join('. ');
+                    throw new Error(messages || 'Đăng nhập thất bại.');
+                }
                 throw new Error(result.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
             }
 
@@ -110,7 +120,7 @@ const LoginPage = () => {
                 if (role === 'ADMIN') {
                     navigate('/admin');
                 } else {
-                    navigate('/profile');
+                    navigate('/');
                 }
             } else {
                 localStorage.setItem('isGoogleLogin', 'false');

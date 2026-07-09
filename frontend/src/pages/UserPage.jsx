@@ -214,8 +214,67 @@ const UserPage = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="px-6 py-10 max-w-7xl mx-auto space-y-8">
+      <main className="flex-1 overflow-y-auto pb-24 md:pb-10">
+        <div className="px-6 py-8 max-w-7xl mx-auto space-y-8">
+          {/* Mobile Profile Card */}
+          <div className="block md:hidden bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm space-y-4">
+            <div className="flex items-center gap-3.5">
+              {isLoggedIn ? (
+                userAvatar ? (
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden border border-slate-200 shadow-sm flex-shrink-0">
+                    <img src={userAvatar} alt={userDisplayName} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center font-bold text-lg uppercase shadow-sm shadow-primary/20 flex-shrink-0">
+                    {userDisplayName[0]}
+                  </div>
+                )
+              ) : (
+                <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center font-bold text-lg shadow-sm flex-shrink-0">
+                  ?
+                </div>
+              )}
+              <div className="overflow-hidden">
+                <h3 className="font-black text-slate-800 truncate text-base">{isLoggedIn ? userDisplayName : 'Khách truy cập'}</h3>
+                <p className="text-xs text-slate-500 truncate mt-0.5">{isLoggedIn ? userEmail : 'Đăng nhập để lưu tin và đăng tin'}</p>
+              </div>
+            </div>
+            
+            {isLoggedIn ? (
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    const isGoogleLogin = localStorage.getItem('isGoogleLogin') === 'true';
+                    if (isGoogleLogin) {
+                      toast.warning('Tài khoản của bạn đăng nhập bằng Google, do đó không thể đổi mật khẩu trên hệ thống này.');
+                    } else {
+                      setIsModalOpen(true);
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold bg-slate-50 active:bg-slate-100 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  <Lock size={14} />
+                  <span>Đổi mật khẩu</span>
+                </button>
+                <button
+                  onClick={() => { logout(); navigate('/login'); }}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100/70 active:bg-red-100 text-xs font-bold cursor-pointer transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">logout</span>
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-white text-xs font-bold cursor-pointer hover:bg-primary-container transition-all active:scale-98 shadow-sm shadow-primary/10"
+              >
+                <span className="material-symbols-outlined text-[16px]">login</span>
+                <span>Đăng nhập ngay</span>
+              </button>
+            )}
+          </div>
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">

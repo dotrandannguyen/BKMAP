@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useListingStore } from '../stores/listingStore';
 import { useUiStore } from '../stores/uiStore';
+import banner1 from '../assets/images/banner1.jpg';
 
 export default function HomepageView() {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ export default function HomepageView() {
             <img
               className="w-full h-full object-cover"
               alt="Đại học Bách Khoa Đà Nẵng campus background"
-              src="https://scontent.fdad3-8.fna.fbcdn.net/v/t39.30808-6/724092523_1510508897290343_671005537170299150_n.jpg?stp=dst-jpg_tt6&cstp=mx800x212&ctp=s800x212&_nc_cat=109&ccb=1-7&_nc_sid=127cfc&_nc_eui2=AeFdWoqTjNDw2pwKtFH4vfKBh9de3ocIVDCH117ehwhUMDEIPP75qRr1B4PFovJxGSfe9_VubW6NgQzY0ROZDwLe&_nc_ohc=pETBLkHZ9KMQ7kNvwG5HGpm&_nc_oc=AdrR4VGY6gesE-gW8dezz_93CsfFBH9qoO9qHG0ww4iawv5MrvLc_6iYpVWjAYFnxyQQZXjsmI-yaFjkutCgiQQB&_nc_zt=23&_nc_ht=scontent.fdad3-8.fna&_nc_gid=e7SX0hUKLVp3DQLe55_p5w&_nc_ss=7b2a8&oh=00_Af8Q70dngz7gvqlHhgYsmm93a3PEIekJeod16V-s328AZQ&oe=6A36DC35"
+              src={banner1}
               referrerPolicy="no-referrer"
             />
           </div>
@@ -272,7 +273,6 @@ export default function HomepageView() {
       <section 
         className="pt-[10px] pb-[5px] overflow-hidden relative"
         style={{
-          backgroundImage: 'url("https://scontent.fdad3-5.fna.fbcdn.net/v/t39.30808-6/474260530_1272157894004468_6359518834788209209_n.jpg?stp=dst-jpg_tt6&cstp=mx1500x1500&ctp=s1500x1500&_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeGOf7b8bTlxGxWxukIs9LrnXTbyVspFfwxdNvJWykV_DCHG6kj6jFs1cXl3H30IPR1fffyIu-VAq1-VJprkzOTC&_nc_ohc=ropMnfkKyKUQ7kNvwEbmHXu&_nc_oc=AdrycC-9Z38qmqRILfd4TayJ__8PPddG_jVc7dMPY6chNnoTuqgGPBbx_Ut51KJ8L2pWVzRQjIF7f4tn6dRQ3K1Z&_nc_zt=23&_nc_ht=scontent.fdad3-5.fna&_nc_gid=wu90gpl2lcZDEJGYIiZnpg&_nc_ss=7b2a8&oh=00_Af8oaBhCh8OqKNJ2y0hiH2FjNM96t-SBUPi73zmVJZ8VPQ&oe=6A36D2D8")',
           backgroundAttachment: 'fixed',
           backgroundPosition: 'center',
           backgroundSize: 'cover'
