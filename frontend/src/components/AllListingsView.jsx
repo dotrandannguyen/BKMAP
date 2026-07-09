@@ -244,15 +244,15 @@ export default function AllListingsView() {
             <h3 className="text-sm font-bold text-slate-500 mt-4">Không tìm thấy phòng trọ nào</h3>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
             {paginatedListings.map((item) => (
               <div
                 key={item.id}
                 onClick={() => navigate(`/rooms/${item.id}`)}
-                className="bg-white rounded-3xl overflow-hidden hover:scale-[1.01] hover:shadow-xl border border-slate-200/60 hover:border-primary/20 transition-all duration-300 cursor-pointer flex flex-col group relative shadow-sm"
+                className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden hover:scale-[1.01] hover:shadow-xl border border-slate-200/60 hover:border-primary/20 transition-all duration-300 cursor-pointer flex flex-col group relative shadow-sm"
               >
                 {/* Cover Photo */}
-                <div className="relative h-48 w-full overflow-hidden bg-slate-50">
+                <div className="relative h-28 sm:h-48 w-full overflow-hidden bg-slate-50">
                   <img
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -262,29 +262,29 @@ export default function AllListingsView() {
                   />
                   
                   {/* Badges on Top */}
-                  <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[90%]">
+                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-wrap gap-1 sm:gap-1.5 max-w-[90%]">
                     {item.verified && (
-                      <span className="bg-primary text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                        <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                      <span className="bg-primary text-white text-[8px] sm:text-[10px] font-extrabold px-1.5 py-0.5 sm:px-2.5 py-1 rounded-full flex items-center gap-0.5 sm:gap-1 shadow-sm">
+                        <span className="material-symbols-outlined text-[10px] sm:text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                         Xác Thực
                       </span>
                     )}
                     {item.tag && !item.verified && (
-                      <span className="bg-secondary text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-sm">
+                      <span className="bg-secondary text-white text-[8px] sm:text-[10px] font-extrabold px-1.5 py-0.5 sm:px-2.5 py-1 rounded-full shadow-sm">
                         {item.tag}
                       </span>
                     )}
                   </div>
 
                   {/* Bottom gradient overlay with time ago and image count */}
-                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-3 pb-2.5 pointer-events-none select-none">
-                    <span className="text-white text-[12px] font-bold drop-shadow-md">
+                  <div className="absolute bottom-0 left-0 right-0 h-8 sm:h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-2 sm:px-3 pb-1.5 sm:pb-2.5 pointer-events-none select-none">
+                    <span className="text-white text-[8px] sm:text-[12px] font-bold drop-shadow-md">
                       {getTimeAgo(item.updatedAt || item.createdAt || new Date().toISOString())}
                     </span>
                     {item.images && item.images.length > 0 && (
-                      <div className="flex items-center gap-1 text-white text-[12px] font-bold drop-shadow-md">
+                      <div className="flex items-center gap-0.5 sm:gap-1 text-white text-[8px] sm:text-[12px] font-bold drop-shadow-md">
                         <span>{item.images.length}</span>
-                        <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
+                        <span className="material-symbols-outlined text-[11px] sm:text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
                       </div>
                     )}
                   </div>
@@ -295,39 +295,39 @@ export default function AllListingsView() {
                       e.stopPropagation();
                       toggleSaved(item.id, e);
                     }}
-                    className={`absolute top-3 right-3 backdrop-blur-md p-2 rounded-full transition-colors cursor-pointer ${
+                    className={`absolute top-2 right-2 sm:top-3 sm:right-3 backdrop-blur-md p-1.5 sm:p-2 rounded-full transition-colors cursor-pointer ${
                       savedIds.includes(item.id) 
                         ? 'bg-white/90 text-red-500 shadow-sm' 
                         : 'bg-white/20 hover:bg-white/40 text-white'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
+                    <span className="material-symbols-outlined text-xs sm:text-lg" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
                       favorite
                     </span>
                   </button>
                 </div>
 
                 {/* Summary Metadata */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="space-y-1">
-                      <h4 className="text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
+                <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between space-y-2.5 sm:space-y-4">
+                  <div className="flex justify-between items-start gap-1.5 sm:gap-2">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h4 className="text-[12px] sm:text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
                         {item.title}
                       </h4>
                       
-                      <p className="text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
+                      <p className="text-[13px] sm:text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
                         {formatVND(item.price)}
-                        <span className="text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
                       </p>
                       
-                      <p className="text-xs text-on-surface-variant font-medium flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
-                        <span className="line-clamp-2">{formatAddressShort(item.address)}</span>
+                      <p className="text-[10px] sm:text-xs text-on-surface-variant font-medium flex items-center gap-0.5 sm:gap-1">
+                        <span className="material-symbols-outlined text-xs sm:text-sm text-primary shrink-0">location_on</span>
+                        <span className="line-clamp-1 sm:line-clamp-2">{formatAddressShort(item.address)}</span>
                       </p>
                       
                       {item.distanceText && (
-                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap mt-1">
-                          <span className="material-symbols-outlined text-[13px]">directions_walk</span>
+                        <p className="text-[9px] sm:text-[11px] text-slate-500 font-medium flex items-center gap-0.5 sm:gap-1 whitespace-nowrap mt-0.5 sm:mt-1">
+                          <span className="material-symbols-outlined text-[11px] sm:text-[13px]">directions_walk</span>
                           {item.distanceText}
                         </p>
                       )}
@@ -335,7 +335,7 @@ export default function AllListingsView() {
                     
                     {/* Host avatar */}
                     {item.host?.avatar ? (
-                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
+                      <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full border border-white sm:border-2 shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
                         <img
                           loading="lazy"
                           alt={item.host.name || 'Chủ trọ'}
@@ -345,22 +345,22 @@ export default function AllListingsView() {
                         />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0">
+                      <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full border border-white sm:border-2 shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-[10px] sm:text-sm uppercase flex-shrink-0">
                         {item.host?.name ? item.host.name[0] : 'C'}
                       </div>
                     )}
                   </div>
 
                   {/* Amenity tags */}
-                  <div className="flex flex-wrap gap-2 pt-2 border-t border-outline-variant/15">
-                    {item.amenities?.slice(0, 2).map((amenity, i) => (
-                      <span key={i} className="text-[10px] bg-slate-100 text-on-surface-variant px-2.5 py-1 rounded-md font-semibold font-sans">
+                  <div className="flex flex-wrap gap-1 sm:gap-2 pt-1.5 sm:pt-2 border-t border-outline-variant/15 overflow-hidden">
+                    {item.amenities?.slice(0, 1).map((amenity, i) => (
+                      <span key={i} className="text-[8px] sm:text-[10px] bg-slate-100 text-on-surface-variant px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md font-semibold font-sans whitespace-nowrap truncate max-w-[80px] sm:max-w-none">
                         {amenity}
                       </span>
                     ))}
-                    {item.amenities?.length > 2 && (
-                      <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-md font-bold font-sans">
-                        +{item.amenities.length - 2} khác
+                    {item.amenities?.length > 1 && (
+                      <span className="text-[8px] sm:text-[10px] bg-primary/10 text-primary px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md font-bold font-sans whitespace-nowrap">
+                        +{item.amenities.length - 1} khác
                       </span>
                     )}
                   </div>
