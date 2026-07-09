@@ -29,26 +29,80 @@ export default function HomepageView() {
     if (!localSearch.trim()) return [];
     const term = localSearch.toLowerCase();
     
+    const STATIC_AMENITIES = [
+      'WiFi miễn phí',
+      'Bàn học',
+      'Giường ngủ',
+      'Điều hòa',
+      'Máy giặt',
+      'Máy nước nóng',
+      'Camera an ninh 24/7',
+      'Giờ giấc tự do',
+      'Không chung chủ',
+      'Chung chủ',
+      'Ban công thoáng đãng',
+      'Chỗ để xe rộng rãi'
+    ];
+
+    const swapTones = (str) => {
+      const map = {
+        'oà': 'òa', 'òa': 'oà',
+        'oá': 'óa', 'óa': 'oá',
+        'oả': 'ỏa', 'ỏa': 'oả',
+        'oã': 'õa', 'õa': 'oã',
+        'oạ': 'ọa', 'ọa': 'oạ',
+        'oé': 'óe', 'óe': 'oé',
+        'oè': 'òe', 'òe': 'oè',
+        'oẻ': 'ỏe', 'ỏe': 'oẻ',
+        'oẽ': 'õe', 'õe': 'oẽ',
+        'oẹ': 'ọe', 'ọe': 'oẹ',
+        'uý': 'úy', 'úy': 'uý',
+        'uỳ': 'ùy', 'ùy': 'uỳ',
+        'uỷ': 'ủy', 'ủy': 'uỷ',
+        'uỹ': 'ũy', 'ũy': 'uỹ',
+        'uỵ': 'ụy', 'ụy': 'uỵ'
+      };
+      return str.replace(/(oà|òa|oá|óa|oả|ỏa|oã|õa|oạ|ọa|oé|óe|oè|òe|oẻ|ỏe|oẽ|õe|oẹ|ọe|uý|úy|uỳ|ùy|uỷ|ủy|uỹ|ũy|uỵ|ụy)/g, (match) => map[match] || match);
+    };
+
+    const swappedTerm = swapTones(term);
     const suggestionsSet = new Set();
+
+    // Match against Static Amenities first to ensure they show up prominently
+    STATIC_AMENITIES.forEach(a => {
+      const aLower = a.toLowerCase();
+      const swappedA = swapTones(aLower);
+      if (aLower.includes(term) || swappedA.includes(term) || aLower.includes(swappedTerm)) {
+        suggestionsSet.add(a);
+      }
+    });
     
     listings.forEach(l => {
       // Match Amenities
       if (l.amenities) {
         l.amenities.forEach(a => {
-          if (a.toLowerCase().includes(term)) {
+          const aLower = a.toLowerCase();
+          const swappedA = swapTones(aLower);
+          if (aLower.includes(term) || swappedA.includes(term) || aLower.includes(swappedTerm)) {
             suggestionsSet.add(a);
           }
         });
       }
       
       // Match Room Type
-      if (l.type && l.type.toLowerCase().includes(term)) {
-        suggestionsSet.add(l.type);
+      if (l.type) {
+        const typeLower = l.type.toLowerCase();
+        if (typeLower.includes(term) || typeLower.includes(swappedTerm)) {
+          suggestionsSet.add(l.type);
+        }
       }
       
       // Match Title
-      if (l.title && l.title.toLowerCase().includes(term)) {
-         suggestionsSet.add(l.title);
+      if (l.title) {
+        const titleLower = l.title.toLowerCase();
+        if (titleLower.includes(term) || titleLower.includes(swappedTerm)) {
+          suggestionsSet.add(l.title);
+        }
       }
     });
     
@@ -90,10 +144,11 @@ export default function HomepageView() {
     return timeB - timeA;
   }).slice(0, 10);
 
-  const handleSearchSubmit = () => {
-    setSearchQuery(localSearch);
-    if (localSearch.trim()) {
-      addSearchQuery(localSearch);
+  const handleSearchSubmit = (query) => {
+    const finalSearch = query !== undefined ? query : localSearch;
+    setSearchQuery(finalSearch);
+    if (finalSearch.trim()) {
+      addSearchQuery(finalSearch);
     }
     
     if (localPrice === 'Dưới 1Tr VNĐ') {
@@ -154,20 +209,6 @@ export default function HomepageView() {
         </div>
 
         <div className="relative z-10 w-full max-w-4xl text-center flex flex-col items-center gap-8 mt-[130px]">
-          {/* <div className="space-y-4">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight leading-tight">
-              Hỗ trợ tìm nơi ở <br className="hidden md:block" /> cho{' '}
-              <span className="text-primary relative inline-block">
-                sinh viên Bách Khoa
-                <span className="absolute bottom-1 left-0 w-full h-[6px] bg-sky-200 -z-10 rounded-full"></span>
-              </span>
-            </h1>
-            <p className="text-sm sm:text-base md:text-lg text-on-surface-variant max-w-2xl mx-auto">
-              Nền tảng kết nối sinh viên với các nhà trọ được {' '}
-              <span className="font-semibold text-primary">Đội Tư vấn Sinh viên - Trường Đại học Bách khoa</span> thực hiện.
-            </p>
-          </div> */}
-
           {/* Glassmorphic Search Bar */}
           <div ref={searchContainerRef} className="relative w-full max-w-3xl">
             <div className="glass-card w-full p-1.5 rounded-2xl md:rounded-full flex flex-col md:flex-row gap-3 items-center shadow-2xl">
@@ -188,7 +229,7 @@ export default function HomepageView() {
               </div>
               
               <button
-                onClick={handleSearchSubmit}
+                onClick={() => handleSearchSubmit()}
                 className="w-full md:w-auto bg-primary text-white hover:bg-primary-container px-10 py-2.5 rounded-xl md:rounded-full text-sm font-semibold transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">search</span>
@@ -207,10 +248,7 @@ export default function HomepageView() {
                         onClick={() => {
                           setLocalSearch(item);
                           setShowSuggestions(false);
-                          setTimeout(() => {
-                            // Use a tiny timeout to ensure state is set before submitting
-                            handleSearchSubmit();
-                          }, 50);
+                          handleSearchSubmit(item);
                         }}
                         className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex items-center gap-3 transition-colors"
                       >
@@ -230,10 +268,10 @@ export default function HomepageView() {
           </div>
 
           {/* Quick-link Chips */}
-          <div className="flex flex-wrap justify-center items-center gap-3">
+          <div className="flex flex-wrap justify-center items-center gap-3 -mt-4">
             <span className="text-xs md:text-sm text-on-surface-variant font-medium">Phổ biến:</span>
             {recentSearches && recentSearches.length > 0 ? (
-              recentSearches.map((searchQuery, idx) => (
+              recentSearches.slice(0, 3).map((searchQuery, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleChipClick(searchQuery)}
@@ -323,15 +361,15 @@ export default function HomepageView() {
           </div>
         ) : (
           /* Scrollable list */
-          <div className="flex overflow-x-auto gap-6 pb-6 pt-2 scroll-smooth custom-scrollbar snap-x">
+          <div className="flex overflow-x-auto gap-3 sm:gap-6 pb-6 pt-2 scroll-smooth custom-scrollbar snap-x">
             {recentListings.map((item) => (
               <div
                 key={item.id}
                 onClick={() => onSelectListing(item.id)}
-                className="snap-start min-w-[280px] sm:min-w-[340px] md:min-w-[360px] max-w-[400px] bg-white rounded-3xl overflow-hidden hover:scale-[1.01] hover:shadow-xl transition-all duration-300 cursor-pointer shadow-sm flex flex-col group border border-outline-variant/20"
+                className="snap-start min-w-[175px] max-w-[200px] sm:min-w-[340px] sm:max-w-[400px] md:min-w-[360px] bg-white rounded-2xl sm:rounded-3xl overflow-hidden hover:scale-[1.01] hover:shadow-xl transition-all duration-300 cursor-pointer shadow-sm flex flex-col group border border-outline-variant/20"
               >
                 {/* Cover Photo */}
-                <div className="relative h-48 w-full overflow-hidden">
+                <div className="relative h-28 sm:h-48 w-full overflow-hidden">
                   <img
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
@@ -341,66 +379,61 @@ export default function HomepageView() {
                   />
                   
                   {/* Badges on Top */}
-                  <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[90%]">
+                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-wrap gap-1 max-w-[90%]">
                     {item.verified && (
-                      <span className="bg-white/95 backdrop-blur-md text-primary text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                        <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                        XÁC THỰC
-                      </span>
-                    )}
-                    {item.tag && !item.verified && (
-                      <span className="bg-secondary text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-sm">
-                        {item.tag}
+                      <span className="bg-white/95 backdrop-blur-md text-[8px] sm:text-[10px] font-extrabold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full flex items-center gap-0.5 sm:gap-1 shadow-sm">
+                        <span className="material-symbols-outlined text-[10px] sm:text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                        Xác thực
                       </span>
                     )}
                   </div>
-
+ 
                   {/* Favorite Toggle button */}
                   <button
                     onClick={(e) => toggleSaved(item.id, e)}
-                    className={`absolute top-3 right-3 backdrop-blur-md p-2 rounded-full transition-colors cursor-pointer ${
+                    className={`absolute top-2 right-2 sm:top-3 sm:right-3 backdrop-blur-md w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
                       savedIds.includes(item.id) 
                         ? 'bg-white/90 text-red-500 shadow-sm' 
                         : 'bg-white/20 hover:bg-white/40 text-white'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
+                    <span className="material-symbols-outlined text-xs sm:text-lg" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
                       favorite
                     </span>
                   </button>
-
+ 
                   {/* Bottom gradient overlay with time ago and image count */}
-                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-3 pb-2.5 pointer-events-none select-none">
-                    <span className="text-white text-[12px] font-bold drop-shadow-md">
+                  <div className="absolute bottom-0 left-0 right-0 h-8 sm:h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-2 sm:px-3 pb-1.5 sm:pb-2.5 pointer-events-none select-none">
+                    <span className="text-white text-[8px] sm:text-[12px] font-bold drop-shadow-md">
                       {getTimeAgo(item.updatedAt || item.createdAt || new Date().toISOString())}
                     </span>
                     {item.images && item.images.length > 0 && (
-                      <div className="flex items-center gap-1 text-white text-[12px] font-bold drop-shadow-md">
+                      <div className="flex items-center gap-0.5 sm:gap-1 text-white text-[8px] sm:text-[12px] font-bold drop-shadow-md">
                         <span>{item.images.length}</span>
-                        <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
+                        <span className="material-symbols-outlined text-[11px] sm:text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
                       </div>
                     )}
                   </div>
                 </div>
-
+ 
                 {/* Summary Metadata */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="space-y-1">
-                      <h4 className="text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
+                <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between space-y-2.5 sm:space-y-4">
+                  <div className="flex justify-between items-start gap-1.5">
+                    <div className="space-y-0.5 sm:space-y-1 overflow-hidden">
+                      <h4 className="text-[12px] sm:text-base font-bold text-on-surface line-clamp-2 group-hover:text-primary transition-colors leading-tight">
                         {item.title}
                       </h4>
-                      <p className="text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
+                      <p className="text-[13px] sm:text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
                         {formatVND(item.price)}
-                        <span className="text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant ml-0.5">/th</span>
                       </p>
-                      <p className="text-xs text-on-surface-variant font-medium flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
+                      <p className="text-[10px] sm:text-xs text-on-surface-variant font-medium flex items-center gap-0.5 sm:gap-1">
+                        <span className="material-symbols-outlined text-xs sm:text-sm text-primary shrink-0">location_on</span>
                         <span className="line-clamp-2">{formatAddressShort(item.address)}</span>
                       </p>
                       {item.distanceText && (
-                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap mt-1">
-                          <span className="material-symbols-outlined text-[13px]">directions_walk</span>
+                        <p className="text-[9px] sm:text-[11px] text-slate-500 font-medium flex items-center gap-0.5 sm:gap-1 whitespace-nowrap mt-0.5 sm:mt-1">
+                          <span className="material-symbols-outlined text-[11px] sm:text-[13px]">directions_walk</span>
                           {item.distanceText}
                         </p>
                       )}
@@ -408,7 +441,7 @@ export default function HomepageView() {
                     
                     {/* Host avatar */}
                     {item.host?.avatar ? (
-                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
+                      <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full border border-white sm:border-2 shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
                         <img
                           loading="lazy"
                           alt={item.host.name || 'Chủ trọ'}
@@ -418,22 +451,22 @@ export default function HomepageView() {
                         />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0">
+                      <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full border border-white sm:border-2 shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-[10px] sm:text-sm uppercase flex-shrink-0">
                         {item.host?.name ? item.host.name[0] : 'C'}
                       </div>
                     )}
                   </div>
-
+ 
                   {/* Amenity tags */}
-                  <div className="flex flex-wrap gap-2 pt-2 border-t border-outline-variant/15">
-                    {item.amenities.slice(0, 2).map((amenity, i) => (
-                      <span key={i} className="text-[10px] bg-slate-100 text-on-surface-variant px-2.5 py-1 rounded-md font-semibold font-sans">
+                  <div className="flex flex-wrap gap-1 pt-1.5 sm:pt-2 border-t border-outline-variant/15 overflow-hidden">
+                    {item.amenities.slice(0, 1).map((amenity, i) => (
+                      <span key={i} className="text-[8px] sm:text-[10px] bg-slate-100 text-on-surface-variant px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md font-semibold font-sans whitespace-nowrap truncate max-w-[80px] sm:max-w-none">
                         {amenity}
                       </span>
                     ))}
-                    {item.amenities?.length > 2 && (
-                      <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-md font-bold font-sans">
-                        +{item.amenities.length - 2} khác
+                    {item.amenities?.length > 1 && (
+                      <span className="text-[8px] sm:text-[10px] bg-primary/10 text-primary px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md font-bold font-sans whitespace-nowrap">
+                        +{item.amenities.length - 1}
                       </span>
                     )}
                   </div>
@@ -445,16 +478,16 @@ export default function HomepageView() {
             {listings.some(x => x.id === 'loft-skyline') && (
               <div
                 onClick={() => onSelectListing('loft-skyline')}
-                className="snap-start min-w-[280px] sm:min-w-[340px] md:min-w-[360px] bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-3xl p-6 flex flex-col justify-between items-center text-center cursor-pointer hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-300"
+                className="snap-start min-w-[145px] max-w-[175px] sm:min-w-[340px] sm:max-w-[400px] md:min-w-[360px] bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col justify-between items-center text-center cursor-pointer hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-300"
               >
-                <div className="my-auto space-y-2">
-                  <span className="material-symbols-outlined text-indigo-600 text-4xl animate-bounce">rocket_launch</span>
-                  <h4 className="text-base font-extrabold text-indigo-950">Skyline Student Loft</h4>
-                  <p className="text-xs text-indigo-700 max-w-[240px]">
-                    Trải nghiệm chỗ ở sinh viên 5 sao cao cấp nhất. Bấm để xem hình ảnh thực tế và đặt phòng trực tiếp!
+                <div className="my-auto space-y-1 sm:space-y-2">
+                  <span className="material-symbols-outlined text-indigo-600 text-2xl sm:text-4xl animate-bounce">rocket_launch</span>
+                  <h4 className="text-[12px] sm:text-base font-extrabold text-indigo-950 line-clamp-1 sm:line-clamp-none">Skyline Student Loft</h4>
+                  <p className="text-[9px] sm:text-xs text-indigo-700 max-w-[240px] line-clamp-2 sm:line-clamp-none">
+                    Trải nghiệm chỗ ở sinh viên 5 sao cao cấp nhất.
                   </p>
                 </div>
-                <span className="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded-full cursor-pointer hover:bg-indigo-700 transition-colors">
+                <span className="bg-indigo-600 text-white text-[9px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-full cursor-pointer hover:bg-indigo-700 transition-colors mt-2">
                   Xem Chi Tiết Mẫu
                 </span>
               </div>

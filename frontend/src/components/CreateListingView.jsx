@@ -415,10 +415,6 @@ export default function CreateListingView() {
           errorsMap[issue.path[0]] = issue.message;
         });
         setValidationErrors(errorsMap);
-        
-        // Show first error as a toast warning
-        const firstErrorMsg = result.error.issues[0].message;
-        toast.warning(firstErrorMsg);
         return;
       }
     } else if (step === 2) {
@@ -434,9 +430,6 @@ export default function CreateListingView() {
           errorsMap[issue.path[0]] = issue.message;
         });
         setValidationErrors(errorsMap);
-        
-        const firstErrorMsg = result.error.issues[0].message;
-        toast.warning(firstErrorMsg);
         return;
       }
     } else if (step === 3) {
@@ -450,9 +443,6 @@ export default function CreateListingView() {
           errorsMap[issue.path[0]] = issue.message;
         });
         setValidationErrors(errorsMap);
-        
-        const firstErrorMsg = result.error.issues[0].message;
-        toast.warning(firstErrorMsg);
         return;
       }
     }
@@ -467,6 +457,7 @@ export default function CreateListingView() {
     'Giường ngủ',
     'Điều hòa',
     'Máy giặt',
+    'Máy nước nóng',
     'Camera an ninh 24/7',
     'Giờ giấc tự do',
     'Không chung chủ',
@@ -930,7 +921,7 @@ export default function CreateListingView() {
             <h3 className="text-base font-extrabold text-on-surface border-b pb-2">Bước 1: Thông tin cơ bản</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs sm:text-sm">
-              <div className="space-y-1.5 col-span-2">
+              <div className="space-y-1.5 md:col-span-2">
                 <label className={`font-bold transition-colors ${validationErrors.title ? 'text-red-600' : 'text-on-surface-variant'}`}>Tiêu đề tin đăng phòng:</label>
                 <input
                   required
@@ -1055,7 +1046,7 @@ export default function CreateListingView() {
                 )}
               </div>
 
-              <div className="space-y-1.5 col-span-2">
+              <div className="space-y-1.5 md:col-span-2">
                 <label className="font-bold text-on-surface-variant">Vị trí trên bản đồ:</label>
                 
                 {/* Search Address Bar */}

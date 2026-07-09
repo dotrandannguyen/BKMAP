@@ -147,6 +147,15 @@ export default function Navbar() {
           <span className="text-[10px] font-semibold mt-0.5">Bản đồ</span>
         </Link>
         <Link
+          to="/all-listings"
+          className={`flex flex-col items-center justify-center transition-all ${
+            location.pathname.startsWith('/all-listings') ? 'text-primary scale-105 font-bold' : 'text-slate-500'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[22px]">bed</span>
+          <span className="text-[10px] font-semibold mt-0.5">Phòng trọ</span>
+        </Link>
+        <Link
           to="/dashboard"
           className={`flex flex-col items-center justify-center transition-all ${
             location.pathname === '/dashboard' ? 'text-primary scale-105 font-bold' : 'text-slate-500'
@@ -161,8 +170,8 @@ export default function Navbar() {
             location.pathname === '/profile' || location.pathname === '/login' ? 'text-primary scale-105 font-bold' : 'text-slate-500'
           }`}
         >
-          <span className="material-symbols-outlined text-[22px]">favorite</span>
-          <span className="text-[10px] font-semibold mt-0.5">Đã lưu</span>
+          <span className="material-symbols-outlined text-[22px]">person</span>
+          <span className="text-[10px] font-semibold mt-0.5">Tôi</span>
         </Link>
         {userRole === 'ADMIN' && (
           <Link
