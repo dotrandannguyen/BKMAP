@@ -196,6 +196,7 @@ export default function DashboardView() {
               Đăng trọ mới
             </button>
           </div>
+        ) : (
           <div>
             {/* Mobile Card Layout */}
             <div className="md:hidden divide-y divide-slate-100">
