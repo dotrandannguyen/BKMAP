@@ -495,19 +495,19 @@ export default function MapView() {
       {/* Mobile Toggle Pill (Bản đồ <> Thống kê) */}
       <div className="md:hidden fixed bottom-20 left-1/2 transform -translate-x-1/2 z-40 bg-on-surface text-white shadow-xl rounded-full px-5 py-3 flex gap-3 text-xs font-extrabold border border-white/10 active:scale-95 transition-transform pointer-events-auto">
         <button
-          onClick={() => setShowMobileMap(false)}
-          className={`flex items-center gap-1.5 ${!showMobileMap ? 'text-sky-300' : 'text-slate-200'}`}
-        >
-          <span className="material-symbols-outlined text-sm">format_list_bulleted</span>
-          <span>Danh sách</span>
-        </button>
-        <span className="text-slate-500">|</span>
-        <button
           onClick={() => setShowMobileMap(true)}
           className={`flex items-center gap-1.5 ${showMobileMap ? 'text-sky-300' : 'text-slate-200'}`}
         >
           <span className="material-symbols-outlined text-sm">map</span>
           <span>Bản đồ</span>
+        </button>
+        <span className="text-slate-500">|</span>
+        <button
+          onClick={() => setShowMobileMap(false)}
+          className={`flex items-center gap-1.5 ${!showMobileMap ? 'text-sky-300' : 'text-slate-200'}`}
+        >
+          <span className="material-symbols-outlined text-sm">format_list_bulleted</span>
+          <span>Danh sách</span>
         </button>
       </div>
 
