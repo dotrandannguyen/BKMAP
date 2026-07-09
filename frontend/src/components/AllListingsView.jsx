@@ -147,16 +147,16 @@ export default function AllListingsView() {
             {/* Filter Toggle Button inside Sort Bar */}
             <button
               onClick={() => setIsFilterOpen(true)}
-              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs transition-colors cursor-pointer border ${
+              className={`flex justify-center sm:justify-start px-0.5 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-row items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs transition-colors cursor-pointer border ${
                 streetFilter || priceRange !== 'all'
                   ? 'bg-primary text-white border-primary font-medium shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
               <div className="relative flex items-center justify-center">
-                <span className="material-symbols-outlined text-[18px] sm:text-[16px]">filter_alt</span>
+                <span className="material-symbols-outlined text-[14px] sm:text-[16px]">filter_alt</span>
                 {(streetFilter || priceRange !== 'all') && (
-                  <span className="absolute -top-1 -right-1.5 bg-white text-primary text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-1.5 -right-1.5 bg-white text-primary text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
                     !
                   </span>
                 )}
@@ -170,13 +170,13 @@ export default function AllListingsView() {
                 setSortType(prev => prev === 'distance' ? 'newest' : 'distance');
                 setCurrentPage(1);
               }}
-              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs transition-colors cursor-pointer border ${
+              className={`flex justify-center sm:justify-start px-0.5 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-row items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs transition-colors cursor-pointer border ${
                 sortType === 'distance'
                   ? 'bg-primary text-white border-primary font-medium shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px] sm:text-[16px]">near_me</span>
+              <span className="material-symbols-outlined text-[14px] sm:text-[16px]">near_me</span>
               <span className="whitespace-nowrap sm:hidden font-medium">Gần BK</span>
               <span className="whitespace-nowrap hidden sm:inline">Gần Bách khoa</span>
             </button>
@@ -184,11 +184,11 @@ export default function AllListingsView() {
             {/* Newest Button */}
             <button
               onClick={() => { setSortType('newest'); setCurrentPage(1); }}
-              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 transition-colors cursor-pointer text-[11px] sm:text-xs border ${
+              className={`flex justify-center sm:justify-start px-0.5 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-row items-center gap-1 transition-colors cursor-pointer text-[10px] sm:text-xs border ${
                 sortType === 'newest' ? 'bg-primary text-white border-primary font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              <span className="material-symbols-outlined text-[18px] sm:text-[16px] sm:hidden">schedule</span>
+              <span className="material-symbols-outlined text-[14px] sm:text-[16px]">schedule</span>
               <span className="whitespace-nowrap font-medium sm:font-normal">Mới Nhất</span>
             </button>
 
@@ -198,16 +198,16 @@ export default function AllListingsView() {
                 setSortType(prev => prev === 'price-asc' ? 'price-desc' : 'price-asc'); 
                 setCurrentPage(1); 
               }}
-              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 border transition-colors cursor-pointer text-[11px] sm:text-xs ${
+              className={`flex justify-center sm:justify-start px-0.5 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-row items-center gap-1 border transition-colors cursor-pointer text-[10px] sm:text-xs ${
                 sortType === 'price-asc' || sortType === 'price-desc' ? 'bg-primary text-white border-primary font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
               {sortType === 'price-asc' ? (
-                <span className="material-symbols-outlined text-[18px] sm:text-[16px] font-bold">arrow_upward</span>
+                <span className="material-symbols-outlined text-[14px] sm:text-[16px] font-bold">arrow_upward</span>
               ) : sortType === 'price-desc' ? (
-                <span className="material-symbols-outlined text-[18px] sm:text-[16px] font-bold">arrow_downward</span>
+                <span className="material-symbols-outlined text-[14px] sm:text-[16px] font-bold">arrow_downward</span>
               ) : (
-                <span className="material-symbols-outlined text-[18px] sm:text-[16px]">swap_vert</span>
+                <span className="material-symbols-outlined text-[14px] sm:text-[16px]">swap_vert</span>
               )}
               <span className="whitespace-nowrap font-medium sm:font-normal">Giá</span>
             </button>
