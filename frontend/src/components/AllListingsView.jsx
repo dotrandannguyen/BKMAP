@@ -140,7 +140,7 @@ export default function AllListingsView() {
       <div className="w-full px-4 md:px-[30px] pt-2 relative z-10 max-w-[1400px] mx-auto">
         
         {/* Shopee Sort Bar */}
-        <div className="bg-white sm:bg-slate-100 px-2 sm:px-5 py-2 sm:py-3 rounded-none sm:rounded-lg flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-5 gap-3 border-b sm:border-none border-slate-200 shadow-sm sm:shadow-none">
+        <div className="sticky top-16 sm:relative sm:top-0 z-30 sm:z-10 -mx-4 sm:mx-0 -mt-2 sm:mt-0 w-[calc(100%+2rem)] sm:w-auto bg-white sm:bg-slate-100 px-4 sm:px-5 py-2 sm:py-3 rounded-none sm:rounded-lg flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-5 gap-3 border-b sm:border-none border-slate-200 shadow-sm sm:shadow-none">
           <div className="grid grid-cols-4 sm:flex sm:items-center sm:flex-wrap gap-1.5 sm:gap-2.5 text-[13px] text-slate-600 w-full sm:w-auto">
             <span className="text-slate-500 font-normal shrink-0 hidden sm:block">Sắp xếp theo</span>
             

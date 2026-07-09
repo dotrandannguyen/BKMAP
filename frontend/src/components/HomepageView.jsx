@@ -268,7 +268,7 @@ export default function HomepageView() {
           </div>
 
           {/* Quick-link Chips */}
-          <div className="flex flex-wrap justify-center items-center gap-3 -mt-5 md:-mt-4">
+          <div className="flex flex-wrap justify-center items-center gap-3 -mt-4">
             <span className="text-xs md:text-sm text-on-surface-variant font-medium">Phổ biến:</span>
             {recentSearches && recentSearches.length > 0 ? (
               recentSearches.slice(0, 3).map((searchQuery, idx) => (
