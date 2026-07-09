@@ -271,7 +271,7 @@ export default function HomepageView() {
           <div className="flex flex-wrap justify-center items-center gap-3">
             <span className="text-xs md:text-sm text-on-surface-variant font-medium">Phổ biến:</span>
             {recentSearches && recentSearches.length > 0 ? (
-              recentSearches.map((searchQuery, idx) => (
+              recentSearches.slice(0, 3).map((searchQuery, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleChipClick(searchQuery)}
