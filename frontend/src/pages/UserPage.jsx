@@ -234,7 +234,7 @@ const UserPage = () => {
       <main className="flex-1 overflow-y-auto pb-24 md:pb-10">
         <div className="px-6 py-8 max-w-7xl mx-auto space-y-8">
           {/* Mobile Profile Card */}
-          <div className={`${activeTab !== 'menu' ? 'hidden' : 'block md:hidden'} bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm space-y-4`}>
+          <div className={`${(activeTab === 'history' || activeTab === 'saved') ? 'hidden' : 'block md:hidden'} bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm space-y-4`}>
             <div className="flex items-center gap-3.5">
               {isLoggedIn ? (
                 userAvatar ? (
@@ -405,7 +405,7 @@ const UserPage = () => {
                 Khám phá ngay
               </button>
             </div>
-          ) : activeTab === 'history' ? (
+          ) : (
             <div className="flex flex-col gap-4">
               {sortedListings.map(listing => (
                 <div 
@@ -415,6 +415,14 @@ const UserPage = () => {
                 >
                   <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
                      <img src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'} alt={listing.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                     {listing.verified && (
+                       <div className="absolute top-1.5 left-1.5 z-10">
+                         <span className="bg-white/95 backdrop-blur-sm text-primary text-[8px] sm:text-[10px] font-extrabold px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full flex items-center gap-0.5 shadow-sm">
+                           <span className="material-symbols-outlined text-[10px] sm:text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                           <span className="hidden sm:inline">XÁC THỰC</span>
+                         </span>
+                       </div>
+                     )}
                      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/60 to-transparent flex items-end px-2 pb-1">
                         <span className="text-white text-[9px] font-bold">{getTimeAgo(listing.updatedAt || listing.createdAt || new Date().toISOString())}</span>
                      </div>
@@ -426,11 +434,34 @@ const UserPage = () => {
                         <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary shrink-0">location_on</span>
                         {formatAddressShort(listing.address)}
                       </p>
+                      {listing.distanceText && (
+                        <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium flex items-center gap-0.5 mt-0.5">
+                          <span className="material-symbols-outlined text-[12px] sm:text-[13px]">directions_walk</span>
+                          {listing.distanceText}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-end justify-between mt-2">
-                      <div className="flex items-baseline gap-0.5">
-                        <span className="text-sm sm:text-base font-black text-primary">{formatVND(listing.price)}</span>
-                        <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant">/tháng</span>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-baseline gap-0.5">
+                          <span className="text-sm sm:text-base font-black text-primary">{formatVND(listing.price)}</span>
+                          <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant">/tháng</span>
+                        </div>
+                        {/* Amenities */}
+                        {listing.amenities && listing.amenities.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {listing.amenities.slice(0, 2).map((amenity, idx) => (
+                              <span key={idx} className="text-[8px] sm:text-[10px] bg-slate-100 text-on-surface-variant px-1.5 py-0.5 rounded-md font-semibold truncate max-w-[80px]">
+                                {amenity}
+                              </span>
+                            ))}
+                            {listing.amenities.length > 2 && (
+                              <span className="text-[8px] sm:text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md font-bold">
+                                +{listing.amenities.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSaved(listing.id); }}
@@ -438,123 +469,6 @@ const UserPage = () => {
                       >
                         <Heart size={16} fill={savedIds.map(String).includes(String(listing.id)) ? "currentColor" : "none"} className={savedIds.map(String).includes(String(listing.id)) ? "text-red-500" : ""} />
                       </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedListings.map(listing => (
-                <div 
-                  key={listing.id} 
-                  className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group flex flex-col relative"
-                  onClick={() => onSelectListing(listing.id)}
-                >
-                  {/* Cover Photo */}
-                  <div className="relative h-48 w-full overflow-hidden bg-slate-50">
-                    <img 
-                      src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'} 
-                      alt={listing.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      referrerPolicy="no-referrer"
-                    />
-                    
-                    {/* Badges on Top */}
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[90%]">
-                      {listing.verified && (
-                        <span className="bg-white/95 backdrop-blur-md text-primary text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                          <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                          XÁC THỰC
-                        </span>
-                      )}
-                      {listing.tag && !listing.verified && (
-                        <span className="bg-secondary text-white text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-sm">
-                          {listing.tag}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Unfavorite Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSaved(listing.id);
-                      }}
-                      className="absolute top-3 right-3 bg-white/90 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-sm text-red-500 hover:scale-110 active:scale-95 transition-all duration-300 z-10 cursor-pointer flex items-center justify-center border-none"
-                    >
-                      <Heart size={18} fill="currentColor" />
-                    </button>
-
-                    {/* Bottom gradient overlay with time ago and image count */}
-                    <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/75 to-transparent flex items-end justify-between px-3 pb-2.5 pointer-events-none select-none">
-                      <span className="text-white text-[12px] font-bold drop-shadow-md">
-                        {getTimeAgo(listing.updatedAt || listing.createdAt || new Date().toISOString())}
-                      </span>
-                      {listing.images && listing.images.length > 0 && (
-                        <div className="flex items-center gap-1 text-white text-[12px] font-bold drop-shadow-md">
-                          <span>{listing.images.length}</span>
-                          <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>image</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Summary Metadata */}
-                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="space-y-1">
-                        <h4 className="text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
-                          {listing.title}
-                        </h4>
-                        
-                        <p className="text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
-                          {formatVND(listing.price)}
-                          <span className="text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
-                        </p>
-                        
-                        <p className="text-xs text-on-surface-variant font-medium flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
-                          <span className="line-clamp-2">{formatAddressShort(listing.address)}</span>
-                        </p>
-                        
-                        {listing.distanceText && (
-                          <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap mt-1">
-                            <span className="material-symbols-outlined text-[13px]">directions_walk</span>
-                            {listing.distanceText}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Host avatar */}
-                      {listing.host?.avatar ? (
-                        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm overflow-hidden flex-shrink-0 bg-slate-100">
-                          <img
-                            alt={listing.host.name || 'Chủ trọ'}
-                            className="w-full h-full object-cover"
-                            src={listing.host.avatar}
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-indigo-600 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0">
-                          {listing.host?.name ? listing.host.name[0] : 'C'}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Amenity tags */}
-                    <div className="flex flex-nowrap gap-1.5 pt-2 border-t border-outline-variant/15 overflow-hidden">
-                      {listing.amenities?.slice(0, 1).map((amenity, i) => (
-                        <span key={i} className="text-[10px] bg-slate-100 text-on-surface-variant px-2.5 py-1 rounded-md font-semibold font-sans whitespace-nowrap truncate max-w-[150px]">
-                          {amenity}
-                        </span>
-                      ))}
-                      {listing.amenities?.length > 1 && (
-                        <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-md font-bold font-sans whitespace-nowrap shrink-0">
-                          +{listing.amenities.length - 1} khác
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
