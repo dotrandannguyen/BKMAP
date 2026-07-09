@@ -465,9 +465,9 @@ const UserPage = () => {
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleSaved(listing.id); }}
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 active:scale-95 transition-all border-none"
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-50 hover:bg-rose-50 flex items-center justify-center text-slate-400 hover:text-rose-500 active:scale-90 transition-all border border-slate-100/50 cursor-pointer"
                       >
-                        <Heart size={16} fill={savedIds.map(String).includes(String(listing.id)) ? "currentColor" : "none"} className={savedIds.map(String).includes(String(listing.id)) ? "text-red-500" : ""} />
+                        <Heart size={16} fill={savedIds.map(String).includes(String(listing.id)) ? "currentColor" : "none"} className={savedIds.map(String).includes(String(listing.id)) ? "text-rose-500" : ""} />
                       </button>
                     </div>
                   </div>
