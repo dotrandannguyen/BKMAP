@@ -47,6 +47,7 @@ const UserPage = () => {
   const [showOldPassword, setShowOldPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [activeMobileTab, setActiveMobileTab] = React.useState('menu'); // 'menu' | 'saved'
 
   // Reset state when modal opens
   React.useEffect(() => {
@@ -275,7 +276,45 @@ const UserPage = () => {
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          {/* Mobile Utilities Menu */}
+          <div className={`md:hidden space-y-3 ${activeMobileTab === 'menu' ? 'block' : 'hidden'}`}>
+             <h4 className="text-sm font-bold text-slate-500 ml-1">Tiện ích</h4>
+             <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col">
+                <div 
+                  onClick={() => setActiveMobileTab('saved')}
+                  className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 active:bg-slate-100 cursor-pointer border-b border-slate-100 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Heart className="text-slate-500" size={20} />
+                    <span className="font-semibold text-slate-700 text-sm">Tin đã lưu</span>
+                  </div>
+                  <ChevronDown className="text-slate-400 -rotate-90" size={18} />
+                </div>
+                
+                <div 
+                  onClick={() => toast.info('Tính năng này đang được phát triển')}
+                  className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 active:bg-slate-100 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-slate-500 text-[20px]">history</span>
+                    <span className="font-semibold text-slate-700 text-sm">Lịch sử xem tin</span>
+                  </div>
+                  <ChevronDown className="text-slate-400 -rotate-90" size={18} />
+                </div>
+             </div>
+          </div>
+
+          {/* Desktop View & Mobile Saved Tab Content */}
+          <div className={`space-y-8 ${activeMobileTab === 'saved' ? 'block' : 'hidden md:block'}`}>
+            <button 
+              onClick={() => setActiveMobileTab('menu')}
+              className="md:hidden flex items-center gap-2 text-slate-500 hover:text-primary transition-colors cursor-pointer -mt-4 mb-2"
+            >
+              <ChevronDown className="rotate-90" size={20} />
+              <span className="font-semibold text-sm">Quay lại</span>
+            </button>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                 <span className="bg-red-100 text-red-500 w-12 h-12 flex items-center justify-center rounded-2xl">
