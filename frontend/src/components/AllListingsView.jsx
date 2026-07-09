@@ -140,26 +140,28 @@ export default function AllListingsView() {
       <div className="w-full px-4 md:px-[30px] pt-2 relative z-10 max-w-[1400px] mx-auto">
         
         {/* Shopee Sort Bar */}
-        <div className="bg-white sm:bg-slate-100 px-0 sm:px-5 py-2 sm:py-3 rounded-none sm:rounded-lg flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-5 gap-3 border-b sm:border-none border-slate-200 shadow-sm sm:shadow-none">
-          <div className="flex items-center flex-nowrap gap-2 sm:gap-2.5 text-[13px] text-slate-600 overflow-x-auto hide-scrollbar px-4 sm:px-0 pb-1 sm:pb-0 w-full sm:w-auto">
+        <div className="bg-white sm:bg-slate-100 px-2 sm:px-5 py-2 sm:py-3 rounded-none sm:rounded-lg flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-5 gap-3 border-b sm:border-none border-slate-200 shadow-sm sm:shadow-none">
+          <div className="grid grid-cols-4 sm:flex sm:items-center sm:flex-wrap gap-1.5 sm:gap-2.5 text-[13px] text-slate-600 w-full sm:w-auto">
             <span className="text-slate-500 font-normal shrink-0 hidden sm:block">Sắp xếp theo</span>
             
             {/* Filter Toggle Button inside Sort Bar */}
             <button
               onClick={() => setIsFilterOpen(true)}
-              className={`shrink-0 px-3.5 sm:px-4 py-1.5 rounded-full sm:rounded-lg flex items-center gap-1.5 text-[11px] sm:text-xs transition-colors cursor-pointer border ${
+              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs transition-colors cursor-pointer border ${
                 streetFilter || priceRange !== 'all'
                   ? 'bg-primary text-white border-primary font-medium shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              <span className="material-symbols-outlined text-[14px] sm:text-[16px]">filter_alt</span>
-              <span>Bộ lọc</span>
-              {(streetFilter || priceRange !== 'all') && (
-                <span className="bg-white text-primary text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  !
-                </span>
-              )}
+              <div className="relative flex items-center justify-center">
+                <span className="material-symbols-outlined text-[18px] sm:text-[16px]">filter_alt</span>
+                {(streetFilter || priceRange !== 'all') && (
+                  <span className="absolute -top-1 -right-1.5 bg-white text-primary text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
+                    !
+                  </span>
+                )}
+              </div>
+              <span className="whitespace-nowrap font-medium sm:font-normal">Bộ lọc</span>
             </button>
 
             {/* Gần Bách khoa Button */}
@@ -168,45 +170,46 @@ export default function AllListingsView() {
                 setSortType(prev => prev === 'distance' ? 'newest' : 'distance');
                 setCurrentPage(1);
               }}
-              className={`shrink-0 px-3.5 sm:px-4 py-1.5 rounded-full sm:rounded-lg flex items-center gap-1.5 text-[11px] sm:text-xs transition-colors cursor-pointer border ${
+              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs transition-colors cursor-pointer border ${
                 sortType === 'distance'
                   ? 'bg-primary text-white border-primary font-medium shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              <span className="material-symbols-outlined text-[14px] sm:text-[16px]">near_me</span>
-              <span>Gần Bách khoa</span>
+              <span className="material-symbols-outlined text-[18px] sm:text-[16px]">near_me</span>
+              <span className="whitespace-nowrap sm:hidden font-medium">Gần BK</span>
+              <span className="whitespace-nowrap hidden sm:inline">Gần Bách khoa</span>
             </button>
             
+            {/* Newest Button */}
             <button
               onClick={() => { setSortType('newest'); setCurrentPage(1); }}
-              className={`shrink-0 px-3.5 sm:px-4 py-1.5 rounded-full sm:rounded-lg transition-colors cursor-pointer text-[11px] sm:text-xs border ${
+              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 transition-colors cursor-pointer text-[11px] sm:text-xs border ${
                 sortType === 'newest' ? 'bg-primary text-white border-primary font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              Mới Nhất
+              <span className="material-symbols-outlined text-[18px] sm:text-[16px] sm:hidden">schedule</span>
+              <span className="whitespace-nowrap font-medium sm:font-normal">Mới Nhất</span>
             </button>
 
-            {/* Price Ascending Button */}
+            {/* Combined Price Sort Button */}
             <button
-              onClick={() => { setSortType('price-asc'); setCurrentPage(1); }}
-              className={`shrink-0 px-3.5 sm:px-4 py-1.5 rounded-full sm:rounded-lg transition-colors cursor-pointer text-[11px] sm:text-xs flex items-center gap-1 border ${
-                sortType === 'price-asc' ? 'bg-primary text-white border-primary font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+              onClick={() => { 
+                setSortType(prev => prev === 'price-asc' ? 'price-desc' : 'price-asc'); 
+                setCurrentPage(1); 
+              }}
+              className={`flex justify-center sm:justify-start px-1 sm:px-4 py-2 sm:py-1.5 rounded-lg flex-col sm:flex-row items-center gap-1 border transition-colors cursor-pointer text-[11px] sm:text-xs ${
+                sortType === 'price-asc' || sortType === 'price-desc' ? 'bg-primary text-white border-primary font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              <span>Giá</span>
-              <span className="material-symbols-outlined text-[13px] font-bold">arrow_upward</span>
-            </button>
-
-            {/* Price Descending Button */}
-            <button
-              onClick={() => { setSortType('price-desc'); setCurrentPage(1); }}
-              className={`shrink-0 px-3.5 sm:px-4 py-1.5 rounded-full sm:rounded-lg transition-colors cursor-pointer text-[11px] sm:text-xs flex items-center gap-1 border ${
-                sortType === 'price-desc' ? 'bg-primary text-white border-primary font-medium shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
-              }`}
-            >
-              <span>Giá</span>
-              <span className="material-symbols-outlined text-[13px] font-bold">arrow_downward</span>
+              {sortType === 'price-asc' ? (
+                <span className="material-symbols-outlined text-[18px] sm:text-[16px] font-bold">arrow_upward</span>
+              ) : sortType === 'price-desc' ? (
+                <span className="material-symbols-outlined text-[18px] sm:text-[16px] font-bold">arrow_downward</span>
+              ) : (
+                <span className="material-symbols-outlined text-[18px] sm:text-[16px]">swap_vert</span>
+              )}
+              <span className="whitespace-nowrap font-medium sm:font-normal">Giá</span>
             </button>
           </div>
           
