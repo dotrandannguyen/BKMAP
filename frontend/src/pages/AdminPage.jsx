@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useListingStore } from '../stores/listingStore';
 import { toast } from 'react-toastify';
+import { getApiUrl } from '../utils/apiConfig.js';
 import {
   LayoutDashboard,
   Users,
@@ -32,10 +33,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-const API_URL =
-  import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000/api'
-    ? import.meta.env.VITE_API_URL
-    : `http://${window.location.hostname}:3000/api`;
+const API_URL = getApiUrl();
 
 const confirmAction = (message, onConfirm) => {
   let toastId = null;

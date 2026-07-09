@@ -1,0 +1,49 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Copy backend files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "backend/"
+          target: "/opt/bkmap"
+          overwrite: true
+
+      - name: Build and Restart Docker on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /opt/bkmap/backend
+
+            # Rebuild và khởi động lại
+            docker compose -f docker-compose.prod.yml up -d --build
+
+            # Dọn dẹp Docker image cũ tránh đầy ổ đĩa
+            docker image prune -f
+
+            # Health check sau deploy
+            echo "Waiting for backend to start..."
+            sleep 15
+            curl -f http://localhost/api/health || echo "⚠️ Health check failed!"
+            docker compose -f docker-compose.prod.yml ps
