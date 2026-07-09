@@ -467,6 +467,7 @@ export default function CreateListingView() {
     'Giường ngủ',
     'Điều hòa',
     'Máy giặt',
+    'Máy nước nóng',
     'Camera an ninh 24/7',
     'Giờ giấc tự do',
     'Không chung chủ',
