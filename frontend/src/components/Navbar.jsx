@@ -147,9 +147,9 @@ export default function Navbar() {
           <span className="text-[10px] font-semibold mt-0.5">Bản đồ</span>
         </Link>
         <Link
-          to="/rooms"
+          to="/all-listings"
           className={`flex flex-col items-center justify-center transition-all ${
-            location.pathname.startsWith('/rooms') ? 'text-primary scale-105 font-bold' : 'text-slate-500'
+            location.pathname.startsWith('/all-listings') ? 'text-primary scale-105 font-bold' : 'text-slate-500'
           }`}
         >
           <span className="material-symbols-outlined text-[22px]">bed</span>
