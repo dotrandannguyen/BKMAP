@@ -472,6 +472,7 @@ const UserPage = () => {
               ))}
             </div>
           )}
+          </div>
         </div>
       </main>
 
