@@ -137,10 +137,9 @@ export default function AllListingsView() {
         style={{ backgroundImage: `url(${bgComingSoon})` }}
       />
       
-      <div className="w-full px-4 md:px-[30px] pt-0 sm:pt-2 relative z-10 max-w-[1400px] mx-auto">
-        
-        {/* Shopee Sort Bar */}
-        <div className="sticky top-16 z-20 bg-white sm:bg-slate-100 px-4 sm:px-5 py-2 sm:py-3 rounded-none sm:rounded-lg flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-5 gap-3 border-b sm:border-none border-slate-200 shadow-sm sm:shadow-none mx-[-16px] sm:mx-0">
+      {/* Shopee Sort Bar (Sticky, Full Width, Flush with Header) */}
+      <div className="sticky top-16 z-20 w-full bg-white border-b border-slate-200/60 shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-[30px] py-2 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="grid grid-cols-4 sm:flex sm:items-center sm:flex-wrap gap-1.5 sm:gap-2.5 text-[13px] text-slate-600 w-full sm:w-auto">
             <span className="text-slate-500 font-normal shrink-0 hidden sm:block">Sắp xếp theo</span>
             
@@ -238,6 +237,9 @@ export default function AllListingsView() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="w-full px-4 md:px-[30px] pt-6 relative z-10 max-w-[1400px] mx-auto">
 
         {/* Grid of Listings */}
         {paginatedListings.length === 0 ? (
