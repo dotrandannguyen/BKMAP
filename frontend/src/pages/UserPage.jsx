@@ -234,7 +234,7 @@ const UserPage = () => {
       <main className="flex-1 overflow-y-auto pb-24 md:pb-10">
         <div className="px-6 py-8 max-w-7xl mx-auto space-y-8">
           {/* Mobile Profile Card */}
-          <div className={`${activeTab === 'history' ? 'hidden' : 'block md:hidden'} bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm space-y-4`}>
+          <div className={`${activeTab !== 'menu' ? 'hidden' : 'block md:hidden'} bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm space-y-4`}>
             <div className="flex items-center gap-3.5">
               {isLoggedIn ? (
                 userAvatar ? (
