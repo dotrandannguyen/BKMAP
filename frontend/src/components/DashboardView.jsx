@@ -69,10 +69,7 @@ export default function DashboardView() {
       toast.warning('⏳ Bài đăng này đang chờ Admin duyệt. Vui lòng đợi kết quả trước khi chỉnh sửa tiếp.');
       return;
     }
-    if (room.approvalStatus === 'REJECTED') {
-      toast.error('❌ Bài đăng này đã bị từ chối và không thể chỉnh sửa nữa.');
-      return;
-    }
+
     // Map raw room data sang format của editingListing store
     const listingForEdit = {
       id: room.id,
@@ -257,9 +254,9 @@ export default function DashboardView() {
                           </button>
                           <button
                             onClick={() => onEditListing(room)}
-                            disabled={isPending || room.approvalStatus === 'REJECTED'}
+                            disabled={isPending}
                             className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                              isPending || room.approvalStatus === 'REJECTED'
+                              isPending
                                 ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
                                 : 'bg-indigo-50 text-indigo-600 active:bg-indigo-100 cursor-pointer'
                             }`}
@@ -337,13 +334,13 @@ export default function DashboardView() {
                             </button>
                             <button
                               onClick={() => onEditListing(room)}
-                              disabled={isPending || room.approvalStatus === 'REJECTED'}
+                              disabled={isPending}
                               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors font-bold ${
-                                isPending || room.approvalStatus === 'REJECTED'
+                                isPending
                                   ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
                                   : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 cursor-pointer'
                               }`}
-                              title={isPending ? 'Đang chờ duyệt, không thể sửa' : room.approvalStatus === 'REJECTED' ? 'Bài đăng đã bị từ chối' : 'Sửa tin này'}
+                              title={isPending ? 'Đang chờ duyệt, không thể sửa' : 'Sửa tin này'}
                             >
                               <span className="material-symbols-outlined text-sm">edit</span>
                             </button>
