@@ -234,7 +234,7 @@ const UserPage = () => {
       <main className="flex-1 overflow-y-auto pb-24 md:pb-10">
         <div className="px-6 py-8 max-w-7xl mx-auto space-y-8">
           {/* Mobile Profile Card */}
-          <div className="block md:hidden bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm space-y-4">
+          <div className={`${activeTab === 'history' ? 'hidden' : 'block md:hidden'} bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm space-y-4`}>
             <div className="flex items-center gap-3.5">
               {isLoggedIn ? (
                 userAvatar ? (
@@ -404,6 +404,44 @@ const UserPage = () => {
               >
                 Khám phá ngay
               </button>
+            </div>
+          ) : activeTab === 'history' ? (
+            <div className="flex flex-col gap-4">
+              {sortedListings.map(listing => (
+                <div 
+                  key={listing.id} 
+                  className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-3 flex gap-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]" 
+                  onClick={() => onSelectListing(listing.id)}
+                >
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                     <img src={listing.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'} alt={listing.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                     <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/60 to-transparent flex items-end px-2 pb-1">
+                        <span className="text-white text-[9px] font-bold">{getTimeAgo(listing.updatedAt || listing.createdAt || new Date().toISOString())}</span>
+                     </div>
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                    <div>
+                      <h4 className="font-bold text-sm sm:text-base text-on-surface line-clamp-2 leading-tight">{listing.title}</h4>
+                      <p className="text-[11px] sm:text-xs text-on-surface-variant font-medium line-clamp-1 mt-1 flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary shrink-0">location_on</span>
+                        {formatAddressShort(listing.address)}
+                      </p>
+                    </div>
+                    <div className="flex items-end justify-between mt-2">
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-sm sm:text-base font-black text-primary">{formatVND(listing.price)}</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-on-surface-variant">/tháng</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSaved(listing.id); }}
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 active:scale-95 transition-all border-none"
+                      >
+                        <Heart size={16} fill={savedIds.map(String).includes(String(listing.id)) ? "currentColor" : "none"} className={savedIds.map(String).includes(String(listing.id)) ? "text-red-500" : ""} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
