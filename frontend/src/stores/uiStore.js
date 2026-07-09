@@ -179,4 +179,21 @@ export const useUiStore = create((set, get) => ({
     localStorage.setItem('recentSearches', JSON.stringify(updated));
     set({ recentSearches: updated });
   },
+
+  // Viewed listings history
+  viewedIds: JSON.parse(localStorage.getItem('viewedRoomIds') || '[]'),
+  
+  addViewedRoom: (id) => {
+    if (!id) return;
+    const { viewedIds } = get();
+    const filtered = viewedIds.filter(vId => vId !== id);
+    const updated = [id, ...filtered].slice(0, 30); // Max 30 viewed listings
+    localStorage.setItem('viewedRoomIds', JSON.stringify(updated));
+    set({ viewedIds: updated });
+  },
+
+  clearViewedRooms: () => {
+    localStorage.removeItem('viewedRoomIds');
+    set({ viewedIds: [] });
+  },
 }));

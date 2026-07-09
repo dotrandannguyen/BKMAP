@@ -21,14 +21,21 @@ const UserPage = () => {
   const navigate = useNavigate();
   const { isLoggedIn, userEmail = 'dannguyen@dut.udn.vn', userName, logout, userAvatar, changePassword: changePasswordAction } = useAuthStore();
   const { listings, selectListing } = useListingStore();
-  const { savedIds, favoriteRooms, toggleSaved, loadSavedIds } = useUiStore();
+  const { savedIds, favoriteRooms, toggleSaved, loadSavedIds, viewedIds = [], clearViewedRooms } = useUiStore();
 
   const userDisplayName = userName || userEmail.split('@')[0];
   const savedListings = isLoggedIn
     ? favoriteRooms
     : listings.filter(l => savedIds.includes(l.id));
 
+  const historyListings = viewedIds
+    .map(id => listings.find(l => l.id === id))
+    .filter(Boolean);
+
+  const [activeTab, setActiveTab] = React.useState('menu'); // 'menu' | 'saved' | 'history'
   const [sortBy, setSortBy] = React.useState('newest');
+
+  const currentListings = activeTab === 'history' ? historyListings : savedListings;
 
   React.useEffect(() => {
     if (isLoggedIn) {
@@ -47,7 +54,6 @@ const UserPage = () => {
   const [showOldPassword, setShowOldPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
-  const [activeMobileTab, setActiveMobileTab] = React.useState('menu'); // 'menu' | 'saved'
 
   // Reset state when modal opens
   React.useEffect(() => {
@@ -171,9 +177,19 @@ const UserPage = () => {
 
         {/* Main nav items */}
         <div className="px-3 py-4 space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary/10 text-primary font-bold cursor-pointer">
-            <Heart size={18} fill="currentColor" />
+          <div 
+            onClick={() => setActiveTab('saved')}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold cursor-pointer transition-colors ${activeTab === 'saved' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+          >
+            <Heart size={18} fill={activeTab === 'saved' ? "currentColor" : "none"} />
             <span className="text-sm">Nhà trọ yêu thích</span>
+          </div>
+          <div 
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold cursor-pointer transition-colors ${activeTab === 'history' ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+          >
+            <span className={`material-symbols-outlined text-[20px] ${activeTab === 'history' ? 'text-primary' : ''}`}>history</span>
+            <span className="text-sm font-semibold">Lịch sử xem tin</span>
           </div>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 cursor-pointer transition-colors" onClick={() => navigate('/map')}>
             <Search size={18} />
@@ -253,11 +269,11 @@ const UserPage = () => {
           </div>
 
           {/* Mobile Utilities Menu */}
-          <div className={`md:hidden space-y-3 ${activeMobileTab === 'menu' ? 'block' : 'hidden'}`}>
+          <div className={`md:hidden space-y-3 ${activeTab === 'menu' ? 'block' : 'hidden'}`}>
              <h4 className="text-sm font-bold text-slate-500 ml-1">Tiện ích</h4>
              <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col">
                 <div 
-                  onClick={() => setActiveMobileTab('saved')}
+                  onClick={() => setActiveTab('saved')}
                   className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 active:bg-slate-100 cursor-pointer border-b border-slate-100 transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -268,7 +284,7 @@ const UserPage = () => {
                 </div>
                 
                 <div 
-                  onClick={() => toast.info('Tính năng này đang được phát triển')}
+                  onClick={() => setActiveTab('history')}
                   className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 active:bg-slate-100 cursor-pointer transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -316,10 +332,10 @@ const UserPage = () => {
              )}
           </div>
 
-          {/* Desktop View & Mobile Saved Tab Content */}
-          <div className={`space-y-8 ${activeMobileTab === 'saved' ? 'block' : 'hidden md:block'}`}>
+          {/* Desktop View & Mobile Content */}
+          <div className={`space-y-8 ${activeTab !== 'menu' ? 'block' : 'hidden md:block'}`}>
             <button 
-              onClick={() => setActiveMobileTab('menu')}
+              onClick={() => setActiveTab('menu')}
               className="md:hidden flex items-center gap-2 text-slate-500 hover:text-primary transition-colors cursor-pointer -mt-4 mb-2"
             >
               <ChevronDown className="rotate-90" size={20} />
@@ -329,14 +345,29 @@ const UserPage = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                <span className="bg-red-100 text-red-500 w-12 h-12 flex items-center justify-center rounded-2xl">
-                  <Heart size={24} fill="currentColor" />
-                </span>
-                Nhà trọ yêu thích của tôi
+                {activeTab === 'history' ? (
+                  <>
+                    <span className="bg-blue-100 text-blue-500 w-12 h-12 flex items-center justify-center rounded-2xl">
+                      <span className="material-symbols-outlined text-[24px]">history</span>
+                    </span>
+                    Lịch sử xem tin
+                  </>
+                ) : (
+                  <>
+                    <span className="bg-red-100 text-red-500 w-12 h-12 flex items-center justify-center rounded-2xl">
+                      <Heart size={24} fill="currentColor" />
+                    </span>
+                    Nhà trọ yêu thích của tôi
+                  </>
+                )}
               </h1>
-              <p className="text-sm text-slate-500 font-medium mt-2">Danh sách những phòng trọ bạn đã "tym" để xem lại sau.</p>
+              <p className="text-sm text-slate-500 font-medium mt-2">
+                {activeTab === 'history' 
+                  ? 'Danh sách những phòng trọ bạn đã xem dạo gần đây.'
+                  : 'Danh sách những phòng trọ bạn đã "tym" để xem lại sau.'}
+              </p>
             </div>
-            {savedListings.length > 0 && (
+            {currentListings.length > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-slate-500">Sắp xếp:</span>
                 <select 
@@ -352,12 +383,20 @@ const UserPage = () => {
             )}
           </div>
 
-          {savedListings.length === 0 ? (
+          {currentListings.length === 0 ? (
             <div className="bg-white rounded-3xl border border-slate-200/60 p-12 text-center space-y-4 shadow-sm">
-              <span className="material-symbols-outlined text-6xl text-slate-200">favorite</span>
-              <h3 className="text-lg font-bold text-slate-700">Chưa có nhà trọ yêu thích nào</h3>
+              {activeTab === 'history' ? (
+                <span className="material-symbols-outlined text-6xl text-slate-200">history</span>
+              ) : (
+                <span className="material-symbols-outlined text-6xl text-slate-200">favorite</span>
+              )}
+              <h3 className="text-lg font-bold text-slate-700">
+                {activeTab === 'history' ? 'Chưa có lịch sử xem tin' : 'Chưa có nhà trọ yêu thích nào'}
+              </h3>
               <p className="text-slate-500 text-sm max-w-sm mx-auto">
-                Khi bạn lướt xem phòng trọ, hãy bấm vào biểu tượng trái tim để lưu lại những căn ưng ý nhất nhé.
+                {activeTab === 'history' 
+                  ? 'Bạn chưa xem qua phòng trọ nào gần đây.'
+                  : 'Khi bạn lướt xem phòng trọ, hãy bấm vào biểu tượng trái tim để lưu lại những căn ưng ý nhất nhé.'}
               </p>
               <button 
                 onClick={() => navigate('/map')}

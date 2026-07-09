@@ -43,7 +43,7 @@ export default function DetailView() {
   const navigate = useNavigate();
   const { id } = useParams();
   const listings = useListingStore((s) => s.listings);
-  const { savedIds, toggleSaved } = useUiStore();
+  const { savedIds, toggleSaved, addViewedRoom } = useUiStore();
   const { userRole } = useAuthStore(); // Get userRole from auth store
   const apiFetch = useAdminFetch(); // Use admin fetch hook
 
@@ -58,6 +58,10 @@ export default function DetailView() {
 
   useEffect(() => {
     let cancelled = false;
+
+    if (id && addViewedRoom) {
+      addViewedRoom(id);
+    }
 
     // Sync with store listings cache if loaded
     const cached = listings.find((item) => item.id === id);
