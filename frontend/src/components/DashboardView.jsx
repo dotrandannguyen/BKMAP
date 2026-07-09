@@ -196,120 +196,176 @@ export default function DashboardView() {
               Đăng trọ mới
             </button>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] md:text-xs font-bold text-outline uppercase tracking-wider">
-                  <th className="px-6 py-4">Chỗ ở trọ</th>
-                  <th className="px-6 py-4">Mức giá thuê</th>
-                  <th className="px-6 py-4">Trạng thái</th>
-                  <th className="px-6 py-4 text-center">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs md:text-sm">
-                {myListings.map((room) => {
-                  const isPending = room.approvalStatus === 'PENDING_APPROVAL';
-                  const thumbnail = room.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267';
-                  return (
-                    <tr key={room.id} className={`hover:bg-slate-50/50 transition-colors ${isPending ? 'opacity-75' : ''}`}>
-                      {/* Title col */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-200">
-                            <img
-                              loading="lazy"
-                              alt={room.title}
-                              className="w-full h-full object-cover"
-                              src={thumbnail}
-                              referrerPolicy="no-referrer"
-                            />
-                          </div>
-                          <div>
-                            <span
-                              onClick={() => !isPending && onSelectListing(room.id)}
-                              className={`font-bold text-on-surface line-clamp-1 block leading-tight text-xs sm:text-sm ${isPending ? 'cursor-default' : 'hover:text-primary cursor-pointer'}`}
-                            >
-                              {room.title}
-                            </span>
-                            <span className="text-[10px] text-outline font-semibold uppercase mt-0.5 block">
-                              {formatAddressShort(room.address)}
-                            </span>
-                            {room.rejectionReason && room.approvalStatus === 'REJECTED' && (
-                              <span className="text-[10px] text-red-500 mt-0.5 block">
-                                Lý do: {room.rejectionReason}
-                              </span>
-                            )}
-                          </div>
+          <div>
+            {/* Mobile Card Layout */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {myListings.map((room) => {
+                const isPending = room.approvalStatus === 'PENDING_APPROVAL';
+                const thumbnail = room.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267';
+                return (
+                  <div key={room.id} className={`p-4 flex gap-3 ${isPending ? 'opacity-70' : ''}`}>
+                    {/* Thumbnail */}
+                    <div
+                      className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200 cursor-pointer"
+                      onClick={() => !isPending && onSelectListing(room.id)}
+                    >
+                      <img
+                        loading="lazy"
+                        alt={room.title}
+                        className="w-full h-full object-cover"
+                        src={thumbnail}
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <span
+                          onClick={() => !isPending && onSelectListing(room.id)}
+                          className={`font-bold text-sm text-on-surface line-clamp-1 block leading-tight ${isPending ? 'cursor-default' : 'cursor-pointer active:text-primary'}`}
+                        >
+                          {room.title}
+                        </span>
+                        <span className="text-[10px] text-outline font-medium block mt-0.5 line-clamp-1">
+                          {formatAddressShort(room.address)}
+                        </span>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-sm font-black text-primary">
+                            {formatVND(room.price)}
+                          </span>
+                          <span className="text-[9px] text-outline font-medium">/tháng</span>
                         </div>
-                      </td>
+                        {room.rejectionReason && room.approvalStatus === 'REJECTED' && (
+                          <span className="text-[10px] text-red-500 mt-0.5 block line-clamp-1">
+                            Lý do: {room.rejectionReason}
+                          </span>
+                        )}
+                      </div>
 
-                      {/* Price col */}
-                      <td className="px-6 py-4 font-black text-primary text-xs sm:text-sm whitespace-nowrap">
-                        {formatVND(room.price)}
-                        <span className="text-[10px] font-medium text-outline">/tháng</span>
-                      </td>
-
-                      {/* Approval Status col */}
-                      <td className="px-6 py-4">
+                      {/* Bottom: Badge + Actions */}
+                      <div className="flex items-center justify-between mt-2">
                         <ApprovalBadge approvalStatus={room.approvalStatus} />
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* View */}
+                        <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => onSelectListing(room.id)}
                             disabled={isPending}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isPending ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-slate-100 hover:bg-primary/10 text-on-surface-variant hover:text-primary cursor-pointer'}`}
-                            title={isPending ? 'Đang chờ duyệt' : 'Xem chi tiết'}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isPending ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-slate-100 text-slate-500 active:bg-primary/10 active:text-primary cursor-pointer'}`}
                           >
-                            <span className="material-symbols-outlined text-sm">visibility</span>
+                            <span className="material-symbols-outlined text-[14px]">visibility</span>
                           </button>
-                          {/* Edit */}
                           <button
                             onClick={() => onEditListing(room)}
                             disabled={isPending || room.approvalStatus === 'REJECTED'}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors font-bold ${
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
                               isPending || room.approvalStatus === 'REJECTED'
                                 ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
-                                : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 cursor-pointer'
+                                : 'bg-indigo-50 text-indigo-600 active:bg-indigo-100 cursor-pointer'
                             }`}
-                            title={
-                              isPending
-                                ? 'Đang chờ duyệt, không thể sửa'
-                                : room.approvalStatus === 'REJECTED'
-                                ? 'Bài đăng đã bị từ chối, không thể sửa'
-                                : 'Sửa tin này'
-                            }
                           >
-                            <span className="material-symbols-outlined text-sm">edit</span>
+                            <span className="material-symbols-outlined text-[14px]">edit</span>
                           </button>
-                          {!isPending && room.approvalStatus === 'ADMIN_HIDDEN' && (
-                            <button
-                              disabled
-                              className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 cursor-not-allowed flex items-center justify-center font-bold"
-                              title="Bị Admin khóa ẩn, không thể tự mở"
-                            >
-                              <span className="material-symbols-outlined text-sm">block</span>
-                            </button>
-                          )}
-                          {/* Delete */}
                           <button
                             onClick={() => setDeleteTarget(room)}
-                            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors flex items-center justify-center cursor-pointer font-bold"
-                            title="Xóa tin này"
+                            className="w-7 h-7 rounded-lg bg-red-50 text-red-500 active:bg-red-100 transition-colors flex items-center justify-center cursor-pointer"
                           >
-                            <span className="material-symbols-outlined text-sm">delete</span>
+                            <span className="material-symbols-outlined text-[14px]">delete</span>
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table Layout */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-outline uppercase tracking-wider">
+                    <th className="px-6 py-4">Chỗ ở trọ</th>
+                    <th className="px-6 py-4">Mức giá thuê</th>
+                    <th className="px-6 py-4">Trạng thái</th>
+                    <th className="px-6 py-4 text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {myListings.map((room) => {
+                    const isPending = room.approvalStatus === 'PENDING_APPROVAL';
+                    const thumbnail = room.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267';
+                    return (
+                      <tr key={room.id} className={`hover:bg-slate-50/50 transition-colors ${isPending ? 'opacity-75' : ''}`}>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-200">
+                              <img loading="lazy" alt={room.title} className="w-full h-full object-cover" src={thumbnail} referrerPolicy="no-referrer" />
+                            </div>
+                            <div>
+                              <span
+                                onClick={() => !isPending && onSelectListing(room.id)}
+                                className={`font-bold text-on-surface line-clamp-1 block leading-tight text-sm ${isPending ? 'cursor-default' : 'hover:text-primary cursor-pointer'}`}
+                              >
+                                {room.title}
+                              </span>
+                              <span className="text-[10px] text-outline font-semibold uppercase mt-0.5 block">
+                                {formatAddressShort(room.address)}
+                              </span>
+                              {room.rejectionReason && room.approvalStatus === 'REJECTED' && (
+                                <span className="text-[10px] text-red-500 mt-0.5 block">Lý do: {room.rejectionReason}</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-black text-primary text-sm whitespace-nowrap">
+                          {formatVND(room.price)}
+                          <span className="text-[10px] font-medium text-outline">/tháng</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <ApprovalBadge approvalStatus={room.approvalStatus} />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => onSelectListing(room.id)}
+                              disabled={isPending}
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isPending ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-slate-100 hover:bg-primary/10 text-on-surface-variant hover:text-primary cursor-pointer'}`}
+                              title={isPending ? 'Đang chờ duyệt' : 'Xem chi tiết'}
+                            >
+                              <span className="material-symbols-outlined text-sm">visibility</span>
+                            </button>
+                            <button
+                              onClick={() => onEditListing(room)}
+                              disabled={isPending || room.approvalStatus === 'REJECTED'}
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors font-bold ${
+                                isPending || room.approvalStatus === 'REJECTED'
+                                  ? 'bg-slate-50 text-slate-300 cursor-not-allowed'
+                                  : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600 cursor-pointer'
+                              }`}
+                              title={isPending ? 'Đang chờ duyệt, không thể sửa' : room.approvalStatus === 'REJECTED' ? 'Bài đăng đã bị từ chối' : 'Sửa tin này'}
+                            >
+                              <span className="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            {!isPending && room.approvalStatus === 'ADMIN_HIDDEN' && (
+                              <button disabled className="w-8 h-8 rounded-lg bg-slate-50 text-slate-300 cursor-not-allowed flex items-center justify-center font-bold" title="Bị Admin khóa ẩn">
+                                <span className="material-symbols-outlined text-sm">block</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setDeleteTarget(room)}
+                              className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors flex items-center justify-center cursor-pointer font-bold"
+                              title="Xóa tin này"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
