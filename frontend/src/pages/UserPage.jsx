@@ -108,7 +108,7 @@ const UserPage = () => {
   };
   
   
-  const sortedListings = [...savedListings].sort((a, b) => {
+  const sortedListings = [...currentListings].sort((a, b) => {
     if (sortBy === 'price-asc') return a.price - b.price;
     if (sortBy === 'price-desc') return b.price - a.price;
     return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
