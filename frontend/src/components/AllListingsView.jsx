@@ -130,7 +130,7 @@ export default function AllListingsView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9ff] pb-20 pt-0 sm:pt-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#f8f9ff] pb-20 pt-0 relative font-sans">
       {/* Faded Background Image */}
       <div 
         className="fixed inset-0 z-0 opacity-0 pointer-events-none bg-center bg-no-repeat bg-cover"
@@ -139,7 +139,7 @@ export default function AllListingsView() {
       
       {/* Shopee Sort Bar (Sticky, Full Width, Flush with Header) */}
       <div className="sticky top-16 z-20 w-full bg-white border-b border-slate-200/60 shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-[30px] py-2 sm:py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="grid grid-cols-4 sm:flex sm:items-center sm:flex-wrap gap-1.5 sm:gap-2.5 text-[13px] text-slate-600 w-full sm:w-auto">
             <span className="text-slate-500 font-normal shrink-0 hidden sm:block">Sắp xếp theo</span>
             
@@ -239,7 +239,7 @@ export default function AllListingsView() {
         </div>
       </div>
 
-      <div className="w-full px-4 md:px-[30px] pt-6 relative z-10 max-w-[1400px] mx-auto">
+      <div className="w-full px-6 md:px-12 pt-8 relative z-10 max-w-7xl mx-auto">
 
         {/* Grid of Listings */}
         {paginatedListings.length === 0 ? (
