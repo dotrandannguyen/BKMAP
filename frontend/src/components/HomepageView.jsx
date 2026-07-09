@@ -322,7 +322,7 @@ export default function HomepageView() {
             </div>
           </div>
         ) : (
-          {/* Scrollable list */}
+          /* Scrollable list */
           <div className="flex overflow-x-auto gap-3 sm:gap-6 pb-6 pt-2 scroll-smooth custom-scrollbar snap-x">
             {recentListings.map((item) => (
               <div
