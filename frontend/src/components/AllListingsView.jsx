@@ -297,13 +297,13 @@ export default function AllListingsView() {
                       e.stopPropagation();
                       toggleSaved(item.id, e);
                     }}
-                    className={`absolute top-2 right-2 sm:top-3 sm:right-3 backdrop-blur-md p-1.5 sm:p-2 rounded-full border transition-all duration-300 hover:scale-110 active:scale-90 cursor-pointer shadow-sm ${
+                    className={`absolute top-2 right-2 sm:top-3 sm:right-3 backdrop-blur-md w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
                       savedIds.includes(item.id) 
-                        ? 'bg-white text-rose-500 border-rose-100 shadow-rose-500/10' 
-                        : 'bg-slate-900/30 hover:bg-slate-900/50 text-white border-white/20'
+                        ? 'bg-white/90 text-red-500 shadow-sm' 
+                        : 'bg-white/20 hover:bg-white/40 text-white'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-xs sm:text-lg flex items-center justify-center" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
+                    <span className="material-symbols-outlined text-xs sm:text-lg" style={{ fontVariationSettings: savedIds.includes(item.id) ? "'FILL' 1, 'wght' 600" : "'FILL' 0" }}>
                       favorite
                     </span>
                   </button>
