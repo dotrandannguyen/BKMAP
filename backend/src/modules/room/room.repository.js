@@ -172,12 +172,53 @@ export const roomRepository = {
 		if (filters.search) {
 			const searchPattern = filters.search.trim();
 			if (searchPattern) {
+				const swapTones = (str) => {
+					const map = {
+						'oà': 'òa', 'òa': 'oà',
+						'oá': 'óa', 'óa': 'oá',
+						'oả': 'ỏa', 'ỏa': 'oả',
+						'oã': 'õa', 'õa': 'oã',
+						'oạ': 'ọa', 'ọa': 'oạ',
+						'oé': 'óe', 'óe': 'oé',
+						'oè': 'òe', 'òe': 'oè',
+						'oẻ': 'ỏe', 'ỏe': 'oẻ',
+						'oẽ': 'õe', 'õe': 'oẽ',
+						'oẹ': 'ọe', 'ọe': 'oẹ',
+						'uý': 'úy', 'úy': 'uý',
+						'uỳ': 'ùy', 'ùy': 'uỳ',
+						'uỷ': 'ủy', 'ủy': 'uỷ',
+						'uỹ': 'ũy', 'ũy': 'uỹ',
+						'uỵ': 'ụy', 'ụy': 'uỵ'
+					};
+					return str.replace(/(oà|òa|oá|óa|oả|ỏa|oã|õa|oạ|ọa|oé|óe|oè|òe|oẻ|ỏe|oẽ|õe|oẹ|ọe|uý|úy|uỳ|ùy|uỷ|ủy|uỹ|ũy|uỵ|ụy)/g, (match) => map[match] || match);
+				};
+
+				const variation = swapTones(searchPattern);
+				const patterns = [searchPattern];
+				if (variation !== searchPattern) {
+					patterns.push(variation);
+				}
+
+				const orConditions = [];
+				patterns.forEach(pat => {
+					orConditions.push(
+						{ title: { contains: pat, mode: 'insensitive' } },
+						{ address: { contains: pat, mode: 'insensitive' } },
+						{ description: { contains: pat, mode: 'insensitive' } },
+						{
+							features: {
+								some: {
+									feature: {
+										name: { contains: pat, mode: 'insensitive' }
+									}
+								}
+							}
+						}
+					);
+				});
+
 				andConditions.push({
-					OR: [
-						{ title: { contains: searchPattern, mode: 'insensitive' } },
-						{ address: { contains: searchPattern, mode: 'insensitive' } },
-						{ description: { contains: searchPattern, mode: 'insensitive' } },
-					]
+					OR: orConditions
 				});
 			}
 		}

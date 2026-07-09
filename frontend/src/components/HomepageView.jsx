@@ -29,26 +29,80 @@ export default function HomepageView() {
     if (!localSearch.trim()) return [];
     const term = localSearch.toLowerCase();
     
+    const STATIC_AMENITIES = [
+      'WiFi miễn phí',
+      'Bàn học',
+      'Giường ngủ',
+      'Điều hòa',
+      'Máy giặt',
+      'Máy nước nóng',
+      'Camera an ninh 24/7',
+      'Giờ giấc tự do',
+      'Không chung chủ',
+      'Chung chủ',
+      'Ban công thoáng đãng',
+      'Chỗ để xe rộng rãi'
+    ];
+
+    const swapTones = (str) => {
+      const map = {
+        'oà': 'òa', 'òa': 'oà',
+        'oá': 'óa', 'óa': 'oá',
+        'oả': 'ỏa', 'ỏa': 'oả',
+        'oã': 'õa', 'õa': 'oã',
+        'oạ': 'ọa', 'ọa': 'oạ',
+        'oé': 'óe', 'óe': 'oé',
+        'oè': 'òe', 'òe': 'oè',
+        'oẻ': 'ỏe', 'ỏe': 'oẻ',
+        'oẽ': 'õe', 'õe': 'oẽ',
+        'oẹ': 'ọe', 'ọe': 'oẹ',
+        'uý': 'úy', 'úy': 'uý',
+        'uỳ': 'ùy', 'ùy': 'uỳ',
+        'uỷ': 'ủy', 'ủy': 'uỷ',
+        'uỹ': 'ũy', 'ũy': 'uỹ',
+        'uỵ': 'ụy', 'ụy': 'uỵ'
+      };
+      return str.replace(/(oà|òa|oá|óa|oả|ỏa|oã|õa|oạ|ọa|oé|óe|oè|òe|oẻ|ỏe|oẽ|õe|oẹ|ọe|uý|úy|uỳ|ùy|uỷ|ủy|uỹ|ũy|uỵ|ụy)/g, (match) => map[match] || match);
+    };
+
+    const swappedTerm = swapTones(term);
     const suggestionsSet = new Set();
+
+    // Match against Static Amenities first to ensure they show up prominently
+    STATIC_AMENITIES.forEach(a => {
+      const aLower = a.toLowerCase();
+      const swappedA = swapTones(aLower);
+      if (aLower.includes(term) || swappedA.includes(term) || aLower.includes(swappedTerm)) {
+        suggestionsSet.add(a);
+      }
+    });
     
     listings.forEach(l => {
       // Match Amenities
       if (l.amenities) {
         l.amenities.forEach(a => {
-          if (a.toLowerCase().includes(term)) {
+          const aLower = a.toLowerCase();
+          const swappedA = swapTones(aLower);
+          if (aLower.includes(term) || swappedA.includes(term) || aLower.includes(swappedTerm)) {
             suggestionsSet.add(a);
           }
         });
       }
       
       // Match Room Type
-      if (l.type && l.type.toLowerCase().includes(term)) {
-        suggestionsSet.add(l.type);
+      if (l.type) {
+        const typeLower = l.type.toLowerCase();
+        if (typeLower.includes(term) || typeLower.includes(swappedTerm)) {
+          suggestionsSet.add(l.type);
+        }
       }
       
       // Match Title
-      if (l.title && l.title.toLowerCase().includes(term)) {
-         suggestionsSet.add(l.title);
+      if (l.title) {
+        const titleLower = l.title.toLowerCase();
+        if (titleLower.includes(term) || titleLower.includes(swappedTerm)) {
+          suggestionsSet.add(l.title);
+        }
       }
     });
     
@@ -90,10 +144,11 @@ export default function HomepageView() {
     return timeB - timeA;
   }).slice(0, 10);
 
-  const handleSearchSubmit = () => {
-    setSearchQuery(localSearch);
-    if (localSearch.trim()) {
-      addSearchQuery(localSearch);
+  const handleSearchSubmit = (query) => {
+    const finalSearch = query !== undefined ? query : localSearch;
+    setSearchQuery(finalSearch);
+    if (finalSearch.trim()) {
+      addSearchQuery(finalSearch);
     }
     
     if (localPrice === 'Dưới 1Tr VNĐ') {
@@ -154,20 +209,6 @@ export default function HomepageView() {
         </div>
 
         <div className="relative z-10 w-full max-w-4xl text-center flex flex-col items-center gap-8 mt-[130px]">
-          {/* <div className="space-y-4">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight leading-tight">
-              Hỗ trợ tìm nơi ở <br className="hidden md:block" /> cho{' '}
-              <span className="text-primary relative inline-block">
-                sinh viên Bách Khoa
-                <span className="absolute bottom-1 left-0 w-full h-[6px] bg-sky-200 -z-10 rounded-full"></span>
-              </span>
-            </h1>
-            <p className="text-sm sm:text-base md:text-lg text-on-surface-variant max-w-2xl mx-auto">
-              Nền tảng kết nối sinh viên với các nhà trọ được {' '}
-              <span className="font-semibold text-primary">Đội Tư vấn Sinh viên - Trường Đại học Bách khoa</span> thực hiện.
-            </p>
-          </div> */}
-
           {/* Glassmorphic Search Bar */}
           <div ref={searchContainerRef} className="relative w-full max-w-3xl">
             <div className="glass-card w-full p-1.5 rounded-2xl md:rounded-full flex flex-col md:flex-row gap-3 items-center shadow-2xl">
@@ -188,7 +229,7 @@ export default function HomepageView() {
               </div>
               
               <button
-                onClick={handleSearchSubmit}
+                onClick={() => handleSearchSubmit()}
                 className="w-full md:w-auto bg-primary text-white hover:bg-primary-container px-10 py-2.5 rounded-xl md:rounded-full text-sm font-semibold transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">search</span>
@@ -207,10 +248,7 @@ export default function HomepageView() {
                         onClick={() => {
                           setLocalSearch(item);
                           setShowSuggestions(false);
-                          setTimeout(() => {
-                            // Use a tiny timeout to ensure state is set before submitting
-                            handleSearchSubmit();
-                          }, 50);
+                          handleSearchSubmit(item);
                         }}
                         className="px-4 py-2.5 hover:bg-slate-50 cursor-pointer flex items-center gap-3 transition-colors"
                       >
