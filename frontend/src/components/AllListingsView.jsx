@@ -130,14 +130,14 @@ export default function AllListingsView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9ff] pb-20 pt-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#f8f9ff] pb-20 pt-0 sm:pt-6 relative overflow-hidden font-sans">
       {/* Faded Background Image */}
       <div 
         className="fixed inset-0 z-0 opacity-0 pointer-events-none bg-center bg-no-repeat bg-cover"
         style={{ backgroundImage: `url(${bgComingSoon})` }}
       />
       
-      <div className="w-full px-4 md:px-[30px] pt-2 relative z-10 max-w-[1400px] mx-auto">
+      <div className="w-full px-4 md:px-[30px] pt-0 sm:pt-2 relative z-10 max-w-[1400px] mx-auto">
         
         {/* Shopee Sort Bar */}
         <div className="sticky top-16 z-20 bg-white sm:bg-slate-100 px-4 sm:px-5 py-2 sm:py-3 rounded-none sm:rounded-lg flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-5 gap-3 border-b sm:border-none border-slate-200 shadow-sm sm:shadow-none mx-[-16px] sm:mx-0">
