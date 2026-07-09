@@ -26,10 +26,10 @@ const UserPage = () => {
   const userDisplayName = userName || userEmail.split('@')[0];
   const savedListings = isLoggedIn
     ? favoriteRooms
-    : listings.filter(l => savedIds.includes(l.id));
+    : listings.filter(l => savedIds.map(String).includes(String(l.id)));
 
   const historyListings = viewedIds
-    .map(id => listings.find(l => l.id === id))
+    .map(id => listings.find(l => String(l.id) === String(id)))
     .filter(Boolean);
 
   const [activeTab, setActiveTab] = React.useState('menu'); // 'menu' | 'saved' | 'history'
