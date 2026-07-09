@@ -415,10 +415,6 @@ export default function CreateListingView() {
           errorsMap[issue.path[0]] = issue.message;
         });
         setValidationErrors(errorsMap);
-        
-        // Show first error as a toast warning
-        const firstErrorMsg = result.error.issues[0].message;
-        toast.warning(firstErrorMsg);
         return;
       }
     } else if (step === 2) {
@@ -434,9 +430,6 @@ export default function CreateListingView() {
           errorsMap[issue.path[0]] = issue.message;
         });
         setValidationErrors(errorsMap);
-        
-        const firstErrorMsg = result.error.issues[0].message;
-        toast.warning(firstErrorMsg);
         return;
       }
     } else if (step === 3) {
@@ -450,9 +443,6 @@ export default function CreateListingView() {
           errorsMap[issue.path[0]] = issue.message;
         });
         setValidationErrors(errorsMap);
-        
-        const firstErrorMsg = result.error.issues[0].message;
-        toast.warning(firstErrorMsg);
         return;
       }
     }
