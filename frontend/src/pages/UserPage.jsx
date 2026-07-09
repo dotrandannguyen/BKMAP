@@ -422,9 +422,9 @@ const UserPage = () => {
                   <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                     <div>
                       <h4 className="font-bold text-sm sm:text-base text-on-surface line-clamp-2 leading-tight">{listing.title}</h4>
-                      <p className="text-[11px] sm:text-xs text-on-surface-variant font-medium mt-1 flex items-start gap-0.5">
-                        <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary shrink-0 mt-0.5">location_on</span>
-                        <span className="line-clamp-2">{formatAddressShort(listing.address)}</span>
+                      <p className="text-[11px] sm:text-xs text-on-surface-variant font-medium line-clamp-1 mt-1 flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-[12px] sm:text-[14px] text-primary shrink-0">location_on</span>
+                        {formatAddressShort(listing.address)}
                       </p>
                     </div>
                     <div className="flex items-end justify-between mt-2">
@@ -503,7 +503,7 @@ const UserPage = () => {
                   {/* Summary Metadata */}
                   <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                     <div className="flex justify-between items-start gap-2">
-                      <div className="space-y-1 flex-1 min-w-0">
+                      <div className="space-y-1">
                         <h4 className="text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
                           {listing.title}
                         </h4>
@@ -513,15 +513,15 @@ const UserPage = () => {
                           <span className="text-[10px] font-bold text-on-surface-variant ml-0.5">/tháng</span>
                         </p>
                         
-                        <p className="text-xs text-on-surface-variant font-medium flex items-start gap-1">
-                          <span className="material-symbols-outlined text-sm text-primary shrink-0 mt-0.5">location_on</span>
-                          <span className="line-clamp-3">{formatAddressShort(listing.address)}</span>
+                        <p className="text-xs text-on-surface-variant font-medium flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm text-primary shrink-0">location_on</span>
+                          <span className="line-clamp-2">{formatAddressShort(listing.address)}</span>
                         </p>
                         
                         {listing.distanceText && (
-                          <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-1 flex-wrap">
-                            <span className="material-symbols-outlined text-[13px] shrink-0">directions_walk</span>
-                            <span className="truncate">{listing.distanceText}</span>
+                          <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap mt-1">
+                            <span className="material-symbols-outlined text-[13px]">directions_walk</span>
+                            {listing.distanceText}
                           </p>
                         )}
                       </div>

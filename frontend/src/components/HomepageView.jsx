@@ -328,7 +328,7 @@ export default function HomepageView() {
               <div
                 key={item.id}
                 onClick={() => onSelectListing(item.id)}
-                className="snap-start min-w-[145px] max-w-[175px] sm:min-w-[340px] sm:max-w-[400px] md:min-w-[360px] bg-white rounded-2xl sm:rounded-3xl overflow-hidden hover:scale-[1.01] hover:shadow-xl transition-all duration-300 cursor-pointer shadow-sm flex flex-col group border border-outline-variant/20"
+                className="snap-start min-w-[175px] max-w-[200px] sm:min-w-[340px] sm:max-w-[400px] md:min-w-[360px] bg-white rounded-2xl sm:rounded-3xl overflow-hidden hover:scale-[1.01] hover:shadow-xl transition-all duration-300 cursor-pointer shadow-sm flex flex-col group border border-outline-variant/20"
               >
                 {/* Cover Photo */}
                 <div className="relative h-28 sm:h-48 w-full overflow-hidden">
@@ -382,7 +382,7 @@ export default function HomepageView() {
                 <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between space-y-2.5 sm:space-y-4">
                   <div className="flex justify-between items-start gap-1.5">
                     <div className="space-y-0.5 sm:space-y-1 overflow-hidden">
-                      <h4 className="text-[12px] sm:text-base font-bold text-on-surface line-clamp-1 group-hover:text-primary transition-colors leading-tight">
+                      <h4 className="text-[12px] sm:text-base font-bold text-on-surface line-clamp-2 group-hover:text-primary transition-colors leading-tight">
                         {item.title}
                       </h4>
                       <p className="text-[13px] sm:text-[17px] font-black text-primary leading-none pt-0.5 pb-1 flex items-baseline">
@@ -391,7 +391,7 @@ export default function HomepageView() {
                       </p>
                       <p className="text-[10px] sm:text-xs text-on-surface-variant font-medium flex items-center gap-0.5 sm:gap-1">
                         <span className="material-symbols-outlined text-xs sm:text-sm text-primary shrink-0">location_on</span>
-                        <span className="line-clamp-1 sm:line-clamp-2">{formatAddressShort(item.address)}</span>
+                        <span className="line-clamp-2">{formatAddressShort(item.address)}</span>
                       </p>
                       {item.distanceText && (
                         <p className="text-[9px] sm:text-[11px] text-slate-500 font-medium flex items-center gap-0.5 sm:gap-1 whitespace-nowrap mt-0.5 sm:mt-1">
