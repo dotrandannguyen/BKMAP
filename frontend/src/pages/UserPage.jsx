@@ -241,31 +241,7 @@ const UserPage = () => {
               </div>
             </div>
             
-            {isLoggedIn ? (
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  onClick={() => {
-                    const isGoogleLogin = localStorage.getItem('isGoogleLogin') === 'true';
-                    if (isGoogleLogin) {
-                      toast.warning('Tài khoản của bạn đăng nhập bằng Google, do đó không thể đổi mật khẩu trên hệ thống này.');
-                    } else {
-                      setIsModalOpen(true);
-                    }
-                  }}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold bg-slate-50 active:bg-slate-100 cursor-pointer hover:bg-slate-100 transition-colors"
-                >
-                  <Lock size={14} />
-                  <span>Đổi mật khẩu</span>
-                </button>
-                <button
-                  onClick={() => { logout(); navigate('/login'); }}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100/70 active:bg-red-100 text-xs font-bold cursor-pointer transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[16px]">logout</span>
-                  <span>Đăng xuất</span>
-                </button>
-              </div>
-            ) : (
+            {!isLoggedIn && (
               <button
                 onClick={() => navigate('/login')}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-white text-xs font-bold cursor-pointer hover:bg-primary-container transition-all active:scale-98 shadow-sm shadow-primary/10"
@@ -302,6 +278,42 @@ const UserPage = () => {
                   <ChevronDown className="text-slate-400 -rotate-90" size={18} />
                 </div>
              </div>
+
+             {isLoggedIn && (
+               <>
+                 <h4 className="text-sm font-bold text-slate-500 ml-1 mt-6">Khác</h4>
+                 <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm flex flex-col">
+                    <div 
+                      onClick={() => {
+                        const isGoogleLogin = localStorage.getItem('isGoogleLogin') === 'true';
+                        if (isGoogleLogin) {
+                          toast.warning('Tài khoản của bạn đăng nhập bằng Google, do đó không thể đổi mật khẩu trên hệ thống này.');
+                        } else {
+                          setIsModalOpen(true);
+                        }
+                      }}
+                      className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 active:bg-slate-100 cursor-pointer border-b border-slate-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Lock className="text-slate-500" size={20} />
+                        <span className="font-semibold text-slate-700 text-sm">Đổi mật khẩu</span>
+                      </div>
+                      <ChevronDown className="text-slate-400 -rotate-90" size={18} />
+                    </div>
+                    
+                    <div 
+                      onClick={() => { logout(); navigate('/login'); }}
+                      className="flex items-center justify-between p-4 bg-white hover:bg-red-50 active:bg-red-100 cursor-pointer transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-red-500 text-[20px]">logout</span>
+                        <span className="font-semibold text-red-500 text-sm">Đăng xuất</span>
+                      </div>
+                      <ChevronDown className="text-red-400 -rotate-90" size={18} />
+                    </div>
+                 </div>
+               </>
+             )}
           </div>
 
           {/* Desktop View & Mobile Saved Tab Content */}
