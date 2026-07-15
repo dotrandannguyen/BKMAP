@@ -56,9 +56,17 @@ export default function MapView() {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
+    const daNangBounds = L.latLngBounds(
+      L.latLng(15.85, 107.85), // Góc tây nam (Hòa Vang / giáp Quảng Nam)
+      L.latLng(16.25, 108.35)  // Góc đông bắc (Bán đảo Sơn Trà / Đèo Hải Vân)
+    );
+
     // Create Leaflet map centered at DUT: 16.07380, 108.14990
     const map = L.map(mapContainerRef.current, {
-      zoomControl: false // Disable default zoom control to use our custom UI
+      zoomControl: false, // Disable default zoom control to use our custom UI
+      minZoom: 12,
+      maxBounds: daNangBounds,
+      maxBoundsViscosity: 1.0 // Ghim giữ bản đồ không bị kéo ra ngoài thành phố
     }).setView([16.07380, 108.14990], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
