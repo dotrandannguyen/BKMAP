@@ -18,6 +18,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+const daNangBounds = [
+  [15.85, 107.85], // Góc tây nam (Hòa Vang / giáp Quảng Nam)
+  [16.25, 108.35]  // Góc đông bắc (Bán đảo Sơn Trà / Đèo Hải Vân)
+];
+
 // useAdminFetch hook (copied from AdminPage.jsx)
 const API_URL = getApiUrl();
 
@@ -684,6 +689,9 @@ export default function DetailView() {
                     <MapContainer 
                       center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07380, 108.14990]} 
                       zoom={15} 
+                      minZoom={12}
+                      maxBounds={daNangBounds}
+                      maxBoundsViscosity={1.0}
                       style={{ height: '100%', width: '100%' }}
                     >
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -787,6 +795,9 @@ export default function DetailView() {
               <MapContainer 
                 center={listing.lat && listing.lng ? [listing.lat, listing.lng] : [16.07380, 108.14990]} 
                 zoom={16} 
+                minZoom={12}
+                maxBounds={daNangBounds}
+                maxBoundsViscosity={1.0}
                 style={{ height: '100%', width: '100%' }}
               >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
