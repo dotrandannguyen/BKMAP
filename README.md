@@ -1,122 +1,167 @@
-# BKMAP - Bản đồ Phòng trọ Bách Khoa 🗺️
+# BKMAP - Student Housing Map 🗺️
 
-Chào mừng bạn đến với dự án **BKMAP** - Nền tảng bản đồ tương tác giúp sinh viên Bách Khoa và các trường Đại học khu vực dễ dàng tra cứu, tìm kiếm, đánh giá và đăng tải thông tin phòng trọ.
-
----
-
-## 🏗️ Kiến trúc Công nghệ (Tech Stack)
-
-Dự án được xây dựng theo mô hình Monorepo hiện đại, bao gồm:
-
-*   **Frontend:** React, Vite, Tailwind CSS, Zustand, Leaflet (Maps).
-*   **Backend:** Node.js, Express, Prisma ORM.
-*   **Database & Storage:** PostgreSQL (Supabase), Redis (Caching).
-*   **Deployment (Production):** AWS EC2, Docker Compose, Caddy (Auto HTTPS), GitHub Actions (CI/CD).
+Welcome to **BKMAP** – an interactive housing map platform that helps students at Da Nang University of Science and Technology (DUT) and nearby universities search, discover, review, and publish rental room information.
 
 ---
 
-## 🛠️ Yêu cầu Hệ thống (Prerequisites)
+## 🏗️ Tech Stack
 
-Để chạy dự án trên máy cá nhân, bạn cần cài đặt:
-1. **Node.js**: >= 18.x (Khuyên dùng v20 LTS).
-2. **PostgreSQL**: DB Local hoặc sử dụng Database Cloud như Supabase.
-3. **Redis**: (Tùy chọn cho local) Dùng để test tính năng cache/rate-limit.
-4. **Git**: Quản lý phiên bản.
+This project follows a modern **Monorepo** architecture.
+
+- **Frontend:** React, Vite, Tailwind CSS, Zustand, Leaflet (Maps)
+- **Backend:** Node.js, Express, Prisma ORM
+- **Database & Storage:** PostgreSQL (Supabase), Redis (Caching)
+- **Production Deployment:** AWS EC2, Docker Compose, Caddy (Automatic HTTPS), GitHub Actions (CI/CD)
 
 ---
 
-## 💻 Hướng dẫn Chạy Local (Dành cho Devs)
+## 🛠️ Prerequisites
 
-### 1. Khởi động Backend
+Before running the project locally, make sure you have installed:
+
+1. **Node.js** >= 18.x (Recommended: v20 LTS)
+2. **PostgreSQL** (Local database or a cloud service such as Supabase)
+3. **Redis** (Optional for local development; used for caching and rate limiting)
+4. **Git**
+
+---
+
+## 💻 Local Development
+
+### 1. Start the Backend
 
 ```bash
 cd backend
 npm install
 ```
 
-**Cấu hình Biến môi trường (`backend/.env`):**
-Tạo file `.env` và thiết lập các biến cơ bản:
+### Configure Environment Variables (`backend/.env`)
+
+Create a `.env` file and configure the following variables:
+
 ```env
 PORT=3000
 DATABASE_URL="postgresql://<user>:<password>@localhost:5432/bkmap_db"
-ACCESS_JWT_SECRET="mat_khau_bi_mat_access"
-REFRESH_JWT_SECRET="mat_khau_bi_mat_refresh"
+ACCESS_JWT_SECRET="your_access_jwt_secret"
+REFRESH_JWT_SECRET="your_refresh_jwt_secret"
 NODE_ENV="development"
 FRONTEND_URL="http://localhost:5173"
 REDIS_HOST="localhost"
 ```
 
-**Khởi tạo Database & Chạy Server:**
+### Initialize the Database & Start the Server
+
 ```bash
-# Đồng bộ Schema từ Prisma xuống DB
+# Synchronize the Prisma schema with the database
 npx prisma db push
 
-# Chạy backend server (Cổng 3000)
+# Start the backend server (Port 3000)
 npm run dev
 ```
 
-### 2. Khởi động Frontend
+---
 
-Mở một Terminal mới:
+### 2. Start the Frontend
+
+Open a new terminal:
+
 ```bash
 cd frontend
 npm install
 ```
 
-**Cấu hình Biến môi trường (`frontend/.env`):**
-Tạo file `.env`:
+### Configure Environment Variables (`frontend/.env`)
+
+Create a `.env` file:
+
 ```env
 VITE_API_URL=http://localhost:3000/api
 VITE_SUPABASE_URL=https://<your-project>.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
-**Chạy Ứng dụng:**
+### Run the Application
+
 ```bash
-# Chạy frontend web (Cổng 5173)
+# Start the frontend development server (Port 5173)
 npm run dev
 ```
-Truy cập: `http://localhost:5173`
+
+Open your browser and visit:
+
+```
+http://localhost:5173
+```
 
 ---
 
-## 🚀 Triển khai Production (CI/CD)
+## 🚀 Production Deployment (CI/CD)
 
-BKMAP được tự động hóa triển khai (CI/CD) thông qua **GitHub Actions**.
+BKMAP uses **GitHub Actions** to automate its deployment process.
 
-1.  **Kiến trúc:** Giao diện tĩnh (Frontend) và API Server (Backend) cùng được host trên AWS EC2 (`t3.small`).
-2.  **Web Server:** Sử dụng **Caddy** làm Reverse Proxy để phục vụ file tĩnh và chuyển tiếp API. Caddy tự động cấp phát và gia hạn chứng chỉ SSL (HTTPS) cho tên miền `bksmap-tvsv-dut.id.vn`.
-3.  **Luồng Hoạt động:**
-    *   Push code lên nhánh `main`/`master`.
-    *   Action `deploy-frontend` sẽ build giao diện và SCP trực tiếp vào EC2.
-    *   Action `deploy-backend` sẽ kéo code mới và chạy lại Docker Compose (`backend` + `caddy` + `redis`).
+### Infrastructure
 
-*(Để xem hướng dẫn setup server từ đầu, vui lòng tham khảo cẩm nang cơ sở hạ tầng nội bộ).*
+- Both the **Frontend** and **Backend** are hosted on an **AWS EC2 (`t3.small`)** instance.
+- **Caddy** serves as the reverse proxy, delivering static frontend assets and forwarding API requests to the backend.
+- Caddy automatically provisions and renews HTTPS certificates for the domain:
+
+```
+bksmap-tvsv-dut.id.vn
+```
+
+### Deployment Workflow
+
+- Push code to the `main` or `master` branch.
+- The **deploy-frontend** workflow builds the frontend and uploads the generated files directly to the EC2 instance via SCP.
+- The **deploy-backend** workflow pulls the latest source code and restarts the services using Docker Compose (`backend`, `caddy`, and `redis`).
+
+> For the complete server setup guide, please refer to the internal infrastructure documentation.
+
+---
+
+## 🤝 Git Workflow
+
+### 1. Update Your Local Repository
+
+```bash
+git checkout master
+git pull origin master
+```
+
+### 2. Create a New Branch
+
+Create a separate branch for each feature or bug fix.
+
+```bash
+git checkout -b feat/search-rooms
+```
+
+### 3. Commit Your Changes
+
+Write clear and meaningful commit messages.
+
+```bash
+git add .
+git commit -m "feat: Add room search API by price"
+```
+
+**Commit Prefix Convention**
+
+| Prefix | Description |
+|---------|-------------|
+| `feat:` | New feature |
+| `fix:` | Bug fix |
+| `refactor:` | Code refactoring |
+| `docs:` | Documentation changes |
+
+### 4. Push and Create a Pull Request
+
+```bash
+git push origin feat/search-rooms
+```
+
+Then, create a Pull Request on GitHub and request a code review from your teammates before merging.
 
 ---
 
-## 🤝 Quy trình Làm việc Nhóm (Git Workflow)
-
-1.  **Luôn cập nhật code mới nhất trước khi làm việc:**
-    ```bash
-    git checkout master
-    git pull origin master
-    ```
-2.  **Tạo nhánh (Branch) mới cho mỗi tính năng / bug:**
-    ```bash
-    git checkout -b feat/search-rooms
-    ```
-3.  **Commit thay đổi với message rõ ràng:**
-    ```bash
-    git add .
-    git commit -m "feat: Thêm API tìm kiếm phòng trọ theo giá"
-    ```
-    *Quy tắc tiền tố: `feat:` (Tính năng mới), `fix:` (Sửa lỗi), `refactor:` (Tối ưu code), `docs:` (Tài liệu).*
-4.  **Đẩy (Push) nhánh và tạo Pull Request (PR):**
-    ```bash
-    git push origin feat/search-rooms
-    ```
-    Lên GitHub, tạo Pull Request và tag đồng đội vào Review Code trước khi Merge.
-
----
-*Happy Coding! ☕*
+## ☕ Happy Coding!
